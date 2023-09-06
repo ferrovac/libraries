@@ -11,8 +11,8 @@ USAGE:  This class contains all necessary logic for error hanlding to use this c
 TODO:   Define some meaningfull error codes
 */
 
-#ifndef LSC_ERROR_H
-#define LSC_ERROR_H
+#ifndef LscError_H
+#define LscError_H
 
 #include <Arduino.h>
 #include <vector>

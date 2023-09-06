@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#include "LSC_ERROR.h"
+#include "./../LscError_Rev_A/LscError.h"
 #define ERROR_HANDLER ErrorHandler::getInstance() // macro for the ErrorHandler singleton
 #define BEEPER Beeper::getInstance() // macro for the ErrorHandler singleton
 
