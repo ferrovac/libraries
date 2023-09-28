@@ -603,32 +603,59 @@ class LSC{
 
   public:
     // DSUB37
+
     Buttons& buttons;
+    //Connector: D-SUB 37 | Connector Pins: 5,24 | Arduino Pin: 37| Ratings: 24V,0.25A | Comment: set(true)-> Outputs High | GND Pins: D-SUB-37-Pins:1,16,20
     PowerSwitch powerSwitch_0;
+    //Connector: D-SUB 37 | Connector Pins: 6,25 | Arduino Pin: 38| Ratings: 24V,0.25A | Comment: set(true)-> Outputs High | GND Pins: D-SUB-37-Pins:1,16,20
     PowerSwitch powerSwitch_1;
+    //Connector: D-SUB 37 | Connector Pins: 7,26 | Arduino Pin: 29| Ratings: 24V,0.25A | Comment: set(true)-> Outputs High | GND Pins: D-SUB-37-Pins:1,16,20
     PowerSwitch powerSwitch_2;
+    //Connector: D-SUB 37 | Connector Pins: 8,27 | Arduino Pin: 40| Ratings: 24V,0.25A | Comment: set(true)-> Outputs High | GND Pins: D-SUB-37-Pins:1,16,20
     PowerSwitch powerSwitch_3;
+    //Connector: D-SUB 37 | Connector Pins: 9 | Arduino Pin: 41| Ratings: 40V,100mA | Usable Power Pins: 3.3V(Arduino)@D-SUB-37-Pin:3 ; 5V(Arduino))@D-SUB-37-Pin:22 ; 12V,2A@D-SUB-37-Pin:2,21 ; 24V,1.2A@D-SUB-37-Pin:4,23  
     OpenCollectorOutput openCollectorOutput_0;
+    //Connector: D-SUB 37 | Connector Pins: 28 | Arduino Pin: 42| Ratings: 40V,100mA | Usable Power Pins: 3.3V(Arduino)@D-SUB-37-Pin:3 ; 5V(Arduino))@D-SUB-37-Pin:22 ; 12V,2A@D-SUB-37-Pin:2,21 ; 24V,1.2A@D-SUB-37-Pin:4,23  
     OpenCollectorOutput openCollectorOutput_1;
+    //Connector: D-SUB 37 | Connector Pins: 10 | Arduino Pin: 43| Ratings: 40V,100mA | Usable Power Pins: 3.3V(Arduino)@D-SUB-37-Pin:3 ; 5V(Arduino))@D-SUB-37-Pin:22 ; 12V,2A@D-SUB-37-Pin:2,21 ; 24V,1.2A@D-SUB-37-Pin:4,23
     OpenCollectorOutput openCollectorOutput_2;
+    //Connector: D-SUB 37 | Connector Pins: 29 | Arduino Pin: 44| Ratings: 40V,100mA | Usable Power Pins: 3.3V(Arduino)@D-SUB-37-Pin:3 ; 5V(Arduino))@D-SUB-37-Pin:22 ; 12V,2A@D-SUB-37-Pin:2,21 ; 24V,1.2A@D-SUB-37-Pin:4,23
     OpenCollectorOutput openCollectorOutput_3;
+    //Connector: D-SUB 37 | Connector Pins: 11 | Arduino Pin: 45| Ratings: 40V,100mA | Usable Power Pins: 3.3V(Arduino)@D-SUB-37-Pin:3 ; 5V(Arduino))@D-SUB-37-Pin:22 ; 12V,2A@D-SUB-37-Pin:2,21 ; 24V,1.2A@D-SUB-37-Pin:4,23
     OpenCollectorOutput openCollectorOutput_4;
+    //Connector: D-SUB 37 | Connector Pins: 30 | Arduino Pin: 46| Ratings: 40V,100mA | Usable Power Pins: 3.3V(Arduino)@D-SUB-37-Pin:3 ; 5V(Arduino))@D-SUB-37-Pin:22 ; 12V,2A@D-SUB-37-Pin:2,21 ; 24V,1.2A@D-SUB-37-Pin:4,23
     OpenCollectorOutput openCollectorOutput_5;
+    //Connector: D-SUB 37 | Connector Pins: 13 | Arduino Pin: 53| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:31
     DigitalInIsolated digitalInIsolated_0;
+    //Connector: D-SUB 37 | Connector Pins: 32 | Arduino Pin: 51| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:31
     DigitalInIsolated digitalInIsolated_1;
+    //Connector: D-SUB 37 | Connector Pins: 14 | Arduino Pin: 50| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:31
     DigitalInIsolated digitalInIsolated_2;
+    //Connector: D-SUB 37 | Connector Pins: 33 | Arduino Pin: 49| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:12
     DigitalInIsolated digitalInIsolated_3;
+    //Connector: D-SUB 37 | Connector Pins: 15 | Arduino Pin: 53| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:12
     DigitalInIsolated digitalInIsolated_4;
+    //Connector: D-SUB 37 | Connector Pins: 34 | Arduino Pin: 53| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:12
     DigitalInIsolated digitalInIsolated_5;
+    //Connector: D-SUB 37 | Connector Pins: from: 17 to: 35 | Arduino Pin: 34| Ratings: 60V,0.3A
     MOSContact mosContact_0;
+    //Connector: D-SUB 37 | Connector Pins: from: 18 to: 36 | Arduino Pin: 35| Ratings: 60V,0.3A
     MOSContact mosContact_1;
+    //Connector: D-SUB 37 | Connector Pins: from: 19 to: 37 | Arduino Pin: 36| Ratings: 60V,0.3A
     MOSContact mosContact_2;
-    // 4pol binder
+    
+    //CONTINUE HERE WITCH COMMENTS
+    
+    //Connector: 4-Pole-Binder | Connector Pins: 1=GND, 2=negativeIn, 3=positiveIn, 4=I-Ref | Arduino Pin: ADC0(54)| Ratings: 0.2V-3.3V, 12bit | Connect: TODO
     AnalogInPt100 analogInPt100_0;
-    // DSUB25
+    
+    //Connector: 4-Pole-Binder | Connector Pins: 1=GND, 2=negativeIn, 3=positiveIn, 4=I-Ref | Arduino Pin: ADC0(54)| Ratings: 0.2V-3.3V, 12bit | Connect: TODO
     AnalogInPt100 analogInPt100_1;
+    //Connector: 4-Pole-Binder | Connector Pins: 1=GND, 2=negativeIn, 3=positiveIn, 4=I-Ref | Arduino Pin: ADC0(54)| Ratings: 0.2V-3.3V, 12bit | Connect: TODO
     AnalogInPt100 analogInPt100_2;
+    //Connector: 4-Pole-Binder | Connector Pins: 1=GND, 2=negativeIn, 3=positiveIn, 4=I-Ref | Arduino Pin: ADC0(54)| Ratings: 0.2V-3.3V, 12bit | Connect: TODO
     AnalogInGauge analogInGauge_0;
+    //Connector: D-SUB 25 | Connector Pins: signal=19, GND=7 | Arduino Pin: ADC4(58)| Ratings: resolution=12bit, Umin=0v, Umax=10v
     AnalogIn analogIn_0;
     AnalogIn analogIn_1;
     AnalogIn analogIn_2;
