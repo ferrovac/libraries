@@ -588,74 +588,60 @@ class Buttons{
     }
 };
 
-class Dsub37{
+class LSC{
   /*
     TESTED: All connectin have been tested 25.07.23 HOTO
     TODO: On the particualr unit used for testing pin13 seems to be broken
   */
   private:
-      Dsub37() : pin5(37), pin6(38),pin7(39), pin8(40), pin9(41), pin28(42), pin10(43), pin29(44), pin11(45), pin30(46), pin13(53), pin32(51), pin14(50), pin33(49), pin15(48), pin34(47), pin17(34), pin18(35), pin19(36){
-      }
+      LSC() : buttons(Buttons::getInstance()), powerSwitch_0(37), powerSwitch_1(38),powerSwitch_2(39), powerSwitch_3(40), openCollectorOutput_0(41),
+              openCollectorOutput_1(42), openCollectorOutput_2(43), openCollectorOutput_3(44), openCollectorOutput_4(45), openCollectorOutput_5(46),
+               digitalInIsolated_0(53), digitalInIsolated_1(51), digitalInIsolated_2(50), digitalInIsolated_3(49), digitalInIsolated_4(48), 
+               digitalInIsolated_5(47), mosContact_0(34), mosContact_1(35), mosContact_2(36),analogInPt100_0(54),analogInPt100_1(55),
+               analogInPt100_2(56),analogInGauge_0(57), analogIn_0(58),analogIn_1(59),analogIn_2(60),analogIn_3(61),
+               analogOutIsolated_0(66), analogOutIsolated_1(67) {}
 
   public:
-    PowerSwitch pin5;
-    PowerSwitch pin6;
-    PowerSwitch pin7;
-    PowerSwitch pin8;
-    OpenCollectorOutput pin9;
-    OpenCollectorOutput pin28;
-    OpenCollectorOutput pin10;
-    OpenCollectorOutput pin29;
-    OpenCollectorOutput pin11;
-    OpenCollectorOutput pin30;
-    DigitalInIsolated pin13;
-    DigitalInIsolated pin32;
-    DigitalInIsolated pin14;
-    DigitalInIsolated pin33;
-    DigitalInIsolated pin15;
-    DigitalInIsolated pin34;
-    MOSContact pin17;
-    MOSContact pin18;
-    MOSContact pin19;
+    // DSUB37
+    Buttons& buttons;
+    PowerSwitch powerSwitch_0;
+    PowerSwitch powerSwitch_1;
+    PowerSwitch powerSwitch_2;
+    PowerSwitch powerSwitch_3;
+    OpenCollectorOutput openCollectorOutput_0;
+    OpenCollectorOutput openCollectorOutput_1;
+    OpenCollectorOutput openCollectorOutput_2;
+    OpenCollectorOutput openCollectorOutput_3;
+    OpenCollectorOutput openCollectorOutput_4;
+    OpenCollectorOutput openCollectorOutput_5;
+    DigitalInIsolated digitalInIsolated_0;
+    DigitalInIsolated digitalInIsolated_1;
+    DigitalInIsolated digitalInIsolated_2;
+    DigitalInIsolated digitalInIsolated_3;
+    DigitalInIsolated digitalInIsolated_4;
+    DigitalInIsolated digitalInIsolated_5;
+    MOSContact mosContact_0;
+    MOSContact mosContact_1;
+    MOSContact mosContact_2;
+    // 4pol binder
+    AnalogInPt100 analogInPt100_0;
+    // DSUB25
+    AnalogInPt100 analogInPt100_1;
+    AnalogInPt100 analogInPt100_2;
+    AnalogInGauge analogInGauge_0;
+    AnalogIn analogIn_0;
+    AnalogIn analogIn_1;
+    AnalogIn analogIn_2;
+    AnalogIn analogIn_3;
+    AnalogOutIsolated analogOutIsolated_0;
+    AnalogOutIsolated analogOutIsolated_1;
 
-    static Dsub37& getInstance(){
-      static Dsub37 instance;
+
+
+    static LSC& getInstance(){
+      static LSC instance;
       return instance;
     }
-};
-
-class Dsub25{
-  /*
-    TESTED: 
-    TODO: 
-  */
-  private:
-      Dsub25() : pin15(1), pin12(DAC0), pin13(DAC1){
-      }
-
-  public:
-    AnalogInPt100 pin15;
-    AnalogOutIsolated pin12;
-    AnalogOutIsolated pin13;
-
-    static Dsub25& getInstance(){
-      static Dsub25 instance;
-      return instance;
-    }
-};
-
-class LSC { //TODO: This is just a dummy
-  private:
-    int myPrivateVariable;
-
-  public:
-    Dsub37& dsub37;
-    Dsub25& dsub25;
-    LSC(): dsub37(Dsub37::getInstance()), dsub25(Dsub25::getInstance()){
-
-    } // Constructor declaration
-    void myPublicMethod(); // Method de 
-
 };
 
 #endif
