@@ -1,12 +1,3 @@
-#ifndef LSC_H
-#define LSC_H
-
-#include <Arduino.h>
-
-#include "./../LscError_Rev_A/LscError.h"
-#define ERROR_HANDLER ErrorHandler::getInstance() // macro for the ErrorHandler singleton
-#define BEEPER Beeper::getInstance() // macro for the ErrorHandler singleton
-
 /*
 AUTHOR:       Tobias Hofmänner
 DATE:         14.07.2023
@@ -17,6 +8,15 @@ DESCRIPTION:  This class provides objects that represent the hardware of the LSC
 TODO:       Optimize
 RECOURCES:  TIMER: TC3-0 FOR: struct Beeper  
 */
+
+#ifndef LSC_H
+#define LSC_H
+
+#include <Arduino.h>
+
+#include "./../LscError_Rev_A/LscError.h"
+#define ERROR_HANDLER ErrorHandler::getInstance() // macro for the ErrorHandler singleton
+#define BEEPER Beeper::getInstance() // macro for the ErrorHandler singleton
 
 //##################################################
 //########## INPUT/OUTPUT TYPE DEFINITION ##########
