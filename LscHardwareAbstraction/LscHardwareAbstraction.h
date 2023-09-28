@@ -205,6 +205,10 @@ struct AnalogInBase {
 
 //::::: PIN FUNCTION DEFINITIONS :::::
 
+/*
+  If these names are changed, pls update the names in the LSC pinout document aswell 
+*/
+
 /* 
 PowerSwitch (Leistungsschalter)
 24V, 0.25A max
@@ -327,7 +331,7 @@ struct AnalogInPt100 : AnalogInBase{
 };
 
 /* 
-AnalogInGauge (Pfeifer Messzelle)
+AnalogInTPR (Pfeifer Messzelle)
 2.2V to 3.3V, Spannungsteiler Rin=12kOhm, 12bit
 */
 struct AnalogInGauge : AnalogInBase{
@@ -456,12 +460,12 @@ struct Button{
 
 /*
 Singelton class that represents all six physical buttons of the LSC:
-  -bt1
-  -bt2
-  -bt3
-  -bt4
-  -bt5
-  -bt6
+  -bt_0
+  -bt_1
+  -bt_2
+  -bt_3
+  -bt_4
+  -bt_5
 The class provides a function to attach handlers to button press events:
   setOnClickHandler(Button& button, void (*handler)())
 */
@@ -477,84 +481,86 @@ class Buttons{
   */
     //---- END BUTTON EXPLANATION ----
   private:
+    // --- button 0 Callback ---
+    //internal callback gives the optin to execute some local code before calling the external callback
+    static void bt_0_internal_callback(){
+      if(Buttons::getInstance().bt_0.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
+        BEEPER.beep(1);
+        if(bt_0_external_callback != nullptr){ //make sure the external function is set propperly
+          bt_0_external_callback();
+        } 
+      }
+    }    
     // --- button 1 Callback ---
     //internal callback gives the optin to execute some local code before calling the external callback
-    static void bt1_internal_callback(){
-      if(Buttons::getInstance().bt1.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
+    static void bt_1_internal_callback(){
+      if(Buttons::getInstance().bt_1.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
-        if(bt1_external_callback != nullptr){ //make sure the external function is set propperly
-           bt1_external_callback();
+        if(bt_1_external_callback != nullptr){ //make sure the external function is set propperly
+           bt_1_external_callback();
         }
       }
     }
     // --- button 2 Callback ---
     //internal callback gives the optin to execute some local code before calling the external callback
-    static void bt2_internal_callback(){
-      if(Buttons::getInstance().bt2.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
+    static void bt_2_internal_callback(){
+      if(Buttons::getInstance().bt_2.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
-        if(bt2_external_callback != nullptr){ //make sure the external function is set propperly
-          bt2_external_callback();
+        if(bt_2_external_callback != nullptr){ //make sure the external function is set propperly
+          bt_2_external_callback();
         } 
       }
     }
     // --- button 3 Callback ---
     //internal callback gives the optin to execute some local code before calling the external callback
-    static void bt3_internal_callback(){
-      if(Buttons::getInstance().bt3.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
+    static void bt_3_internal_callback(){
+      if(Buttons::getInstance().bt_3.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
-        if(bt3_external_callback != nullptr){ //make sure the external function is set propperly
-          bt3_external_callback();
+        if(bt_3_external_callback != nullptr){ //make sure the external function is set propperly
+          bt_3_external_callback();
         } 
       }
     }    
     // --- button 4 Callback ---
     //internal callback gives the optin to execute some local code before calling the external callback
-    static void bt4_internal_callback(){
-      if(Buttons::getInstance().bt4.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
+    static void bt_4_internal_callback(){
+      if(Buttons::getInstance().bt_4.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
-        if(bt4_external_callback != nullptr){ //make sure the external function is set propperly
-          bt4_external_callback();
+        if(bt_4_external_callback != nullptr){ //make sure the external function is set propperly
+          bt_4_external_callback();
         } 
       }
     }    
     // --- button 5 Callback ---
     //internal callback gives the optin to execute some local code before calling the external callback
-    static void bt5_internal_callback(){
-      if(Buttons::getInstance().bt5.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
+    static void bt_5_internal_callback(){
+      if(Buttons::getInstance().bt_5.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
-        if(bt5_external_callback != nullptr){ //make sure the external function is set propperly
-          bt5_external_callback();
-        } 
-      }
-    }    
-    // --- button 6 Callback ---
-    //internal callback gives the optin to execute some local code before calling the external callback
-    static void bt6_internal_callback(){
-      if(Buttons::getInstance().bt6.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
-        BEEPER.beep(1);
-        if(bt6_external_callback != nullptr){ //make sure the external function is set propperly
-          bt6_external_callback();
+        if(bt_5_external_callback != nullptr){ //make sure the external function is set propperly
+          bt_5_external_callback();
         } 
       }
     }    
 
-    Buttons():bt1(24,bt1_internal_callback), bt2(23,bt2_internal_callback), bt3(22,bt3_internal_callback), bt4(25,bt4_internal_callback), bt5(26,bt5_internal_callback), bt6(27,bt6_internal_callback) {
+    Buttons():bt_0(24,bt_0_internal_callback), bt_1(23,bt_1_internal_callback), bt_2(22,bt_2_internal_callback), bt_3(25,bt_3_internal_callback), bt_4(26,bt_4_internal_callback), bt_5(27,bt_5_internal_callback) {
     }
     
   public:
     //these pointers stor the addreses of the external callbacks
-    static void (*bt1_external_callback)();
-    static void (*bt2_external_callback)();
-    static void (*bt3_external_callback)();
-    static void (*bt4_external_callback)();
-    static void (*bt5_external_callback)();
-    static void (*bt6_external_callback)();
-    Button bt1;
-    Button bt2;
-    Button bt3;
-    Button bt4;
-    Button bt5;
-    Button bt6;
+    static void (*bt_0_external_callback)();
+    static void (*bt_1_external_callback)();
+    static void (*bt_2_external_callback)();
+    static void (*bt_3_external_callback)();
+    static void (*bt_4_external_callback)();
+    static void (*bt_5_external_callback)();
+    
+    Button bt_0;
+    Button bt_1;
+    Button bt_2;
+    Button bt_3;
+    Button bt_4;
+    Button bt_5;
+    
     //singelton lazy init
     static Buttons& getInstance(){
       static Buttons instance;
@@ -564,18 +570,18 @@ class Buttons{
     // button: the button you want to set the handler for
     // handler: a function pointer to the handler function
     static void setOnClickHandler(Button& button, void (*handler)()){ //TODO: ERROR HANDLING we need to make sure that void (*handler)() is a callable funciton. I'm not sure if this is even possible...
-      if(&button == &getInstance().bt1){
-          bt1_external_callback = handler;
-      } else if (&button == &getInstance().bt2){
-          bt2_external_callback = handler;        
-      } else if (&button == &getInstance().bt3){
-          bt3_external_callback = handler;        
-      } else if (&button == &getInstance().bt4){
-          bt4_external_callback = handler;        
-      } else if (&button == &getInstance().bt5){
-          bt5_external_callback = handler;        
-      } else if (&button == &getInstance().bt6){
-          bt6_external_callback = handler;        
+      if(&button == &getInstance().bt_0){
+          bt_0_external_callback = handler;
+      } else if (&button == &getInstance().bt_1){
+          bt_1_external_callback = handler;        
+      } else if (&button == &getInstance().bt_2){
+          bt_2_external_callback = handler;        
+      } else if (&button == &getInstance().bt_3){
+          bt_3_external_callback = handler;        
+      } else if (&button == &getInstance().bt_4){
+          bt_4_external_callback = handler;        
+      } else if (&button == &getInstance().bt_5){
+          bt_5_external_callback = handler;        
       } else{
         ERROR_HANDLER.throwError(0, "You are trying to attach a ButtonOnClick handler to a button that does not exist!", SeverityLevel::NORMAL); //throw an exception if an invalid button has been passed as argument.
       }

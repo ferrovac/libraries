@@ -4,12 +4,12 @@
 #define BEEPER Beeper::getInstance() // macro for the ErrorHandler singleton
 
 
-void (*Buttons::bt1_external_callback)() = nullptr;
-void (*Buttons::bt2_external_callback)() = nullptr;
-void (*Buttons::bt3_external_callback)() = nullptr;
-void (*Buttons::bt4_external_callback)() = nullptr;
-void (*Buttons::bt5_external_callback)() = nullptr;
-void (*Buttons::bt6_external_callback)() = nullptr;
+void (*Buttons::bt_0_external_callback)() = nullptr;
+void (*Buttons::bt_1_external_callback)() = nullptr;
+void (*Buttons::bt_2_external_callback)() = nullptr;
+void (*Buttons::bt_3_external_callback)() = nullptr;
+void (*Buttons::bt_4_external_callback)() = nullptr;
+void (*Buttons::bt_5_external_callback)() = nullptr;
 
 //Handles TC3 interupts. See Beeper for detailed explanation
 void TC3_Handler() {
