@@ -1,6 +1,6 @@
 // LSC.cpp
 #include <vector>
-#include "./LscHardwareAbstraction.h"
+#include "LscHardwareAbstraction.h"
 #define BEEPER Beeper::getInstance() // macro for the ErrorHandler singleton
 
 

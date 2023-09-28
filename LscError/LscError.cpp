@@ -2,7 +2,7 @@
 Metadata in
 */
 
-#include "./LscError.h"
+#include "LscError.h"
 
 // This line defines the static member variable 'errors' of the ErrorHandler class.
 // The static member variable is defined outside of any class or function definition.
