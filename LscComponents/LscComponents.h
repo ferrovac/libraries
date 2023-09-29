@@ -82,6 +82,7 @@ class Components{
                 TemperatureSensor(AnalogInPt100 &analogInPt100, String componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), componentName(componentName) {
                     temperature = 0;
                     displayUnit = Units::Temperature::Unit::C;
+                    ComponentTracker::getInstance().registerComponent(this);
                 }
                 double getTemperature(){
                     update();
@@ -127,7 +128,7 @@ class Components{
         };
         class ComponentTracker{
             private:
-                std::vector<Components> components;
+                std::vector<BaseComponent*> components;
                 ComponentTracker() {}
 
             public:
@@ -137,15 +138,23 @@ class Components{
                     return instance;
                 }
 
-                std::vector<Components> getComponets(){
+                std::vector<BaseComponent*> getComponets(){
                     return components;
                 }
                 
-                void regiserComponent(){
-                    
+                void registerComponent(BaseComponent* component){
+                    components.push_back(component);
+
+                }
+
+                std::vector<String> listAllComponentNames(){
+                    std::vector<String> componentList;
+                    for(BaseComponent* comp : components){
+                        componentList.push_back(comp->getComponentName());
+                    }
+                    return componentList;
                 }
                 
-
         };
 };
 
