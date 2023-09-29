@@ -64,7 +64,7 @@ struct Units{
 class BaseComponent{
     public:
         virtual void update() = 0;
-        virtual String const getComponentStateXML() const = 0;
+        virtual String getComponentStateXML() = 0;
         virtual String const getComponentType() const = 0;
         virtual String const getComponentName() const = 0;
         virtual void setComponentName(const String& name) = 0;
@@ -87,14 +87,14 @@ class Components{
                     update();
                     return temperature;
                 }
-                String getTeperatureAsString(){
+                String getTeperatureAsString() {
                     update();
                     if(displayUnit == Units::Temperature::Unit::K){
                         return String(temperature) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::K);
                     }else if(displayUnit == Units::Temperature::Unit::C){
                         return String(temperature - 273.15) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::C);
                     }else if(displayUnit == Units::Temperature::Unit::F){
-                        return String(temperature * (9/5) - 459.67) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::F);
+                        return String(temperature * (9./5.) - 459.67) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::F);
                     }
                     return "Error";  
                 }
@@ -103,11 +103,18 @@ class Components{
                 }
             
                 void update() override {
-                    temperature = analogInPt100.getVoltage();
+                    temperature = analogInPt100.getTemperature();
                 }
-                String const getComponentStateXML() const override {
-                    return "";
+                String getComponentStateXML() override{
+                    String xml = "<component>\n";
+                    xml += "<type>" + getComponentType() + "</type>\n";
+                    xml += "<name>" + getComponentName() + "</name>\n";
+                    xml += "<temperature>" + String(temperature) + "</temperature>\n";
+                    xml += "<temperatureAsString>" + getTeperatureAsString() + "</temperatureAsString>\n";
+                    xml += "</component>";
+                    return xml;
                 }
+
                 String const getComponentType() const override {
                     return "TemperatureSensor";
                 }
@@ -117,6 +124,28 @@ class Components{
                 void setComponentName(const String& name) override{
                     componentName = name;
                 }
+        };
+        class ComponentTracker{
+            private:
+                std::vector<Components> components;
+                ComponentTracker() {}
+
+            public:
+
+                static ComponentTracker& getInstance() {
+                    static ComponentTracker instance;  // Guaranteed to be created once
+                    return instance;
+                }
+
+                std::vector<Components> getComponets(){
+                    return components;
+                }
+                
+                void regiserComponent(){
+                    
+                }
+                
+
         };
 };
 
