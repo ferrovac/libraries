@@ -58,19 +58,19 @@ struct DigitalOutBase {
     //--- PUBLIC FUNCTIONS ---
 
     //Returns the state of the output
-    bool get() {                  
+    bool getState() {                  
       state = digitalRead(arduinoPin);
       return state;
     }
     //Set the state of the Output
-    void set(bool value)  {
+    void setState(bool value)  {
       digitalWrite(arduinoPin, value);
       state = value;
     }
     //--- OVERLOADS ---
     // =
     DigitalOutBase& operator=(bool value) {
-      set(value);
+      setState(value);
       return *this;
     }
     // implicit bool conversion
@@ -98,7 +98,7 @@ struct DigitalInBase {
     //--- PUBLIC FUNCTIONS ---
 
     //Returns the state of the input
-    bool get() {
+    bool getState() {
       state = digitalRead(arduinoPin);
       return state;
     }
@@ -109,7 +109,7 @@ struct DigitalInBase {
 
     // implicit bool conversion
     operator bool() {
-      get();
+      getState();
       return state;
     }
 };
@@ -134,7 +134,7 @@ struct AnalogOutBase {
     //--- PUBLIC FUNCTIONS ---
 
     //Set the state of the Output
-    virtual void set(double value) {
+    virtual void setVoltage(double value) {
       Assert::dacResolutionIs12bit(); // make sure the resolution is set to 12bit raise an error otherwise
       analogWrite(arduinoPin, (int)value);
       state = value;
@@ -142,19 +142,19 @@ struct AnalogOutBase {
     //--- OVERLOADS ---
     // =
     AnalogOutBase& operator=(double value) {
-      set(value);
+      setVoltage(value);
       return *this;
     }
         // +=
     AnalogOutBase& operator+=(double other) {
       state += other;
-      set(state);
+      setVoltage(state);
       return *this;
     }
     // -=
     AnalogOutBase& operator-=(double other) {
       state -= other;
-      set(state);
+      setVoltage(state);
       return *this;
     }
     // implicit double conversion
@@ -191,7 +191,7 @@ struct AnalogInBase {
       state = (double)analogReadDAC / 4096.0 * 3.3;
     }
     //Returns the voltage of the input
-    virtual double get() {
+    virtual double getVoltage() {
       update();
       return state;  
     }
@@ -199,7 +199,7 @@ struct AnalogInBase {
     // =
     // implicit double conversion
     operator double() {
-      get();
+      getVoltage();
       return state;
     }
 };
@@ -265,7 +265,7 @@ struct AnalogOutIsolated : AnalogOutBase{
     using AnalogOutBase::operator+=;
     using AnalogOutBase::operator-=; 
     //Sets the analog output in Volt 
-    void set(double value) override{
+    void setVoltage(double value) override{
       if((value >= 0.) && (value <= 10.) ){
         int analogWriteDAC = 0;
         analogWriteDAC = (uint)(value / 10.0 * 4095.0);
@@ -297,7 +297,7 @@ struct AnalogIn : AnalogInBase{
       state = (double)analogReadADC / 4096.0 * 10;
     }
     //Returns the voltage of the input
-    double get() override {
+    double getVoltage() override {
       //TODO: assert analogReadResolution == 12
       update();
       return state;
@@ -344,7 +344,7 @@ struct AnalogInPt100 : AnalogInBase{
       state = 273.15 + temp;
     }
     //Returns the temperature of the input in K
-    double get() override {
+    double getTemperature() {
       update();
       return state;
     }
@@ -370,7 +370,7 @@ struct AnalogInGauge : AnalogInBase{
       state = (double)analogReadADC / 4096.0 * 6.3 + 2.2;
     }
     //Returns the voltage of the input
-    double get() override {
+    double getVoltage() override {
       update();
       return state;
     }
@@ -630,6 +630,8 @@ class LSC{
               NVIC_SetPriority(PIOB_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
               NVIC_SetPriority(PIOC_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
               NVIC_SetPriority(PIOD_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
+              analogWriteResolution(12);
+              analogReadResolution(12);
         }
 
   public:
