@@ -57,9 +57,10 @@ struct DigitalOutBase {
     bool state;
     //--- PUBLIC FUNCTIONS ---
 
-    //Update the state of the Output
-    void get() {                  
+    //Returns the state of the output
+    bool get() {                  
       state = digitalRead(arduinoPin);
+      return state;
     }
     //Set the state of the Output
     void set(bool value)  {
@@ -96,7 +97,7 @@ struct DigitalInBase {
     bool state;
     //--- PUBLIC FUNCTIONS ---
 
-    //Update the state of the Input
+    //Returns the state of the input
     bool get() {
       state = digitalRead(arduinoPin);
       return state;
@@ -189,7 +190,7 @@ struct AnalogInBase {
       analogReadDAC = analogRead(arduinoPin);
       state = (double)analogReadDAC / 4096.0 * 3.3;
     }
-    //gets the pin Voltage
+    //Returns the voltage of the input
     virtual double get() {
       update();
       return state;  
@@ -295,7 +296,7 @@ struct AnalogIn : AnalogInBase{
       analogReadADC = analogRead(arduinoPin);
       state = (double)analogReadADC / 4096.0 * 10;
     }
-    //gets the pin Voltage
+    //Returns the voltage of the input
     double get() override {
       //TODO: assert analogReadResolution == 12
       update();
@@ -323,7 +324,7 @@ struct AnalogInPt100 : AnalogInBase{
       analogReadADC = analogRead(arduinoPin);
       state = (double)analogReadADC / 4096.0 * 3.1 + 0.2;
     }
-    //gets the pin Voltage
+    //Returns the voltage of the input
     double get() override {
       update();
       return state;
@@ -331,7 +332,7 @@ struct AnalogInPt100 : AnalogInBase{
 };
 
 /* 
-AnalogInTPR (Pfeifer Messzelle)
+AnalogInGauge (Pfeifer Messzelle)
 2.2V to 3.3V, Spannungsteiler Rin=12kOhm, 12bit
 */
 struct AnalogInGauge : AnalogInBase{
@@ -349,7 +350,7 @@ struct AnalogInGauge : AnalogInBase{
       analogReadADC = analogRead(arduinoPin);
       state = (double)analogReadADC / 4096.0 * 6.3 + 2.2;
     }
-    //gets the pin Voltage
+    //Returns the voltage of the input
     double get() override {
       update();
       return state;
@@ -448,7 +449,7 @@ struct Button{
   public:
     //--- CONSTRUCTOR ---
     Button(uint8_t arduinoPin, void (*callback)()) : arduinoPin(arduinoPin){
-    attachInterrupt(digitalPinToInterrupt(arduinoPin), callback , CHANGE);
+      attachInterrupt(digitalPinToInterrupt(arduinoPin), callback , CHANGE);   
     }
     bool isPressed(){
       return digitalRead(arduinoPin);
@@ -596,10 +597,16 @@ class LSC{
   private:
       LSC() : buttons(Buttons::getInstance()), powerSwitch_0(37), powerSwitch_1(38),powerSwitch_2(39), powerSwitch_3(40), openCollectorOutput_0(41),
               openCollectorOutput_1(42), openCollectorOutput_2(43), openCollectorOutput_3(44), openCollectorOutput_4(45), openCollectorOutput_5(46),
-               digitalInIsolated_0(53), digitalInIsolated_1(51), digitalInIsolated_2(50), digitalInIsolated_3(49), digitalInIsolated_4(48), 
-               digitalInIsolated_5(47), mosContact_0(34), mosContact_1(35), mosContact_2(36),analogInPt100_0(54),analogInPt100_1(55),
-               analogInPt100_2(56),analogInGauge_0(57), analogIn_0(58),analogIn_1(59),analogIn_2(60),analogIn_3(61),
-               analogOutIsolated_0(66), analogOutIsolated_1(67) {}
+              digitalInIsolated_0(53), digitalInIsolated_1(51), digitalInIsolated_2(50), digitalInIsolated_3(49), digitalInIsolated_4(48), 
+              digitalInIsolated_5(47), mosContact_0(34), mosContact_1(35), mosContact_2(36),analogInPt100_0(54),analogInPt100_1(55),
+              analogInPt100_2(56),analogInGauge_0(57), analogIn_0(58),analogIn_1(59),analogIn_2(60),analogIn_3(61),
+              analogOutIsolated_0(66), analogOutIsolated_1(67) {
+              //setting interrup priorities
+              NVIC_SetPriority(PIOA_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
+              NVIC_SetPriority(PIOB_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
+              NVIC_SetPriority(PIOC_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
+              NVIC_SetPriority(PIOD_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
+        }
 
   public:
     // DSUB37
@@ -644,27 +651,29 @@ class LSC{
     //Connector: D-SUB 37 | Connector Pins: from: 19 to: 37 | Arduino Pin: 36| Ratings: 60V,0.3A
     MOSContact mosContact_2;
     
-    //CONTINUE HERE WITCH COMMENTS
-    
-    //Connector: 4-Pole-Binder | Connector Pins: 1=GND, 2=negativeIn, 3=positiveIn, 4=I-Ref | Arduino Pin: ADC0(54)| Ratings: 0.2V-3.3V, 12bit | Connect: TODO
+    //Connector: 4-Pole-Binder | Connector Pins: 1=GND, 2=negativeIn, 3=positiveIn, 4=I-Ref | Arduino Pin: ADC0(54)| Ratings: 0.2V-3.3V, 12bit | It is designed for 4-point measurement connect current wire from I-Ref to GND, and measure voltage from positiveIn to negativeIn
     AnalogInPt100 analogInPt100_0;
     
-    //Connector: 4-Pole-Binder | Connector Pins: 1=GND, 2=negativeIn, 3=positiveIn, 4=I-Ref | Arduino Pin: ADC0(54)| Ratings: 0.2V-3.3V, 12bit | Connect: TODO
+    //Connector: D-SUB-25 | Connector Pins: 1=GND, 2=negativeIn, 15=positiveIn, 14=I-Ref | Arduino Pin: ADC1(55)| Ratings: 0.2V-3.3V, 12bit | It is designed for 4-point measurement connect current wire from I-Ref to GND, and measure voltage from positiveIn to negativeIn
     AnalogInPt100 analogInPt100_1;
-    //Connector: 4-Pole-Binder | Connector Pins: 1=GND, 2=negativeIn, 3=positiveIn, 4=I-Ref | Arduino Pin: ADC0(54)| Ratings: 0.2V-3.3V, 12bit | Connect: TODO
+    //Connector: D-SUB-25 | Connector Pins: 3=GND, 4=negativeIn, 17=positiveIn, 16=I-Ref | Arduino Pin: ADC2(56)| Ratings: 0.2V-3.3V, 12bit | It is designed for 4-point measurement connect current wire from I-Ref to GND, and measure voltage from positiveIn to negativeIn
     AnalogInPt100 analogInPt100_2;
-    //Connector: 4-Pole-Binder | Connector Pins: 1=GND, 2=negativeIn, 3=positiveIn, 4=I-Ref | Arduino Pin: ADC0(54)| Ratings: 0.2V-3.3V, 12bit | Connect: TODO
+    //Connector: D-SUB-25 | Connector Pins: 5=GND, 18=24V, 6=Signal | Arduino Pin: ADC3(57) | Ratings: 2.2V-8.5V, 12bit | Input resistance: 12kOhm
     AnalogInGauge analogInGauge_0;
-    //Connector: D-SUB 25 | Connector Pins: signal=19, GND=7 | Arduino Pin: ADC4(58)| Ratings: resolution=12bit, Umin=0v, Umax=10v
+    //Connector: D-SUB-25 | Connector Pins: Signal=19, GND=7 | Arduino Pin: ADC4(58) | Ratings: 0V-10V, 12bit
     AnalogIn analogIn_0;
+    //Connector: D-SUB-25 | Connector Pins: Signal=20, GND=8 | Arduino Pin: ADC5(59) | Ratings: 0V-10V, 12bit
     AnalogIn analogIn_1;
+    //Connector: D-SUB-25 | Connector Pins: Signal=21, GND=9 | Arduino Pin: ADC6(60) | Ratings: 0V-10V, 12bit
     AnalogIn analogIn_2;
+    //Connector: D-SUB-25 | Connector Pins: Signal=22, GND=10 | Arduino Pin: ADC7(61) | Ratings: 0V-10V, 12bit
     AnalogIn analogIn_3;
+    //Connector: D-SUB-25 | Connector Pins: Signal=12, AGND=24 | Arduino Pin: DAC0(66) | Ratings: 0V-10V, 12bit
     AnalogOutIsolated analogOutIsolated_0;
+    //Connector: D-SUB-25 | Connector Pins: Signal=13, AGND=25 | Arduino Pin: DAC1(67) | Ratings: 0V-10V, 12bit
     AnalogOutIsolated analogOutIsolated_1;
 
-
-
+    //singelton lazy init
     static LSC& getInstance(){
       static LSC instance;
       return instance;
