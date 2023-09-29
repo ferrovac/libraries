@@ -341,7 +341,7 @@ struct AnalogInPt100 : AnalogInBase{
       rPT -= 0.5;
       const double a=-2.429E+02, b=2.279E+00, c=1.674E-03, d=-1.815E-06;
       double temp = (d * pow(rPT, 3) + c * rPT * rPT + b * rPT + a);
-      state = temp;
+      state = 273.15 + temp;
     }
     //Returns the temperature of the input in K
     double get() override {
