@@ -319,12 +319,31 @@ struct AnalogInPt100 : AnalogInBase{
     using AnalogInBase::operator double; 
 
     void update() override{
+      /* 
+        Temperature Calculation:
+        Gain= 1+(49.2/2.7)
+        R_v = 3300 Ohm
+        R_pt = resistance of Pt100 (Temperature Dependent)
+        R_tot = R_v + R_pt
+        ADC12bit Value = 1.241*Gain*R_v*R_pt/R_tot
+        -> This formula can be rewritten to R_pt = ADC12bit * 3300/(78720.8 -ADC12bit)
+    
+        ADC12bit to R_pt: R_pt = ADC12bit * 3300/(78720.8-ADC12bit)
+        Once R_pt is calculated, one can calculate the Temperature by using Binomial Calculation: 
+   
+        T [in degrees Celsius] = a + b*R_pt + c*R_pt^2 + d*R_pt^3
+        where a=-2.429E+02, b=2.279E+00, c=1.674E-03, d=-1.815E-06;
+      */
       Assert::dacResolutionIs12bit();
-      int analogReadADC = 0;
+      uint16_t analogReadADC = 0;
       analogReadADC = analogRead(arduinoPin);
+      double rPT = (double)analogReadADC * 3300. / (78720.8 - (double)analogReadADC);
+      rPT -= 0.5;
+      const double a=-2.429E+02, b=2.279E+00, c=1.674E-03, d=-1.815E-06;
+      double temp = (d * pow(RPt, 3) + c * rPT * tPT + b * rPT + a);
       state = (double)analogReadADC / 4096.0 * 3.1 + 0.2;
     }
-    //Returns the voltage of the input
+    //Returns the temperature of the input in K
     double get() override {
       update();
       return state;
