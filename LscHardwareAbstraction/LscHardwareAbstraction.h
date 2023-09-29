@@ -547,19 +547,24 @@ class Buttons{
     }
     
   public:
-    //these pointers stor the addreses of the external callbacks
+    //these pointers store the addreses of the external callbacks
     static void (*bt_0_external_callback)();
     static void (*bt_1_external_callback)();
     static void (*bt_2_external_callback)();
     static void (*bt_3_external_callback)();
     static void (*bt_4_external_callback)();
     static void (*bt_5_external_callback)();
-    
+    //Top Left
     Button bt_0;
+    //Middle Left
     Button bt_1;
+    //Bottom Left
     Button bt_2;
+    //Top Right
     Button bt_3;
+    //Middle Right
     Button bt_4;
+    //Bottom Right
     Button bt_5;
     
     //singelton lazy init
@@ -609,8 +614,7 @@ class LSC{
         }
 
   public:
-    // DSUB37
-
+    // bt_0 -> Top Left | bt_1 -> Middle Left | bt_2 -> Bottom Left | bt_3 -> Top Right | bt_4 -> Middle Right | bt_5 -> Bottom Right
     Buttons& buttons;
     //Connector: D-SUB 37 | Connector Pins: 5,24 | Arduino Pin: 37| Ratings: 24V,0.25A | Comment: set(true)-> Outputs High | GND Pins: D-SUB-37-Pins:1,16,20
     PowerSwitch powerSwitch_0;
