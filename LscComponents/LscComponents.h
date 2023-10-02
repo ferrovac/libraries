@@ -15,6 +15,25 @@ RECOURCES:  TODO
 #include <vector>
 #include "LscHardwareAbstraction.h"
 
+    //---- UNITS EXPLANATION ----
+/*
+    Generally all calculations should be done in SI units i.e. whenever a value that represents a pysical unit is returned by a function it HAS
+    to be in SI units. Whenever a function returns a value that represents a physical unit as string, the user should be able to select the unit
+    from a list. 
+    Every Unit struct should contain the following:
+    -enum struct Unit
+        This struct should contain a list of all available units. The SI unit should always be the first entry.
+    -struct Conversions
+        For every unit defined, one should implement a function to convert form the SI unit to the others.
+    -function getOptions
+        A function that returns a string vector of all units defined above. The vector has to be in the same order as the enum struct.
+        This function is important for UI automation. As an exemple if we want to create a menue that lets the user set the display unit
+        we need a way to figure out what units are available (i did not figure out a way of doing this only with the struct)
+    -function getSuffix
+        This is a helper function for printing values as String. It should return the string that has to be appended at the end of the value string.
+*/
+    //---- END UNITS EXPLANATION ----
+
 //A list of all available physical units
 struct Units{
     //List of all available temperature units
@@ -27,9 +46,22 @@ struct Units{
             //Fahrenheit
             F 
         };
+        //Provides a collection of conversion funcions
+        struct Conversions{
+            //Converts Kelvin to Celsius
+            static double K_C(double K){
+                return K -273.15;
+            }
+            //Converts Kelvin to Fahrenheit
+            static double K_F(double K){
+                return K * (9./5.) - 459.67;
+            }
+        };
+        //Returns a list of all available temperature units
         static std::vector<String> getOptions(){
             return {"Kelvin", "Celsius", "Fahrenheit"};
         }
+        //Retruns a string that represents the unit suffix
         static String getSuffix(Unit unit){
             const String suffix[]= {"K","°C", "°F"};
             return suffix[static_cast<int>(unit)];
@@ -50,9 +82,30 @@ struct Units{
             //Atmospheres
             atm
         };
+        //Provides a collection of conversion funcions
+        struct Conversions{
+            //Converts Pascal to mbar
+            static double Pa_mbar(double Pa){
+                return Pa * 0.01;
+            }
+            //Converts Pascal to Torr
+            static double Pa_Torr(double Pa){
+                return Pa * 0.0007500617;
+            }
+            //Converts Pascal to psi
+            static double Pa_psi(double Pa){
+                return Pa * 0.0001450377;
+            }
+            //Converts Pascal to atm
+            static double Pa_atm(double Pa){
+                return Pa *0.00000986923;
+            }
+        };
+        //Returns a list of all available pressure units
         static std::vector<String> getOptions(){
             return {"mbar", "Torr mmHg", "Pounds Per Square Inch", "Atmospheres"};
         }
+        //Retruns a string that represents the unit suffix
         static String getSuffix(Unit unit){
             const String suffix[]= {"mbar", "Pa","torr", "psi", "atm"};
             return suffix[static_cast<int>(unit)];
@@ -60,7 +113,8 @@ struct Units{
     };
 };
 
-//The class privides a base that all components should be derived from. 
+
+//The class privides a base that all components should be derived from to enforce design pattern. This class is purely virtual.
 class BaseComponent{
     public:
         virtual void update() = 0;
@@ -70,8 +124,10 @@ class BaseComponent{
         virtual void setComponentName(const String& name) = 0;
 };
 
+//Contains a list of all available system components
 class Components{
     public:
+        //Class that represents a TP100 temperature sensor
         class TemperatureSensor : BaseComponent {
             private:
                 String componentName;
@@ -84,25 +140,28 @@ class Components{
                     displayUnit = Units::Temperature::Unit::C;
                     ComponentTracker::getInstance().registerComponent(this);
                 }
+                //Returns the temperature in K
                 double getTemperature(){
                     update();
                     return temperature;
                 }
+                //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getTeperatureAsString() {
                     update();
                     if(displayUnit == Units::Temperature::Unit::K){
                         return String(temperature) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::K);
                     }else if(displayUnit == Units::Temperature::Unit::C){
-                        return String(temperature - 273.15) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::C);
+                        return String(Units::Temperature::Conversions::K_C(temperature)) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::C);
                     }else if(displayUnit == Units::Temperature::Unit::F){
-                        return String(temperature * (9./5.) - 459.67) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::F);
+                        return String(Units::Temperature::Conversions::K_F(temperature)) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::F);
                     }
                     return "Error";  
                 }
+                //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
                 void setDisplayUnit(Units::Temperature::Unit unit){
                     displayUnit = unit;
                 }
-            
+                //Reads the current temperature and updates the internal state
                 void update() override {
                     temperature = analogInPt100.getTemperature();
                 }
@@ -115,13 +174,15 @@ class Components{
                     xml += "</component>";
                     return xml;
                 }
-
+                //Retuns the component type
                 String const getComponentType() const override {
                     return "TemperatureSensor";
                 }
+                //Returns the component Name
                 String const getComponentName() const override{
                     return componentName;
                 }
+                //Sets the component Name. This name is used for logging and ui purposes
                 void setComponentName(const String& name) override{
                     componentName = name;
                 }

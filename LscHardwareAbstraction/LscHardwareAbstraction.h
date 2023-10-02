@@ -207,7 +207,7 @@ struct AnalogInBase {
 //::::: PIN FUNCTION DEFINITIONS :::::
 
 /*
-  If these names are changed, pls update the names in the LSC pinout document aswell 
+  If these names are changed, pls update the names in the LSC pinout document as well 
 */
 
 /* 
