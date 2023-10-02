@@ -11,7 +11,6 @@ RECOURCES:  TODO
 #define LscOS_H
 
 #include <Arduino.h>
-
 #include "LscError.h"
 
 

@@ -9,8 +9,8 @@ TODO:       Optimize
 RECOURCES:  TIMER: TC3-0 FOR: struct Beeper  
 */
 
-#ifndef LSC_H
-#define LSC_H
+#ifndef LscHardwareAbstraction_H
+#define LscHardwareAbstraction_H
 
 #include <Arduino.h>
 
@@ -285,7 +285,8 @@ AnalogIn (Analog Eingang)
 struct AnalogIn : AnalogInBase{
   public:
     //--- CONSTRUCTOR ---
-    AnalogIn(uint8_t arduinoPin) : AnalogInBase(arduinoPin) {
+    AnalogIn(uint8_t arduinoPin) : AnalogInBase(arduinoPin), 
+      calibrationCurve( {{10, 0. },{18, 0.0012},{40, 0.1116},{65, 0.1995},{104, 0.3001},{146, 0.4001},{187, 0.5004},{228, 0.6009},{270, 0.701},{311, 0.8013},{352, 0.9014},{393, 1.0015},{805, 2.0},{1219, 3.0004},{1631, 4.006},{2043, 5.006},{2456, 6.007},{2866, 7.006},{3279, 8.007},{3689, 9.004},{4060, 9.905},{4088, 9.993}}){
       description = "AnalogIn (Analog Eingang)\n0V to 10V, 12bit, Voltage divider 10KOhm \nArduino PIN: " + String(arduinoPin);
     }
 
@@ -293,8 +294,15 @@ struct AnalogIn : AnalogInBase{
     using AnalogInBase::operator double; 
     void update() override {
       int analogReadADC = 0;
-      analogReadADC = analogRead(arduinoPin);
-      state = (double)analogReadADC / 4096.0 * 10;
+      for(int i = 0; i< 1000;i++){
+        analogReadADC += analogRead(arduinoPin);  
+      }
+      analogReadADC = analogReadADC / 1000.;
+      //analogReadADC = analogRead(arduinoPin);
+      state = adcToVoltage(analogReadADC);
+      double x = (double)analogReadADC;
+      //state = pow(x, 10) * -1.9769377902306896e-33+pow(x, 9) * 4.45070327076997e-29+pow(x, 8) * -4.280606353961094e-25+pow(x, 7) * 2.297439128678856e-21+pow(x, 6) * -7.540210511571309e-18+pow(x, 5) * 1.5592054480380003e-14+pow(x, 4) * -2.0179194102821266e-11+pow(x, 3) * 1.5696790564130045e-08+pow(x, 2) * -6.731910720530184e-06+pow(x, 1) * 0.0037705130175919436 - 0.041751441760416154;
+      if(state<0) state=0;
     }
     //Returns the voltage of the input
     double getVoltage() override {
@@ -302,6 +310,39 @@ struct AnalogIn : AnalogInBase{
       update();
       return state;
     }
+  private:
+    struct CalibrationPairs{
+      int adcValue;
+      double voltage;
+    };
+    double interpolate(double x, double x0, double x1, double y0, double y1) {
+      return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
+    }
+    double adcToVoltage(int adcValue) {
+      // Find the two nearest data points
+      CalibrationPairs *lower = nullptr;
+      CalibrationPairs *upper = nullptr;
+
+      for (size_t i = 0; i < sizeof(calibrationCurve) / sizeof(calibrationCurve[0]); i++) {
+          if (adcValue >= calibrationCurve[i].adcValue) {
+              lower = &calibrationCurve[i];
+          } else {
+              upper = &calibrationCurve[i];
+              break;
+          }
+      }
+
+      // If no upper data point is found, return the voltage of the highest data point
+      if (!upper) {
+          return calibrationCurve[sizeof(calibrationCurve) / sizeof(calibrationCurve[0]) - 1].voltage;
+      }
+
+      // Perform linear interpolation
+      return interpolate(adcValue, lower->adcValue, upper->adcValue, lower->voltage, upper->voltage);
+    }
+    CalibrationPairs calibrationCurve[22];
+
+
 };
 
 /* 
