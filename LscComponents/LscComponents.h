@@ -189,13 +189,17 @@ class Components{
                 }
         };
 
-
+        //Represents a pressure gauge
         class PressureGauge : BaseComponent {
             public:
+                //Collection of all available gauge types
                 enum struct GaugeTypes{
+                    //PKR (Pirani/cold cathode gauge)
                     PKR,
+                    //TPR (ActiveLine Pirani gauge)
                     TPR,
                 };
+                //Returns a list of all available pressure gauges.
                 static std::vector<String> getOptions(){
                     return {"PKR (Pirani/cold cathode gauge)", "TPR (ActiveLine Pirani gauge)"};
                 }
@@ -216,15 +220,15 @@ class Components{
                 String getPressureAsString() {
                     update();
                     if(displayUnit == Units::Pressure::Unit::atm){
-                        return String(Units::Pressure::Conversions::Pa_atm(pressure)) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::atm);
+                        return String(doubleToSciString(Units::Pressure::Conversions::Pa_atm(pressure))) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::atm);
                     }else if(displayUnit == Units::Pressure::Unit::mBar){
-                        return String(SCI(Units::Pressure::Conversions::Pa_mbar(pressure))) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::mBar);
+                        return String(doubleToSciString(Units::Pressure::Conversions::Pa_mbar(pressure))) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::mBar);
                     }else if(displayUnit == Units::Pressure::Unit::psi){
-                        return String(Units::Pressure::Conversions::Pa_psi(pressure)) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::psi);
+                        return String(doubleToSciString(Units::Pressure::Conversions::Pa_psi(pressure))) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::psi);
                     }else if(displayUnit == Units::Pressure::Unit::Torr){
-                        return String(SCI(Units::Pressure::Conversions::Pa_Torr(pressure))) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::Torr);
+                        return String(doubleToSciString(Units::Pressure::Conversions::Pa_Torr(pressure))) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::Torr);
                     }else if(displayUnit == Units::Pressure::Unit::Pa){
-                        return String(SCI(pressure)) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::Pa);
+                        return String(doubleToSciString(pressure)) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::Pa);
                     }
                     return "Error";  
                 }
@@ -263,6 +267,7 @@ class Components{
                 double pressure;
                 Units::Pressure::Unit displayUnit;
                 GaugeTypes gaugeType;
+                //Converts a given voltage to a pressure value, with respect to the given gauge Type
                 static double voltageToPressure(GaugeTypes gauge, double voltage){
                     if(gauge == GaugeTypes::PKR){
                         return voltage;
@@ -272,18 +277,28 @@ class Components{
                     }
                     return 0.;
                 }
-                //This is horrible dont do this... TODO: find a good library to handle this!!!
-                String SCI(double value) {
+                //This is probably horrible and one should not do this, but it works remakably well XD... TODO: find a good library to handle this (MathHelper.h is terrible because it uses a global buffer, which makes it not thead save)!!!
+                String doubleToSciString(double value) {
                     if(value == 0) return "0.000E+00";
                     int exponent = static_cast<int>(floor(log10(value)));
                     double mantissa = value / pow(10, exponent);
-                    if(exponent >=11) return String(mantissa,3) + "E+" + String(exponent);
-                    if(exponent >= 0) return String(mantissa,3) + "E+0" + String(exponent);
-                    if(exponent <= -10) return String(mantissa,3) + "E" + String(exponent);
-                    if(exponent <  0) return String(mantissa,3) + "E-0" + String(abs(exponent));
+                    if(exponent >=11) return String(mantissa,2) + "E+" + String(exponent);
+                    if(exponent >= 0) return String(mantissa,2) + "E+0" + String(exponent);
+                    if(exponent <= -10) return String(mantissa,2) + "E" + String(exponent);
+                    if(exponent <  0) return String(mantissa,2) + "E-0" + String(abs(exponent));
+                    ERROR_HANDLER.throwError(0x0, "Failed to corretly format number in scientific notation. This has to be an error in LscComponents lib. see doubleToSciString()",SeverityLevel::NORMAL);
                     return String(value,10);
                 }
         };        
+        /*
+            The ComponentTracker is resposible to keep track of all instances of components. Every component should have:
+                ComponentTracker::getInstance().registerComponent(this);
+            in the constructor to register the instance with the Tracker. 
+            This is usefull for two main reasons:
+                1. We can create automatic UI menues for all the component that have been defined.
+                2. We can inform external controll/monitoring hardware about which components are available.
+            It is also usefull for debugging. The ComponentTracker is designed as a singelton.
+        */
         class ComponentTracker{
             private:
                 std::vector<BaseComponent*> components;
@@ -292,19 +307,19 @@ class Components{
             public:
 
                 static ComponentTracker& getInstance() {
-                    static ComponentTracker instance;  // Guaranteed to be created once
+                    static ComponentTracker instance;  
                     return instance;
                 }
-
+                //Returns a vector with pointers to all registered components. 
                 std::vector<BaseComponent*> getComponets(){
                     return components;
                 }
-                
+                //Registers the given component with the ComponentTracker
                 void registerComponent(BaseComponent* component){
                     components.push_back(component);
 
                 }
-
+                //Returns a vector with the name strings of all registered components
                 std::vector<String> listAllComponentNames(){
                     std::vector<String> componentList;
                     for(BaseComponent* comp : components){
