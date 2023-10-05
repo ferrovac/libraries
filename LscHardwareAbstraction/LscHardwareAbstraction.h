@@ -13,7 +13,6 @@ RECOURCES:  TIMER: TC3-0 FOR: struct Beeper
 #define LscHardwareAbstraction_H
 
 #include <Arduino.h>
-
 #include "LscError.h"
 #define ERROR_HANDLER ErrorHandler::getInstance() // macro for the ErrorHandler singleton
 #define BEEPER Beeper::getInstance() // macro for the ErrorHandler singleton
@@ -298,11 +297,14 @@ struct AnalogIn : AnalogInBase{
         analogReadADC += analogRead(arduinoPin);  
       }
       analogReadADC = analogReadADC / 1000.;
+      state = analogReadADC;
+      /*
       //analogReadADC = analogRead(arduinoPin);
       state = adcToVoltage(analogReadADC);
       double x = (double)analogReadADC;
       //state = pow(x, 10) * -1.9769377902306896e-33+pow(x, 9) * 4.45070327076997e-29+pow(x, 8) * -4.280606353961094e-25+pow(x, 7) * 2.297439128678856e-21+pow(x, 6) * -7.540210511571309e-18+pow(x, 5) * 1.5592054480380003e-14+pow(x, 4) * -2.0179194102821266e-11+pow(x, 3) * 1.5696790564130045e-08+pow(x, 2) * -6.731910720530184e-06+pow(x, 1) * 0.0037705130175919436 - 0.041751441760416154;
       if(state<0) state=0;
+      */
     }
     //Returns the voltage of the input
     double getVoltage() override {
@@ -461,20 +463,20 @@ struct Beeper {
       description = "Beeper (Piepser)\nArduino PIN: 52";
       beepFor = 0;
       isRunning = false;
-        // ---- SETTUNG UP TIMER TC3-0 START ----
-        // Set Timer 3 to trigger an interrupt every 100m  
-        // Enable Timer 3 peripheral clock
+        // ---- SETTUNG UP TIMER TC1-0 -> TC3_Handler START ----
+        // Set Timer 1 to trigger an interrupt every 100m  
+        // Enable Timer 1 peripheral clock
         pmc_set_writeprotect(false);
         pmc_enable_periph_clk((uint32_t)TC3_IRQn);
-        // Set up Timer 3 channel 0 (TC1) for 10Hz frequency
+        // Set up Timer 1 channel 0 (TC1) for 10Hz frequency
         TC_Configure(TC1, 0, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4);
         TC_SetRC(TC1, 0, 21000); // (84MHz / 4) / 62500 = 100ms
-        // Enable Timer 3 channel 0 interrupt
+        // Enable Timer 1 channel 0 interrupt
         TC1->TC_CHANNEL[0].TC_IER = TC_IER_CPCS;
         TC1->TC_CHANNEL[0].TC_IDR = ~TC_IER_CPCS;
-        NVIC_SetPriority(TC3_IRQn, 0); // Set priority for Timer 3 interrupt
-        NVIC_EnableIRQ(TC3_IRQn); // Enable Timer 3 interrupt
-        // ---- SETTUNG UP TIMER TC3-0 END ----
+        NVIC_SetPriority(TC3_IRQn, 0); // Set priority for IRQn3 interrupt
+        NVIC_EnableIRQ(TC3_IRQn); // Enable Timer IRQn3 interrupt
+        // ---- SETTUNG UP TIMER TC1-0 END ----
      }
 
   public:
@@ -667,12 +669,14 @@ class LSC{
               analogInPt100_2(56),analogInGauge_0(57), analogIn_0(58),analogIn_1(59),analogIn_2(60),analogIn_3(61),
               analogOutIsolated_0(66), analogOutIsolated_1(67) {
               //setting interrup priorities
-              NVIC_SetPriority(PIOA_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
-              NVIC_SetPriority(PIOB_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
-              NVIC_SetPriority(PIOC_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
-              NVIC_SetPriority(PIOD_IRQn, 2); //set external gpio priority (it has to be higher than Beeper timer)
+              NVIC_SetPriority(PIOA_IRQn, 5); //set external gpio priority (it has to be higher than Beeper timer)
+              NVIC_SetPriority(PIOB_IRQn, 5); //set external gpio priority (it has to be higher than Beeper timer)
+              NVIC_SetPriority(PIOC_IRQn, 5); //set external gpio priority (it has to be higher than Beeper timer)
+              NVIC_SetPriority(PIOD_IRQn, 5); //set external gpio priority (it has to be higher than Beeper timer)
               analogWriteResolution(12);
               analogReadResolution(12);
+
+              
         }
 
   public:

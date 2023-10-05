@@ -7,11 +7,16 @@ TODO:
 RECOURCES:  TODO  
 */
 
-#ifndef LscOS_H
-#define LscOS_H
+#ifndef LSCOS_H
+#define LSCOS_H
 
 #include <Arduino.h>
+#include "LscComponents.h"
+#include "LscHardwareAbstraction.h"
 #include "LscError.h"
+
+void osInit();
+
 
 
 #endif

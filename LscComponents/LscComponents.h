@@ -11,7 +11,6 @@ RECOURCES:  TODO
 #define LscComponents_H
 
 #include <Arduino.h>
-#include "LscError.h"
 #include <vector>
 #include "LscHardwareAbstraction.h"
 
