@@ -679,21 +679,23 @@ class LSC{
               analogWriteResolution(12);
               analogReadResolution(12);
 
-              //Setinm
+              //Setting up the uart send timer see Async UART for explenation
               pmc_set_writeprotect(false);
-              pmc_enable_periph_clk(TC2_IRQn); // Set interrupt handler to TCLK5
-              TC_Configure(TC0, 2, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4); // Set external clock input
-              TC_SetRC(TC0, 2, 2281); // Every 100th clock will be invoked interrupt 
+              pmc_enable_periph_clk(TC2_IRQn); 
+              TC_Configure(TC0, 2, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4); 
+              TC_SetRC(TC0, 2, 2281); // Timer will trigger every 3.5ms 
               TC0->TC_CHANNEL[2].TC_IER=TC_IER_CPCS;
               TC0->TC_CHANNEL[2].TC_IDR=~TC_IER_CPCS;
               NVIC_ClearPendingIRQ(TC2_IRQn);
               NVIC_EnableIRQ(TC2_IRQn);
               NVIC_SetPriority(TC2_IRQn, 5);
-              TC_Start(TC0, 2);  // Start the counter on DAC1 pin
+              TC_Start(TC0, 2);  
               uartBuffer.clear();
         }
+    //this is the handler function for the timer responsible for writing data to the uart see Async UART for explenation
     friend void TC2_Handler();
-    static RingBuf<char, 1450> uartBuffer;
+    //this is a ringbuffer holding data to be written to the uart by the handler above see Async UART for explenation
+    static RingBuf<char, 3450> uartBuffer;
 
   public:
     // bt_0 -> Top Left | bt_1 -> Middle Left | bt_2 -> Bottom Left | bt_3 -> Top Right | bt_4 -> Middle Right | bt_5 -> Bottom Right
@@ -764,25 +766,54 @@ class LSC{
       static LSC instance;
       return instance;
     }
+    //##################################################
+    //############## SERIAL COMUNICATION ###############
+    //##################################################
 
-    void println(String data){ 
+        //---- Async UART ----
+    /*
+      The maximum Baud rate of the arduino due is 115200 giving us a theoretical maximal data transfer rate of 14.4 kB/s
+      The UART works asynchronously. I.e. if Serial.print() is called the data is written into a buffer and then transmitted
+      in the background. The time it takes to write data into the buffer is linear with data size. It takes about 163us to write 
+      125B of data. The problem is the size of the buffer. The buffer has a size of 128B once the buffer is full the function wait
+      for more space to become available before continuing. I.e sending more then 128B at a time will block the program for 
+      a significant amount of time (sending 1026B blocks the program for 80ms).
+      We solve this problem by defining a big ring buffer "uartBuffer". When we want to send data over the uart we dont write 
+      the data to the uart buffer directly but first in the uartBuffer. 
+      To write the data form the uartBuffer to the acctual uart we setup a timer with the handler TC2_Handler, that runs every 
+      3.5ms and writes a junk of data smaller then the uart buffer to the uart. With this approach we can ensure, that the
+      uart buffer will never be full. With this implementation we can send 1.1Kb of data every 100ms, or 11kB/s.
+      Be carefull when filling the buffer from another timer. If the buffer overflows bad things happen. It is the responebility
+      of the sending timer to make sure that the buffer can't overflow!!!
+    */
+      //---- Async UART ----
+
+    //Sends a Sting using the uart. This function is asynchronous and non blocking. Data is being sent in the background
+    void print(String data){ 
+      //To push the data string onto the buffer char by char
       for(char character : data){
-        //Serial.println("i want to push: " + String(character));
-        while (uartBuffer.isFull()){
-         // Serial.println("im full");
-          //Serial.println(uartBuffer.maxSize());
-        }
+        //Wait for space to be available in the buffer if it is full
+        while (uartBuffer.isFull()){}
+        //Stopping the uart send timer, to avoid reace conditions
         TC_Stop(TC0, 2);
+        //Pushing one char into the ring buffer
         uartBuffer.push(character);
-        //Serial.println("pusched: "+ String(character) + "on the buffer");
+        //Once the write operation has concluded we can restart the send timer
         TC_Start(TC0, 2);
       }
-              while (uartBuffer.isFull()){
-         // Serial.println("im full");
-          //Serial.println(uartBuffer.maxSize());
-        }
+    }
+    //Sends a Sting using the uart. This function is asynchronous and non blocking. Data is being sent in the background
+    void println(String data){ 
+      for(char character : data){
+        while (uartBuffer.isFull()){}
+        TC_Stop(TC0, 2);
+        uartBuffer.push(character);
+        TC_Start(TC0, 2);
+      }
+        while (uartBuffer.isFull()){}
       uartBuffer.push('\n');
     }
+
 };
 
 #endif

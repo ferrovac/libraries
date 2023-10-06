@@ -9,7 +9,7 @@ void (*Buttons::bt_2_external_callback)() = nullptr;
 void (*Buttons::bt_3_external_callback)() = nullptr;
 void (*Buttons::bt_4_external_callback)() = nullptr;
 void (*Buttons::bt_5_external_callback)() = nullptr;
-RingBuf<char, 1450> LSC::uartBuffer;
+RingBuf<char, 3450> LSC::uartBuffer;
 
 //Handles TC3 interupts. See Beeper for detailed explanation
 void TC3_Handler() {
@@ -30,13 +30,14 @@ void TC2_Handler(){
     char charBuf = ' ';
     uint16_t dataLen = 0;
     dataLen = min(LSC::getInstance().uartBuffer.size(),40);
-    String send = "";
+    char outBuffer[3451];;
     for(int i = 0; i< dataLen; i++){
       LSC::getInstance().uartBuffer.pop(charBuf);
-      send += charBuf;
+      outBuffer[i] = charBuf;
     } 
+    outBuffer[dataLen] = '\0';
 
-    if(dataLen >0) Serial.print(send);
+    if(dataLen >0) Serial.print(outBuffer);
       LSC::getInstance().powerSwitch_0.setState(false);
     
 }
