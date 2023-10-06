@@ -770,7 +770,7 @@ class LSC{
     //############## SERIAL COMUNICATION ###############
     //##################################################
 
-        //---- Async UART ----
+        //---- Start Async UART explanation----
     /*
       The maximum Baud rate of the arduino due is 115200 giving us a theoretical maximal data transfer rate of 14.4 kB/s
       The UART works asynchronously. I.e. if Serial.print() is called the data is written into a buffer and then transmitted
@@ -786,7 +786,7 @@ class LSC{
       Be carefull when filling the buffer from another timer. If the buffer overflows bad things happen. It is the responebility
       of the sending timer to make sure that the buffer can't overflow!!!
     */
-      //---- Async UART ----
+      //---- End Async UART explanation----
 
     //Sends a Sting using the uart. This function is asynchronous and non blocking. Data is being sent in the background
     void print(String data){ 
