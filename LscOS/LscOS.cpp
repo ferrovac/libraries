@@ -22,14 +22,13 @@ void osInit(){
 
 void TC5_Handler(){
     TC_GetStatus(TC1,2);
-    
-  //  if(LSC::getInstance().powerSwitch_0.getState() == true){
+    /*
+    if(LSC::getInstance().powerSwitch_0.getState() == true){
         LSC::getInstance().powerSwitch_0.setState(true);
-    //}else{
-    
-            //Serial.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    }else{
         LSC::getInstance().powerSwitch_0.setState(false);
-    //}
-    
+    }
+    */
     //Beeper::getInstance().beep(1);
+   LSC::getInstance().println("llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll");
 }

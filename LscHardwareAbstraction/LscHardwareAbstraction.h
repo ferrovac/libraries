@@ -14,6 +14,7 @@ RECOURCES:  TIMER: TC3-0 FOR: struct Beeper
 
 #include <Arduino.h>
 #include "LscError.h"
+#include "RingBuf.h"
 #define ERROR_HANDLER ErrorHandler::getInstance() // macro for the ErrorHandler singleton
 #define BEEPER Beeper::getInstance() // macro for the ErrorHandler singleton
 
@@ -661,6 +662,8 @@ class LSC{
     TESTED: All connectin have been tested 25.07.23 HOTO
     TODO: On the particualr unit used for testing pin13 seems to be broken
   */
+  
+
   private:
       LSC() : buttons(Buttons::getInstance()), powerSwitch_0(37), powerSwitch_1(38),powerSwitch_2(39), powerSwitch_3(40), openCollectorOutput_0(41),
               openCollectorOutput_1(42), openCollectorOutput_2(43), openCollectorOutput_3(44), openCollectorOutput_4(45), openCollectorOutput_5(46),
@@ -676,8 +679,21 @@ class LSC{
               analogWriteResolution(12);
               analogReadResolution(12);
 
-              
+              //Setinm
+              pmc_set_writeprotect(false);
+              pmc_enable_periph_clk(TC2_IRQn); // Set interrupt handler to TCLK5
+              TC_Configure(TC0, 2, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4); // Set external clock input
+              TC_SetRC(TC0, 2, 2281); // Every 100th clock will be invoked interrupt 
+              TC0->TC_CHANNEL[2].TC_IER=TC_IER_CPCS;
+              TC0->TC_CHANNEL[2].TC_IDR=~TC_IER_CPCS;
+              NVIC_ClearPendingIRQ(TC2_IRQn);
+              NVIC_EnableIRQ(TC2_IRQn);
+              NVIC_SetPriority(TC2_IRQn, 5);
+              TC_Start(TC0, 2);  // Start the counter on DAC1 pin
+              uartBuffer.clear();
         }
+    friend void TC2_Handler();
+    static RingBuf<char, 1450> uartBuffer;
 
   public:
     // bt_0 -> Top Left | bt_1 -> Middle Left | bt_2 -> Bottom Left | bt_3 -> Top Right | bt_4 -> Middle Right | bt_5 -> Bottom Right
@@ -747,6 +763,25 @@ class LSC{
     static LSC& getInstance(){
       static LSC instance;
       return instance;
+    }
+
+    void println(String data){ 
+      for(char character : data){
+        //Serial.println("i want to push: " + String(character));
+        while (uartBuffer.isFull()){
+         // Serial.println("im full");
+          //Serial.println(uartBuffer.maxSize());
+        }
+        TC_Stop(TC0, 2);
+        uartBuffer.push(character);
+        //Serial.println("pusched: "+ String(character) + "on the buffer");
+        TC_Start(TC0, 2);
+      }
+              while (uartBuffer.isFull()){
+         // Serial.println("im full");
+          //Serial.println(uartBuffer.maxSize());
+        }
+      uartBuffer.push('\n');
     }
 };
 
