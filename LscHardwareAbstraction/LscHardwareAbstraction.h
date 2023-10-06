@@ -788,30 +788,34 @@ class LSC{
     */
       //---- End Async UART explanation----
 
+      //TODO: we need better error handling. there should be a watchdog and better hadling of buffer full conditions.
+
     //Sends a Sting using the uart. This function is asynchronous and non blocking. Data is being sent in the background
     void print(String data){ 
-      //To push the data string onto the buffer char by char
-      for(char character : data){
-        //Wait for space to be available in the buffer if it is full
-        while (uartBuffer.isFull()){}
-        //Stopping the uart send timer, to avoid reace conditions
-        TC_Stop(TC0, 2);
-        //Pushing one char into the ring buffer
-        uartBuffer.push(character);
-        //Once the write operation has concluded we can restart the send timer
-        TC_Start(TC0, 2);
+      TC_Stop(TC0, 2);    //Stopping the uart send timer, to avoid reace conditions
+      bool bufferIsFull = false; //Temporary variable indicating wether the ring buffer is full or not
+
+      for(char character : data){ //we push char by char
+      //for(size_t i = 0; i<data.length();i++){ <= This is acctually slower by about 700us idk why XD
+        if (uartBuffer.isFull()){ //if the buffer is full we need to restart the urat send timer or the buffer would never get smaller
+          TC_Start(TC0, 2);
+          bufferIsFull = true;
+        } 
+        while (bufferIsFull){ // we wait for the uart timer to process the data.
+          if (!uartBuffer.isFull()){
+            bufferIsFull = false;
+            TC_Stop(TC0, 2); // once some data has been processed and there is room in the buffer we need to stopp the timer again.
+          } 
+        }
+        uartBuffer.push(character); //Pushing one char into the ring buffer
       }
+      TC_Start(TC0, 2); //Once the write operation has concluded we can restart the send timer
     }
+
     //Sends a Sting using the uart. This function is asynchronous and non blocking. Data is being sent in the background
     void println(String data){ 
-      for(char character : data){
-        while (uartBuffer.isFull()){}
-        TC_Stop(TC0, 2);
-        uartBuffer.push(character);
-        TC_Start(TC0, 2);
-      }
-        while (uartBuffer.isFull()){}
-      uartBuffer.push('\n');
+        print(data+'\n');
+
     }
 
 };

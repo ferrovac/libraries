@@ -27,9 +27,10 @@ void TC3_Handler() {
 
 //Handles TC2 interupts. This timer is responsible for sending the data from the uartBuffer to the uart see sync UART explanation
 //TODO: Optimize, there might be a way of writing directly form the ring buffer to the uart buffer without the need for the outBuffer
+                  //but im not sure what overhead Seria.write is connected with... To be tested...
 void TC2_Handler(){
     TC_GetStatus(TC0,2);
-    LSC::getInstance().powerSwitch_0.setState(true);
+    //LSC::getInstance().powerSwitch_0.setState(true);
     char charBuf = ' ';
     uint16_t dataLen = 0;
     //we never want so send more then 40B of data at a time
@@ -45,7 +46,7 @@ void TC2_Handler(){
     outBuffer[dataLen] = '\0';
     //send the data to the uart buffer
     if(dataLen >0) Serial.print(outBuffer);
-      LSC::getInstance().powerSwitch_0.setState(false);
+    //  LSC::getInstance().powerSwitch_0.setState(false);
     
 }
 //EOF
