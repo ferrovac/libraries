@@ -4,9 +4,7 @@
 
 
 namespace OS{
-
-    bool volatile restoreContext = false;
-
+   
     void init(){
         pmc_set_writeprotect(false);
         pmc_enable_periph_clk(TC5_IRQn); 
@@ -18,13 +16,14 @@ namespace OS{
         NVIC_EnableIRQ(TC5_IRQn);
         NVIC_SetPriority(TC5_IRQn, 4);
         TC_Start(TC1, 2);  
+
+
+        LSC::getInstance().powerSwitch_0.setState(true);
     }
 
-
+    
+}
 void TC5_Handler(){
     TC_GetStatus(TC1, 2);
-    
-
-}
-
+    LSC::getInstance().println("S");
 }

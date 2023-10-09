@@ -17,19 +17,7 @@ RECOURCES:  TODO
 
 namespace OS{
 
-
-  
-
-  
-
   void init();
-  void rest();
-  void save_context();
-  void load_context();
-  void restore();
-
-
-  
 
 }
 
