@@ -15,8 +15,23 @@ RECOURCES:  TODO
 #include "LscHardwareAbstraction.h"
 #include "LscError.h"
 
-void osInit();
+namespace OS{
 
+
+  
+
+  
+
+  void init();
+  void rest();
+  void save_context();
+  void load_context();
+  void restore();
+
+
+  
+
+}
 
 
 #endif

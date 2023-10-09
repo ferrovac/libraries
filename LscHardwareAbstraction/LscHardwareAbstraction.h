@@ -785,12 +785,15 @@ class LSC{
       uart buffer will never be full. With this implementation we can send 1.1Kb of data every 100ms, or 11kB/s.
       Be carefull when filling the buffer from another timer. If the buffer overflows bad things happen. It is the responebility
       of the sending timer to make sure that the buffer can't overflow!!!
+      Using the LSC::getInstance().println() function to send 1100B takes about 1.3ms. 
+      TLDR: Sending 1.1KB per OS tick (100ms) takes about 5.3 ms in cpu time.
+      TLDR: As of now you are responsible to handle the buffer! there is no error handling for multithreaded applicatoins!!! 
     */
       //---- End Async UART explanation----
 
       //TODO: we need better error handling. there should be a watchdog and better hadling of buffer full conditions.
 
-    //Sends a Sting using the uart. This function is asynchronous and non blocking. Data is being sent in the background
+    //Sends a Sting using the uart. This function is asynchronous and non blocking. Data is being sent in the background. DONT OVERFLOW THE BUFFER!
     void print(String data){ 
       TC_Stop(TC0, 2);    //Stopping the uart send timer, to avoid reace conditions
       bool bufferIsFull = false; //Temporary variable indicating wether the ring buffer is full or not
@@ -814,8 +817,7 @@ class LSC{
 
     //Sends a Sting using the uart. This function is asynchronous and non blocking. Data is being sent in the background
     void println(String data){ 
-        print(data+'\n');
-
+        print(data + '\n');
     }
 
 };
