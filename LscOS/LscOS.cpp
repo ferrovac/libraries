@@ -4,8 +4,11 @@
 
 
 namespace OS{
+    bool watchdogRunning = false;
+    uint32_t watchdogStartTime = 0;
    
     void init(){
+        Serial.begin(115200);
         pmc_set_writeprotect(false);
         pmc_enable_periph_clk(TC5_IRQn); 
         TC_Configure(TC1, 2, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4); 
@@ -16,14 +19,49 @@ namespace OS{
         NVIC_EnableIRQ(TC5_IRQn);
         NVIC_SetPriority(TC5_IRQn, 4);
         TC_Start(TC1, 2);  
+    }
 
+    void startWatchdog(){
+        if (!watchdogRunning){
+            watchdogRunning = true;
+            watchdogStartTime = millis();
+        }else{
+            ERROR_HANDLER.throwError(0x00,"Trying to start watchdog while whatchdog is already running.", SeverityLevel::NORMAL);
+        }
+    }
 
-        LSC::getInstance().powerSwitch_0.setState(true);
+    void stopWatchdog(){
+        if (watchdogRunning){
+            watchdogRunning = false;
+        }else{
+            ERROR_HANDLER.throwError(0x00,"Trying to stop watchdog while whatchdog is not running.", SeverityLevel::NORMAL);
+        }
+    }
+
+    void updateComponents(){
+
+    }
+
+    void checkSystemHealth(){
+
+    }
+
+    void cleanUpp(){
+        
     }
 
     
 }
 void TC5_Handler(){
     TC_GetStatus(TC1, 2);
-    LSC::getInstance().println("S");
+
+    if (OS::watchdogRunning){
+        if(millis() - OS::watchdogStartTime > 2000){
+            Serial.println("You Fucked up! Which is why we are restarting the whole thing!");
+            for(int i = 0; i< 4200000;i ++){asm("NOP");}
+            NVIC_SystemReset();
+        }
+    }
+
+    
 }
