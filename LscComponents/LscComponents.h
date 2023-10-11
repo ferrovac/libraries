@@ -260,7 +260,7 @@ class Components{
                 void setComponentName(const String& name) override{
                     componentName = name;
                 }
-                                //This is probably horrible and one should not do this, but it works remakably well XD... TODO: find a good library to handle this (MathHelper.h is terrible because it uses a global buffer, which makes it not thead save)!!!
+                //This is probably horrible and one should not do this, but it works remakably well XD... TODO: find a good library to handle this (MathHelper.h is terrible because it uses a global buffer, which makes it not thread save)!!!
                 static String doubleToSciString(double value) {
                     if(value == 0) return "0.000E+00";
                     int exponent = static_cast<int>(floor(log10(value)));
