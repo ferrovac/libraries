@@ -260,6 +260,18 @@ class Components{
                 void setComponentName(const String& name) override{
                     componentName = name;
                 }
+                                //This is probably horrible and one should not do this, but it works remakably well XD... TODO: find a good library to handle this (MathHelper.h is terrible because it uses a global buffer, which makes it not thead save)!!!
+                static String doubleToSciString(double value) {
+                    if(value == 0) return "0.000E+00";
+                    int exponent = static_cast<int>(floor(log10(value)));
+                    double mantissa = value / pow(10, exponent);
+                    if(exponent >=11) return String(mantissa,2) + "E+" + String(exponent);
+                    if(exponent >= 0) return String(mantissa,2) + "E+0" + String(exponent);
+                    if(exponent <= -10) return String(mantissa,2) + "E" + String(exponent);
+                    if(exponent <  0) return String(mantissa,2) + "E-0" + String(abs(exponent));
+                    ERROR_HANDLER.throwError(0x0, "Failed to corretly format number in scientific notation. This has to be an error in LscComponents lib. see doubleToSciString()",SeverityLevel::NORMAL);
+                    return String(value,10);
+                }
             private:
                 String componentName;
                 AnalogInBase &analogIn;
@@ -276,18 +288,7 @@ class Components{
                     }
                     return 0.;
                 }
-                //This is probably horrible and one should not do this, but it works remakably well XD... TODO: find a good library to handle this (MathHelper.h is terrible because it uses a global buffer, which makes it not thead save)!!!
-                String doubleToSciString(double value) {
-                    if(value == 0) return "0.000E+00";
-                    int exponent = static_cast<int>(floor(log10(value)));
-                    double mantissa = value / pow(10, exponent);
-                    if(exponent >=11) return String(mantissa,2) + "E+" + String(exponent);
-                    if(exponent >= 0) return String(mantissa,2) + "E+0" + String(exponent);
-                    if(exponent <= -10) return String(mantissa,2) + "E" + String(exponent);
-                    if(exponent <  0) return String(mantissa,2) + "E-0" + String(abs(exponent));
-                    ERROR_HANDLER.throwError(0x0, "Failed to corretly format number in scientific notation. This has to be an error in LscComponents lib. see doubleToSciString()",SeverityLevel::NORMAL);
-                    return String(value,10);
-                }
+
         };        
         /*
             The ComponentTracker is resposible to keep track of all instances of components. Every component should have:
