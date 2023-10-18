@@ -3,13 +3,20 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "/home/kali/.arduino15/packages/arduino/hardware/avr/1.8.6/cores/arduino/**",
+                "/home/kali/Arduino/**",
+                "/home/kali/.arduino15/packages/arduino/hardware/avr/1.8.6/cores/arduino/",
+                "/home/kali/.arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include/**",
+                "/usr/include/x86_64-linux-gnu/bits/**",
+                "/usr/include/x86_64-linux-gnu/c++/13",
+                "/usr/include/x86_64-linux-gnu"
             ],
             "defines": [],
-            "compilerPath": "/usr/bin/clang",
+            "compilerPath": "/usr/bin/g++",
             "cStandard": "c17",
-            "cppStandard": "c++14",
-            "intelliSenseMode": "linux-clang-x64"
+            "cppStandard": "c++23",
+            "intelliSenseMode": "linux-gcc-arm"
         }
     ],
     "version": 4

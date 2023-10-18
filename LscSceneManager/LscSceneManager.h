@@ -18,7 +18,6 @@ RECOURCES:  TODO
 class SceneManager{
     private:
         SceneManager() {
-
         }
     public:
         void init(){
@@ -41,6 +40,8 @@ class SceneManager{
                     uint16_t xPos;
                     uint16_t yPos;
                     String text;
+                    uint32_t backColour;
+                    uint32_t fontColour;
                     const GFXfont* font;
 
                 public:
@@ -56,11 +57,13 @@ class SceneManager{
                     uint16_t getY(){
                         return yPos;
                     }
-                    TextBox(uint16_t xPosition, uint16_t yPosition, String Text ="", const GFXfont* Font=FMB12){
+                    TextBox(uint16_t xPosition, uint16_t yPosition, const GFXfont* Font=FMB12, uint32_t BackColour = TFT_BLACK, uint32_t FontColour = TFT_WHITE){
                         setX(xPosition);
                         setY(yPosition);
-                        text = Text;
                         font = Font;
+                        backColour = BackColour;
+                        fontColour = FontColour;
+                        tft.setFreeFont(font);
                         tft.drawString(text,xPos,yPos);
                         
                     }
@@ -71,22 +74,50 @@ class SceneManager{
                         text = Text;
                     }
 
-                    void update(String Text){          
-                        uint16_t xOffSet = xPos;              
+                    void update(String Text){  
+                        tft.setFreeFont(font);
+                        tft.setTextColor(fontColour, backColour);
+                        int startTime = millis();            
+                        Serial.println(millis()-startTime);
+                        uint16_t oldTextLength = text.length();
+                        uint16_t textSubstringLength = 0;
+
                         for(int i = 0; i < Text.length();i++){
-                            if(Text[i] != text[i] || tft.textWidth(text.substring(0,i)) != tft.textWidth(Text.substring(0,i))){
-                                tft.setTextPadding(tft.textWidth(String(Text[i])));
-                                tft.drawChar(Text[i], xOffSet  ,yPos);
+                            textSubstringLength = tft.textWidth(text.substring(0,i+1));
+                            
+                            if(i <= oldTextLength){
+                                if(Text[i] != text[i] || tft.textWidth(text.substring(0,i+1)) != tft.textWidth(Text.substring(0,i + 1))){
+
+                                    startTime = micros();
+                                    if(tft.textWidth(String(Text[i])) >= tft.textWidth(String(text[i]))){
+                                        clearChar(Text[i], tft.textWidth(Text.substring(0,i+1)) + xPos - tft.textWidth(String(Text[i])),yPos );
+                                    }else{
+                                        clearChar(text[i], tft.textWidth(Text.substring(0,i+1)) + xPos - tft.textWidth(String(Text[i])),yPos );
+                                    }
+                                    tft.drawChar(Text[i],tft.textWidth(Text.substring(0,i+1)) + xPos - tft.textWidth(String(Text[i])),yPos );
+                                    
+                                    
+                                }
+                            }else{
+                                tft.drawChar(Text[i],tft.textWidth(Text.substring(0,i+1)) + xPos - tft.textWidth(String(Text[i])),yPos);
                             }
-                            xOffSet += tft.textWidth(String(Text[i]));
                         }
+                            if(tft.textWidth(text) > tft.textWidth(Text)){
+                                tft.fillRect(tft.textWidth(Text) + xPos, yPos - tft.fontHeight() + 1 , tft.textWidth(text) - tft.textWidth(Text),tft.fontHeight(),backColour);
+                            }
+                            text = Text;
+                            Serial.println(micros()-startTime);
+
                     }
+
+                    void clearChar(char Character, uint16_t xPosition, uint16_t yPosition){
+                        tft.setFreeFont(font);
+                        tft.fillRect(xPosition,yPosition - tft.fontHeight() + 1, tft.textWidth(String(Character)),tft.fontHeight(),backColour);
+                    }
+                    //void replaceChar(uint16_t Index)
             };  
         };
-
 };
-
-
 
 
 #endif
