@@ -35,14 +35,14 @@ struct BaseUI_element{
 
 class SceneManager{
     private:
-        volatile void (*currentScene)();
-        volatile void (*nextScene)();
+        void (*volatile currentScene)();
+        void (*volatile nextScene)();
 
         SceneManager(){
         }
  
     public:
-        void init(volatile void (*scene)()){
+        void init(void (*scene)()){
             tft.init();
             tft.setRotation(3);
             tft.fillScreen(TFT_BLACK);
@@ -50,13 +50,13 @@ class SceneManager{
             tft.setFreeFont(FMB12);     
             currentScene = scene;    
             nextScene = scene;
-
+        }
+        void begin(){
             while(true){
                 currentScene();
                 currentScene = nextScene; 
                 Serial.println("in manager");
             }
-
         }
         static TFT_eSPI tft;
         static SceneManager& getInstance() {
@@ -64,18 +64,17 @@ class SceneManager{
             return instance;
         }
 
-        void loadScene(volatile void (*scene)()){
+        void loadScene(void (*scene)()){
             nextScene = scene;
         }
 
         bool noSwitch(){
-            delay(1);
+            //delay(1);
             if (nextScene == currentScene){
                 return true;
             }else{
                 return false;
-            }
-            
+            }   
         }
 
 
@@ -125,7 +124,7 @@ class SceneManager{
                             }
                         }
                             if(tft.textWidth(text) > tft.textWidth(Text)){
-                                tft.fillRect(tft.textWidth(Text) + xPos, yPos - tft.fontHeight() + 1 , tft.textWidth(text) - tft.textWidth(Text),tft.fontHeight(),backColour);
+                                tft.fillRect(tft.textWidth(Text) + xPos, yPos - tft.fontHeight() + 10 , tft.textWidth(text) - tft.textWidth(Text),tft.fontHeight(),backColour);
                             }
                             text = Text;
                             
@@ -150,8 +149,9 @@ class SceneManager{
                     }
                     uint16_t getTextHeightInPixels(){
                         tft.setFreeFont(font);
-                        return tft.fontHeight()+1;
+                        return tft.fontHeight();
                     }
+
                     TextBox(uint16_t xPosition, uint16_t yPosition, const GFXfont* Font=FMB12, uint32_t BackColour = TFT_BLACK, uint32_t FontColour = TFT_WHITE){
                         setX(xPosition);
                         setY(yPosition);
@@ -197,6 +197,9 @@ class SceneManager{
                     }
                     ~ProgressBar(){
                         clear();
+                    }
+                    long getProgress(){
+                        return progress;
                     }
                     void setProgress(long Progress){
                         if(Progress >= 0 && Progress <= 100){
