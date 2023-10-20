@@ -18,6 +18,7 @@ RECOURCES:  TODO
 #include "../Fonts/Final_Frontier_28.h"
 #include "LscOS.h"
 #include "vector"
+#include "math.h"
 
 struct BaseUI_element{
     private:
@@ -90,9 +91,16 @@ class SceneManager{
                     uint32_t fontColour;
                     const GFXfont* font;
                     
-                    void clearChar(char Character, uint16_t xPosition, uint16_t yPosition){
+                    void clearChar(String Text, uint16_t index, uint16_t yPosition){
                         tft.setFreeFont(font);
-                        tft.fillRect(xPosition,yPosition - tft.fontHeight() + 1, tft.textWidth(String(Character)),tft.fontHeight(),backColour);
+                        tft.setTextColor(backColour);
+                        if(Text.length() > index){
+                            tft.drawChar(Text[index], xPos + tft.textWidth(Text.substring(0,index+1)) -tft.textWidth(String(Text[index])),yPosition);
+                            Serial.println("clearchar");
+
+                        }
+                        tft.setTextColor(fontColour);
+                        //tft.fillRect(xPosition,yPosition - tft.fontHeight() + 1, tft.textWidth(String(Character)),tft.fontHeight(),backColour);
                     }
                     void update(String Text){  
                         tft.setFreeFont(font);
@@ -104,28 +112,39 @@ class SceneManager{
                         uint16_t TextCurrentCharWidth = 0;
                         uint16_t textCurrentCharWidth = 0;
 
-                        for(int i = 0; i < Text.length();i++){
+                        if(tft.textWidth(text) > tft.textWidth(Text) && tft.textWidth(text) != 0){
+                            for(int cleared = text.length(); tft.textWidth(text.substring(0,cleared)) >= tft.textWidth(Text);cleared--){
+                                clearChar(text,cleared,yPos);
+                                if (cleared <= 0) break;
+                            }
+                        }
+
+                        bool alreadyCleared[text.length()];
+                        for (int i = 0; i < text.length(); i++){
+                            alreadyCleared[i] = false;
+                        }
+
+                        for(uint16_t i = 0; i < Text.length();i++){
                             textSubstringLength = tft.textWidth(text.substring(0,i + 1));
                             TextSubstringLength = tft.textWidth(Text.substring(0,i + 1));
                             TextCurrentCharWidth = tft.textWidth(String(Text[i]));
 
-                            if(i <= textLength){
+                            if(i < textLength){
                                 if(Text[i] != text[i] || textSubstringLength != TextSubstringLength){
-
-                                    if(TextCurrentCharWidth >= tft.textWidth(String(text[i]))){
-                                        clearChar(Text[i], TextSubstringLength + xPos - TextCurrentCharWidth,yPos );
-                                    }else{
-                                        clearChar(text[i], TextSubstringLength + xPos - TextCurrentCharWidth,yPos );
+                                    int charsToClear = (int)ceil((float)tft.textWidth(String(Text[i])) / (float)tft.textWidth(String(text[i])));
+                                    if(charsToClear > 100) return;
+                                    for(int k = 0 ; k <= charsToClear; k++){
+                                        if(!alreadyCleared[i+k]) clearChar(text,i+k,yPos);
+                                        alreadyCleared[i+k] = true;
                                     }
-                                    tft.drawChar(Text[i],TextSubstringLength + xPos - TextCurrentCharWidth,yPos );
+                                    
+                                    tft.drawChar(Text[i], xPos + tft.textWidth(Text.substring(0,i+1))-tft.textWidth(String(Text[i])),yPos );
                                 }
                             }else{
                                 tft.drawChar(Text[i], TextSubstringLength + xPos - TextCurrentCharWidth,yPos);
                             }
                         }
-                            if(tft.textWidth(text) > tft.textWidth(Text)){
-                                tft.fillRect(tft.textWidth(Text) + xPos, yPos - tft.fontHeight() + 10 , tft.textWidth(text) - tft.textWidth(Text),tft.fontHeight(),backColour);
-                            }
+
                             text = Text;
                             
                     }
@@ -152,7 +171,8 @@ class SceneManager{
                         return tft.fontHeight();
                     }
 
-                    TextBox(uint16_t xPosition, uint16_t yPosition, const GFXfont* Font=FMB12, uint32_t BackColour = TFT_BLACK, uint32_t FontColour = TFT_WHITE){
+                    TextBox(uint16_t xPosition, uint16_t yPosition, String Text = "", const GFXfont* Font=FMB12, uint32_t BackColour = TFT_BLACK, uint32_t FontColour = TFT_WHITE){
+                        text = Text;
                         setX(xPosition);
                         setY(yPosition);
                         font = Font;
