@@ -198,11 +198,27 @@ class Components{
                 void setComponentName(const String& name) override{
                     componentName = name;
                 }
-                std::vector<String> getComponentConfiguration(){
+
+                std::vector<String> getComponentConfiguration() override {
                     std::vector<String> tempRet;
                     tempRet.push_back("Temperature,S,R," + String(getTemperature())); //ID 0
                     tempRet.push_back("DisplayUnit,C,S,{"+flattenOptionsString(Units::Temperature::getOptions())+ "}" + String(static_cast<int>(displayUnit))); // ID 1
                     return tempRet;
+                }
+                std::vector<String> getComponentState(){
+                    std::vector<String> tempRet;
+                    tempRet.push_back(String(getTemperature())); //ID0
+                    return tempRet;
+                }
+                void setComponentState(uint16_t ID, String ComandString){
+                    switch (ID){
+                        case 0:
+                            //error cant set Temperature
+                            break;
+                        default:
+                            //error invalid ID
+                            break;
+                    }
                 }
         };
 

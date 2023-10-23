@@ -24,8 +24,8 @@ struct BaseUI_element{
     private:
         
     public:
-        virtual void clear()=0;
-
+        virtual void clear() const = 0;
+        virtual void reDraw() = 0;
 };
 
 
@@ -72,6 +72,24 @@ class SceneManager{
 
         struct UI_elements{
 
+            /*
+                UI ELEMENTS DESIGNE GUIDS
+                1. All elements should inherit form BaseUI_element
+                2. All elements need to have the following functions:
+                    2.1 void clear() const override {}
+                        This function should clear the screan of the whole whole UI element.
+                        The function sould only clear the screen and not change any of the elements parameters
+                        this is important because the clear function can be used to "blank" the screan after which
+                        it should be possible to recreate the old state again with the reDraw() function (this is enforced
+                        by the const statement, dont change this.)
+                    2.1 void reDraw() override {}
+                        This function sould be able to re render the whole screan according to the elements internal
+                        state after the screen has been cleared.
+                3.  There might be an issue if member variables are changed by an interrupt. Consider for which variables this
+                    might be the case and declare them as volatile.
+                
+            */
+
             struct TextBox : BaseUI_element{
                 private:
                     uint16_t xPos;
@@ -81,7 +99,7 @@ class SceneManager{
                     uint32_t fontColour;
                     const GFXfont* font;
                     
-                    void clearChar(String Text, uint16_t index, uint16_t yPosition){
+                    void clearChar(String Text, uint16_t index, uint16_t yPosition) const {
                         tft.setFreeFont(font);
                         tft.setTextColor(backColour);
                         if(Text.length() > index){
@@ -90,7 +108,7 @@ class SceneManager{
                         tft.setTextColor(fontColour);
                     }
 
-                    void update(String Text){  
+                    void update(String Text) const {  
                         tft.setFreeFont(font);
                         tft.setTextColor(fontColour, backColour);
 
@@ -138,7 +156,7 @@ class SceneManager{
                                 tft.drawChar(Text[i], TextSubstringLength + xPos - TextCurrentCharWidth,yPos);
                             }
                         }
-                            text = Text;
+                            
                     }
 
                 public:
@@ -186,6 +204,9 @@ class SceneManager{
                     ~TextBox(){
                         clear();
                     }
+                    void reDraw(){
+                        TextBox(xPos,yPos,text,font,backColour,fontColour);
+                    }
 
                     String getText(){
                         return text;
@@ -204,8 +225,8 @@ class SceneManager{
                         }
                         text = Text;
                     }
-                    void clear() override{
-                        setText("");
+                    void clear() const override{
+                        update("");
                     }
 
             };  
@@ -226,10 +247,13 @@ class SceneManager{
                     ~CheckBox(){
                         clear();
                     }
+                    void reDraw(){
+                        CheckBox(xPos,yPos,size,checked, backColour,foreColour);
+                    }
 
-                    void clear(){
-                        setChecked(false);
-                        tft.drawRect(xPos,yPos,size,size,backColour);
+                    void clear()const override{
+                        if(checked) tft.fillRect(xPos,yPos,size,size,backColour);
+                        if(!checked) tft.drawRect(xPos,yPos,size,size,backColour);
                     }
                     void setChecked(bool state){
                         if(state == checked) return;
@@ -263,12 +287,16 @@ class SceneManager{
                     uint32_t progressInPixel;
 
                 public:
-                    ProgressBar(uint32_t xPos, uint32_t yPos, uint32_t height, uint32_t width, uint32_t foreColour = TFT_WHITE, uint32_t backColour = TFT_BLACK): xPos(xPos), yPos(yPos), height(height), width(width), progress(0), foreColour(foreColour), backColour(backColour){
+                    ProgressBar(uint32_t xPos, uint32_t yPos, uint32_t height, uint32_t width, long Progress = 0, uint32_t foreColour = TFT_WHITE, uint32_t backColour = TFT_BLACK): xPos(xPos), yPos(yPos), height(height), width(width), progress(0), foreColour(foreColour), backColour(backColour){
                         tft.drawRect(xPos,yPos, width,height,foreColour);
                         progressInPixel = 0;
+                        setProgress(Progress);
                     }
                     ~ProgressBar(){
                         clear();
+                    }
+                    void reDraw(){
+                        ProgressBar(xPos,yPos,height,width,progress,foreColour,backColour);
                     }
                     long getProgress() const {
                         return progress;
@@ -310,14 +338,13 @@ class SceneManager{
                         setProgress(tempProgress);
                     }
 
-                    void clear() override{
-                        setProgress(0);
-                        tft.drawRect(xPos,yPos, width,height,backColour);
+                    void clear() const override{
+                        tft.fillRect(xPos,yPos, width,height,backColour);
                     }          
             };
             struct Chart : BaseUI_element{ //TODO: Implement
                 public:
-                    void clear() override{
+                    void clear() const override{
 
                     }
                 private:
