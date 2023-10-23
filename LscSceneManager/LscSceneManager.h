@@ -24,14 +24,9 @@ struct BaseUI_element{
     private:
         
     public:
-        static std::vector<BaseUI_element*> elementTracker;
         virtual void clear()=0;
-        BaseUI_element(){
-            elementTracker.push_back(this);
-        }
+
 };
-
-
 
 
 class SceneManager{
@@ -56,7 +51,6 @@ class SceneManager{
             while(true){
                 currentScene();
                 currentScene = nextScene; 
-                Serial.println("in manager");
             }
         }
         static TFT_eSPI tft;
@@ -70,15 +64,12 @@ class SceneManager{
         }
 
         bool noSwitch(){
-            //delay(1);
             if (nextScene == currentScene){
                 return true;
             }else{
                 return false;
             }   
         }
-
-
 
         struct UI_elements{
 
@@ -100,16 +91,6 @@ class SceneManager{
                         tft.setTextColor(fontColour);
                     }
 
-                    uint32_t getLengthByIndex(String Text, uint16_t Index){
-                        if(Index > Text.length() + 1) return 0;
-                        return tft.textWidth(Text.substring(0,Index + 1));
-                    }
-                    uint32_t getIndexByLength(String Text, uint32_t Length){
-                        if(Length > getLengthByIndex(Text, Text.length())) return 0;
-                        for(int i = 0; i< Text.length();i++){
-                            if(getLengthByIndex(Text, i) > Length) return i;
-                        }
-                    }
                     void update(String Text){  
                         tft.setFreeFont(font);
                         tft.setTextColor(fontColour, backColour);
@@ -141,8 +122,7 @@ class SceneManager{
                                     Serial.println("Text: " + Text.substring(0,i) + " : " + tft.textWidth(Text.substring(0,i)));
                                     Serial.println("text: " + text.substring(0,alreadyCleared) + " : " + tft.textWidth(text.substring(0,alreadyCleared)));
 
-                                    
-
+                                
                                     if(tft.textWidth(Text.substring(0,i)) == tft.textWidth(text.substring(0,alreadyCleared))){
                                         if(text[alreadyCleared]==Text[i]){
                                             alreadyCleared++;
@@ -163,16 +143,24 @@ class SceneManager{
                                 tft.drawChar(Text[i], TextSubstringLength + xPos - TextCurrentCharWidth,yPos);
                             }
                         }
-
                             text = Text;
                     }
 
                 public:
                     void setX(uint16_t pos){
+                        if(xPos == pos) return;
+                        String tempText = text;
+                        clear();
                         xPos = pos;
+                        setText(tempText);
+
                     }
                     void setY(uint16_t pos){
+                        if(yPos == pos) return;
+                        String tempText = text;
+                        clear();                        
                         yPos = pos;
+                        setText(tempText);
                     }
                     uint16_t getX(){
                         return xPos;
