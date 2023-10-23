@@ -13,7 +13,7 @@ RECOURCES:  TODO
 
 #include <Arduino.h>
 #include <SPI.h>
-#include <TFT_eSPI.h> // Hardware-specific library (CW)
+#include <TFT_eSPI.h> 
 #include "../Fonts/Free_Fonts.h"
 #include "../Fonts/Final_Frontier_28.h"
 #include "LscOS.h"
@@ -33,7 +33,6 @@ class SceneManager{
     private:
         void (*volatile currentScene)();
         void (*volatile nextScene)();
-
         SceneManager(){
         }
  
@@ -63,11 +62,11 @@ class SceneManager{
             nextScene = scene;
         }
 
-        bool noSwitch(){
+        bool switchScene(){
             if (nextScene == currentScene){
-                return true;
-            }else{
                 return false;
+            }else{
+                return true;
             }   
         }
 
@@ -178,18 +177,31 @@ class SceneManager{
                     }
 
                     TextBox(uint16_t xPosition, uint16_t yPosition, String Text = "", const GFXfont* Font=FMB12, uint32_t BackColour = TFT_BLACK, uint32_t FontColour = TFT_WHITE){
-                        text = Text;
+                        text = "";
                         setX(xPosition);
                         setY(yPosition);
                         font = Font;
                         backColour = BackColour;
                         fontColour = FontColour;
                         tft.setFreeFont(font);
-                        tft.drawString(text,xPos,yPos);
+                        setText(Text);
+                        //tft.drawString(text,xPos,yPos);
                     }
                     ~TextBox(){
                         clear();
                     }
+
+                    String getText(){
+                        return text;
+                    }
+                    explicit operator String(){
+                        return getText();
+                    }
+                    
+                    TextBox& operator=(String Text){
+                        setText(Text);
+                    }
+
                     void setText(String Text){
                         if(text != Text){
                             update(Text);
@@ -201,6 +213,48 @@ class SceneManager{
                     }
 
             };  
+
+            struct CheckBox : BaseUI_element{
+                private:
+                    uint16_t xPos;
+                    uint16_t yPos;
+                    uint16_t size;
+                    uint32_t foreColour;
+                    uint32_t backColour;
+                    volatile bool checked;
+                public:
+                    CheckBox(uint16_t xPosition, uint16_t yPosition, uint16_t Size, bool Checked = false, uint32_t BackColour = TFT_BLACK, uint32_t ForeColour = TFT_WHITE): xPos(xPosition), yPos(yPosition), size(Size),checked(false), backColour(BackColour), foreColour(ForeColour) {
+                        tft.drawRect(xPos,yPos,size,size,foreColour);
+                        setChecked(Checked);
+                    }
+                    ~CheckBox(){
+                        clear();
+                    }
+
+                    void clear(){
+                        setChecked(false);
+                        tft.drawRect(xPos,yPos,size,size,backColour);
+                    }
+                    void setChecked(bool state){
+                        if(state == checked) return;
+                        if(state){
+                            tft.fillRect(xPos + 2,yPos + 2,size-4,size-4,foreColour);
+                        }else{
+                            tft.fillRect(xPos + 2,yPos + 2,size-4,size-4,backColour);
+                        }
+                        checked = state;
+                    }
+
+                    CheckBox& operator= (bool state){
+                        setChecked(state);
+                    }
+
+                    explicit operator bool() const{
+                        return checked;
+                    }
+
+            };
+
             struct ProgressBar : BaseUI_element{
                 private:
                     uint32_t xPos;
@@ -220,9 +274,16 @@ class SceneManager{
                     ~ProgressBar(){
                         clear();
                     }
-                    long getProgress(){
+                    long getProgress() const {
                         return progress;
                     }
+                    operator long() const {
+                        return getProgress();
+                    }
+                    ProgressBar& operator= (long Progress){
+                        setProgress(Progress);
+                    }
+
                     void setProgress(long Progress){
                         if(Progress >= 0 && Progress <= 100){
                             
@@ -258,7 +319,7 @@ class SceneManager{
                         tft.drawRect(xPos,yPos, width,height,backColour);
                     }          
             };
-            struct Chart : BaseUI_element{
+            struct Chart : BaseUI_element{ //TODO: Implement
                 public:
                     void clear() override{
 

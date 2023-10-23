@@ -38,13 +38,14 @@ RECOURCES:  TODO
 struct Units{
     //List of all available temperature units
     struct Temperature {
+        
         enum struct Unit{
             //Kelvin
             K, 
             //Celsius
             C, 
             //Fahrenheit
-            F 
+            F,
         };
         //Provides a collection of conversion funcions
         struct Conversions{
@@ -58,15 +59,18 @@ struct Units{
             }
         };
         //Returns a list of all available temperature units
-        static std::vector<String> getOptions(){
+        static std::vector<String> getOptions() {
             return {"Kelvin", "Celsius", "Fahrenheit"};
+        }
+        //Returns the unit given an index, carefull there is no bound check on the index!
+        static Unit getUnitByIndex(int index) {
+            return static_cast<Units::Temperature::Unit>(index);
         }
         //Retruns a string that represents the unit suffix
         static String getSuffix(Unit unit){
             const String suffix[]= {"K","°C", "°F"};
             return suffix[static_cast<int>(unit)];
         }
-
     };
     //List of all available pressure units
     struct Pressure{
@@ -105,6 +109,7 @@ struct Units{
         static std::vector<String> getOptions(){
             return {"mbar", "Torr mmHg", "Pounds Per Square Inch", "Atmospheres"};
         }
+
         //Retruns a string that represents the unit suffix
         static String getSuffix(Unit unit){
             const String suffix[]= {"mbar", "Pa","torr", "psi", "atm"};
@@ -118,15 +123,25 @@ struct Units{
 class BaseComponent{
     public:
         virtual void update() = 0;
-        virtual String getComponentStateXML() = 0;
         virtual String const getComponentType() const = 0;
         virtual String const getComponentName() const = 0;
         virtual void setComponentName(const String& name) = 0;
+        virtual std::vector<String> getComponentConfiguration() = 0;
 };
+
+
 
 //Contains a list of all available system components
 class Components{
     public:
+        static String flattenOptionsString(std::vector<String> options){
+            String optionsString;
+                for(String options : Units::Temperature::getOptions()){
+                    optionsString += options + ",";
+                }
+            return optionsString.substring(0,optionsString.length());
+        }
+
         //Class that represents a TP100 temperature sensor
         class TemperatureSensor : BaseComponent {
             private:
@@ -135,6 +150,10 @@ class Components{
                 double temperature;
                 Units::Temperature::Unit displayUnit;
             public:
+                //Sets the display unit based on the index of the getOptions() function. CAREFULL there are no checks on the index!
+                void setDisplayUnitByIndex(uint16_t index){
+                    setDisplayUnit(Units::Temperature::getUnitByIndex(index));
+                }
                 TemperatureSensor(AnalogInPt100 &analogInPt100, String componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), componentName(componentName) {
                     temperature = 0;
                     displayUnit = Units::Temperature::Unit::C;
@@ -161,19 +180,12 @@ class Components{
                 void setDisplayUnit(Units::Temperature::Unit unit){
                     displayUnit = unit;
                 }
+
                 //Reads the current temperature and updates the internal state
                 void update() override {
                     temperature = analogInPt100.getTemperature();
                 }
-                String getComponentStateXML() override{
-                    String xml = "<component>\n";
-                    xml += "<type>" + getComponentType() + "</type>\n";
-                    xml += "<name>" + getComponentName() + "</name>\n";
-                    xml += "<temperature>" + String(temperature) + "</temperature>\n";
-                    xml += "<temperatureAsString>" + getTeperatureAsString() + "</temperatureAsString>\n";
-                    xml += "</component>";
-                    return xml;
-                }
+
                 //Retuns the component type
                 String const getComponentType() const override {
                     return "TemperatureSensor";
@@ -185,6 +197,12 @@ class Components{
                 //Sets the component Name. This name is used for logging and ui purposes
                 void setComponentName(const String& name) override{
                     componentName = name;
+                }
+                std::vector<String> getComponentConfiguration(){
+                    std::vector<String> tempRet;
+                    tempRet.push_back("Temperature,S,R," + String(getTemperature())); //ID 0
+                    tempRet.push_back("DisplayUnit,C,S,{"+flattenOptionsString(Units::Temperature::getOptions())+ "}" + String(static_cast<int>(displayUnit))); // ID 1
+
                 }
         };
 
@@ -239,15 +257,7 @@ class Components{
                 void update() override {
                     pressure = voltageToPressure(gaugeType, analogIn.getVoltage());
                 }
-                String getComponentStateXML() override{
-                    String xml = "<component>\n";
-                    xml += "<type>" + getComponentType() + "</type>\n";
-                    xml += "<name>" + getComponentName() + "</name>\n";
-                    xml += "<temperature>" + String(pressure) + "</temperature>\n";
-                    xml += "<temperatureAsString>" + getPressureAsString() + "</temperatureAsString>\n";
-                    xml += "</component>";
-                    return xml;
-                }
+
                 //Retuns the component type
                 String const getComponentType() const override {
                     return "PressureGauge";
@@ -324,7 +334,12 @@ class Components{
                     std::vector<String> componentList;
                     for(BaseComponent* comp : components){
                         componentList.push_back(comp->getComponentName());
+                        
+                        for(String comStr :comp->getComponentConfiguration()){
+                            Serial.println(comStr);
+                        }
                     }
+
                     return componentList;
                 }
                 
