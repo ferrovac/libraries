@@ -111,17 +111,13 @@ class SceneManager{
 
 
                         for(uint16_t i = 0; i < Text.length();i++){
-                            Serial.println("");
                             textSubstringLength = tft.textWidth(text.substring(0,i + 1));
                             TextSubstringLength = tft.textWidth(Text.substring(0,i + 1));
                             TextCurrentCharWidth = tft.textWidth(String(Text[i]));
 
                             if(i < textLength){
                                     //WE NEED TO CLEAER
-                                    Serial.println("Text: " + Text.substring(0,i) + " : " + tft.textWidth(Text.substring(0,i)));
-                                    Serial.println("text: " + text.substring(0,alreadyCleared) + " : " + tft.textWidth(text.substring(0,alreadyCleared)));
 
-                                
                                     if(tft.textWidth(Text.substring(0,i)) == tft.textWidth(text.substring(0,alreadyCleared))){
                                         if(text[alreadyCleared]==Text[i]){
                                             alreadyCleared++;
@@ -130,7 +126,7 @@ class SceneManager{
                                     }
                                     while(true){
                                         clearChar(text,alreadyCleared,yPos);
-                                        Serial.println("Cleared: " + String(text[alreadyCleared]) + " at pos: " + String(alreadyCleared));
+
                                         alreadyCleared += 1;
 
                                         if(alreadyCleared>= text.length()) break;

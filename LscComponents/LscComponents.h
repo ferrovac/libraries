@@ -139,7 +139,7 @@ class Components{
                 for(String options : Units::Temperature::getOptions()){
                     optionsString += options + ",";
                 }
-            return optionsString.substring(0,optionsString.length());
+            return optionsString.substring(0,optionsString.length()-1);
         }
 
         //Class that represents a TP100 temperature sensor
@@ -202,7 +202,7 @@ class Components{
                     std::vector<String> tempRet;
                     tempRet.push_back("Temperature,S,R," + String(getTemperature())); //ID 0
                     tempRet.push_back("DisplayUnit,C,S,{"+flattenOptionsString(Units::Temperature::getOptions())+ "}" + String(static_cast<int>(displayUnit))); // ID 1
-
+                    return tempRet;
                 }
         };
 
