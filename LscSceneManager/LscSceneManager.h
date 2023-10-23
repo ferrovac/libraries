@@ -95,12 +95,20 @@ class SceneManager{
                         tft.setFreeFont(font);
                         tft.setTextColor(backColour);
                         if(Text.length() > index){
-                            tft.drawChar(Text[index], xPos + tft.textWidth(Text.substring(0,index+1)) -tft.textWidth(String(Text[index])),yPosition);
-                            Serial.println("clearchar");
-
+                            tft.drawChar(Text[index], xPos + tft.textWidth(Text.substring(0,index+1)) -tft.textWidth(String(Text[index])),yPos);
                         }
                         tft.setTextColor(fontColour);
-                        //tft.fillRect(xPosition,yPosition - tft.fontHeight() + 1, tft.textWidth(String(Character)),tft.fontHeight(),backColour);
+                    }
+
+                    uint32_t getLengthByIndex(String Text, uint16_t Index){
+                        if(Index > Text.length() + 1) return 0;
+                        return tft.textWidth(Text.substring(0,Index + 1));
+                    }
+                    uint32_t getIndexByLength(String Text, uint32_t Length){
+                        if(Length > getLengthByIndex(Text, Text.length())) return 0;
+                        for(int i = 0; i< Text.length();i++){
+                            if(getLengthByIndex(Text, i) > Length) return i;
+                        }
                     }
                     void update(String Text){  
                         tft.setFreeFont(font);
@@ -119,34 +127,44 @@ class SceneManager{
                             }
                         }
 
-                        bool alreadyCleared[text.length()];
-                        for (int i = 0; i < text.length(); i++){
-                            alreadyCleared[i] = false;
-                        }
+                        uint32_t alreadyCleared = 0;
+
 
                         for(uint16_t i = 0; i < Text.length();i++){
+                            Serial.println("");
                             textSubstringLength = tft.textWidth(text.substring(0,i + 1));
                             TextSubstringLength = tft.textWidth(Text.substring(0,i + 1));
                             TextCurrentCharWidth = tft.textWidth(String(Text[i]));
 
                             if(i < textLength){
-                                if(Text[i] != text[i] || textSubstringLength != TextSubstringLength){
-                                    int charsToClear = (int)ceil((float)tft.textWidth(String(Text[i])) / (float)tft.textWidth(String(text[i])));
-                                    if(charsToClear > 100) return;
-                                    for(int k = 0 ; k <= charsToClear; k++){
-                                        if(!alreadyCleared[i+k]) clearChar(text,i+k,yPos);
-                                        alreadyCleared[i+k] = true;
+                                    //WE NEED TO CLEAER
+                                    Serial.println("Text: " + Text.substring(0,i) + " : " + tft.textWidth(Text.substring(0,i)));
+                                    Serial.println("text: " + text.substring(0,alreadyCleared) + " : " + tft.textWidth(text.substring(0,alreadyCleared)));
+
+                                    
+
+                                    if(tft.textWidth(Text.substring(0,i)) == tft.textWidth(text.substring(0,alreadyCleared))){
+                                        if(text[alreadyCleared]==Text[i]){
+                                            alreadyCleared++;
+                                            continue;
+                                        }
+                                    }
+                                    while(true){
+                                        clearChar(text,alreadyCleared,yPos);
+                                        Serial.println("Cleared: " + String(text[alreadyCleared]) + " at pos: " + String(alreadyCleared));
+                                        alreadyCleared += 1;
+
+                                        if(alreadyCleared>= text.length()) break;
+                                        if(tft.textWidth(Text.substring(0,i+1)) <= tft.textWidth(text.substring(0,alreadyCleared))) break;
                                     }
                                     
                                     tft.drawChar(Text[i], xPos + tft.textWidth(Text.substring(0,i+1))-tft.textWidth(String(Text[i])),yPos );
-                                }
                             }else{
                                 tft.drawChar(Text[i], TextSubstringLength + xPos - TextCurrentCharWidth,yPos);
                             }
                         }
 
                             text = Text;
-                            
                     }
 
                 public:
@@ -194,10 +212,6 @@ class SceneManager{
                         setText("");
                     }
 
-
-
-
-                    //void replaceChar(uint16_t Index)
             };  
             struct ProgressBar : BaseUI_element{
                 private:
