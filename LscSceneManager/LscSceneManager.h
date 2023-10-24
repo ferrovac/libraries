@@ -24,7 +24,7 @@ struct BaseUI_element{
     private:
         
     public:
-        virtual void clear() const = 0;
+        virtual void clear() const  = 0;
         virtual void reDraw() = 0;
 };
 
@@ -48,6 +48,7 @@ class SceneManager{
         }
         void begin(){
             while(true){
+                Serial.println("inManager");
                 currentScene();
                 currentScene = nextScene; 
             }
@@ -204,16 +205,17 @@ class SceneManager{
 
                     TextBox(uint16_t xPosition, uint16_t yPosition, String Text = "", const GFXfont* Font=FMB12, uint32_t BackColour = TFT_BLACK, uint32_t FontColour = TFT_WHITE){
                         text = "";
-                        setX(xPosition);
-                        setY(yPosition);
+                        xPos = xPosition;
+                        yPos = yPosition;
                         font = Font;
                         backColour = BackColour;
                         fontColour = FontColour;
                         tft.setFreeFont(font);
                         setText(Text);
-                        //tft.drawString(text,xPos,yPos);
+                        //tft.drawString(Text,xPos,yPos);
                     }
                     ~TextBox(){
+                        //setText("");
                         clear();
                     }
                     void reDraw(){
@@ -239,6 +241,7 @@ class SceneManager{
                     }
                     void clear() const override{
                         update("");
+                        //setText("");
                     }
 
             };  
@@ -266,7 +269,7 @@ class SceneManager{
                     void clear()const override{
                         if(checked) tft.fillRect(xPos,yPos,size,size,backColour);
                         if(!checked) tft.drawRect(xPos,yPos,size,size,backColour);
-                    }
+                    }const
                     void setChecked(bool state){
                         if(state == checked) return;
                         if(state){
@@ -350,7 +353,7 @@ class SceneManager{
                         setProgress(tempProgress);
                     }
 
-                    void clear() const override{
+                    void clear() const override {
                         tft.fillRect(xPos,yPos, width,height,backColour);
                     }          
             };
