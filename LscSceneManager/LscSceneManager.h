@@ -73,6 +73,18 @@ class SceneManager{
         struct UI_elements{
 
             /*
+                UI ELEMENTS GERNERELL CONCEPT
+                The idea is that the ui elements are created in functions in the main loop. Typically these functions 
+                have a sections where all the ui elements are created followed by a loop where the ui elements are updated
+                It is importante, that the element is renedred as soon as the instance is created. i.e. the initial render
+                should be done in the constructor. It is also best if the whole element can be fully defined at cration (this 
+                makes the mandatory reDraw function very easy to implement by simply calling the constructor).
+                The idea is that the element is on the screen for as loong as the element instance exists. And that the 
+                element is removed from the screan when the instance is deleted. This is nice because it means, that as soon
+                as a scene function returns all variables and instances of the elemenst go out of scope and are this destructed,
+                making it very intuitive and easy to organize scenes in void functions. This means you have to make sure, that 
+                the constructor is porpperly defined and removes everything belonging to the element form the screen.
+
                 UI ELEMENTS DESIGNE GUIDS
                 1. All elements should inherit form BaseUI_element
                 2. All elements need to have the following functions:
