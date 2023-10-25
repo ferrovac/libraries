@@ -66,6 +66,54 @@ class SceneManager{
     private:
         void (*volatile currentScene)();
         void (*volatile nextScene)();
+        volatile static bool messageBoxToShowPresent;
+        String MessageBoxTitle;
+        String MessageBoxMessage;
+        String MessageBoxOptionFalse;
+        String MessageBoxOptionTrue;
+        
+        bool _showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES"){
+            bool returnValue;
+            static void (*bt0_old_callback)() = LSC::getInstance().buttons.bt_0_external_callback;
+            static void (*bt1_old_callback)() = LSC::getInstance().buttons.bt_1_external_callback;
+            static void (*bt2_old_callback)() = LSC::getInstance().buttons.bt_2_external_callback;
+            static void (*bt3_old_callback)() = LSC::getInstance().buttons.bt_3_external_callback;
+            static void (*bt4_old_callback)() = LSC::getInstance().buttons.bt_4_external_callback;
+            static void (*bt5_old_callback)() = LSC::getInstance().buttons.bt_5_external_callback;
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_0, nullptr);
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_1, nullptr);
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_2, nullptr);
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_3, nullptr);
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_4, nullptr);
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_5, nullptr);
+            clearAllElements();
+            UI_elements::TextBox* title = new UI_elements::TextBox(5,20,Title);
+            LSC::getInstance().buttons.bt_2.hasBeenClicked();
+            LSC::getInstance().buttons.bt_5.hasBeenClicked();
+            
+            while(true){
+                if(LSC::getInstance().buttons.bt_2.hasBeenClicked()){
+                    returnValue = false;
+                    break;
+                }
+                if(LSC::getInstance().buttons.bt_5.hasBeenClicked()){
+                    returnValue = true;
+                    break;
+                }
+            }
+            
+            delete(title);
+            reDrawAllElements();
+            messageBoxToShowPresent = false;
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_0, bt0_old_callback);
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_1, bt1_old_callback);
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_2, bt2_old_callback);
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_3, bt3_old_callback);
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_4, bt4_old_callback);
+            LSC::getInstance().buttons.setOnClickHandler(LSC::getInstance().buttons.bt_5, bt5_old_callback);
+            return returnValue;
+        }
+
         SceneManager(){
         }
         
@@ -94,6 +142,7 @@ class SceneManager{
             nextScene = scene;
         }
         void begin(){
+            messageBoxToShowPresent = false;
             while(true){
                 currentScene();
                 currentScene = nextScene; 
@@ -110,6 +159,9 @@ class SceneManager{
         }
 
         bool switchScene(){
+            if(messageBoxToShowPresent){
+                _showMessageBox(MessageBoxTitle,MessageBoxMessage,MessageBoxOptionFalse,MessageBoxOptionTrue);
+            }
             if (nextScene == currentScene){
                 return false;
             }else{
@@ -417,7 +469,17 @@ class SceneManager{
                 private:
 
             };
+
+
         };
+        
+        bool showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES"){
+            MessageBoxTitle = Title;
+            MessageBoxMessage = Message;
+            MessageBoxOptionFalse = OptionFalse;
+            MessageBoxOptionTrue = OptionTrue;
+            messageBoxToShowPresent = true;
+        }
 };
 
 
