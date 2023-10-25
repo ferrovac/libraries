@@ -20,6 +20,7 @@ RECOURCES:  TODO
 #include "vector"
 #include "math.h"
 #include <algorithm>
+#include <deque>
 
 
 
@@ -450,24 +451,48 @@ class SceneManager{
                 UI_elements::TextBox* no = new UI_elements::TextBox(80 -tft.textWidth(OptionFalse)/2,225,OptionFalse);
                 UI_elements::TextBox* yes = new UI_elements::TextBox(240-tft.textWidth(OptionTrue)/2,225,OptionTrue);
                 tft.drawLine(160,200,160,240,TFT_WHITE);
+                std::deque<String> linesUnderScreen;
+                std::deque<String> linesOverScreen;
                 std::vector<UI_elements::TextBox*> messageTextBoxCollection;
                 int lastSpace = 0;
                 int lastLineFeed = -1;
                 int index = 0;
                 int numberOfLines = 0;
+                
+                bool tooManyLinesForScreen = false;
                 tft.setFreeFont(FM9);
+                int maxLinesOnScreen = 130 / tft.fontHeight();
+                int pages = 0;
+                int startTime = millis();
                 for(char character : Message){
                     if(character == ' ') lastSpace = index;
-                    if(tft.textWidth(Message.substring(lastLineFeed + 1,index )) > 300){
+                    if(tft.textWidth(Message.substring(lastLineFeed + 1,index )) > 280){
+
+                        if(!tooManyLinesForScreen) messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(),Message.substring(lastLineFeed + 1,lastSpace),FM9));
                         
-                        messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(),Message.substring(lastLineFeed + 1,lastSpace),FM9));
+                        if( tooManyLinesForScreen) linesUnderScreen.push_back(Message.substring(lastLineFeed + 1,lastSpace));
                         lastLineFeed = lastSpace ;
                         numberOfLines++;
+                        if(numberOfLines > maxLinesOnScreen) tooManyLinesForScreen = true;
                     }
                     index++;
                 }
-                messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(),Message.substring(lastLineFeed + 1,Message.length()),FM9));
 
+
+
+                if((lastLineFeed + 1 < Message.length())){
+                    if(!tooManyLinesForScreen) messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(),Message.substring(lastLineFeed + 1,Message.length()),FM9));
+                    if( tooManyLinesForScreen) linesUnderScreen.push_back(Message.substring(lastLineFeed + 1,Message.length()));
+                    numberOfLines++;
+                }
+                pages = numberOfLines / maxLinesOnScreen;
+
+                for(int k = 0; k < (numberOfLines % maxLinesOnScreen); k++){
+                    linesUnderScreen.push_back("");
+                }
+
+
+                int page = 0;
                 while(true){
                     if(LSC::getInstance().buttons.bt_2.hasBeenClicked()){
                         returnValue = false;
@@ -476,6 +501,34 @@ class SceneManager{
                     if(LSC::getInstance().buttons.bt_5.hasBeenClicked()){
                         returnValue = true;
                         break;
+                    }
+                    if(!tooManyLinesForScreen) continue;;
+
+                    if(LSC::getInstance().buttons.bt_3.hasBeenClicked() && page > 0){
+                                                
+                        for(int32_t i = messageTextBoxCollection.size() -1; i >=0 ; i--){
+                            linesUnderScreen.push_front(messageTextBoxCollection[i]->getText());
+                        }
+                        for(int32_t i = messageTextBoxCollection.size() -1; i >=0 ; i--){
+                            messageTextBoxCollection[i]->setText(linesOverScreen.back());
+                            linesOverScreen.pop_back();
+                        }
+
+                        page--;                       
+
+                    }
+                    if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && page < pages){
+                        int linesToPrint = linesUnderScreen.size();
+
+                        for(int32_t i = 0; i < messageTextBoxCollection.size(); i++){
+                            linesOverScreen.push_back(messageTextBoxCollection[i]->getText());
+                            if(i > linesToPrint) continue;
+                            messageTextBoxCollection[i]->setText(linesUnderScreen.front());
+                            linesUnderScreen.pop_front();
+                        }
+                        page++;
+
+                        
                     }
                 }
                 
