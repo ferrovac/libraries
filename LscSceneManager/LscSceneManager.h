@@ -309,7 +309,7 @@ class SceneManager{
                     uint32_t backColour;
                     volatile bool checked;
                 public:
-                    CheckBox(uint16_t xPosition, uint16_t yPosition, uint16_t Size, bool Checked = false, uint32_t BackColour = TFT_BLACK, uint32_t ForeColour = TFT_WHITE): xPos(xPosition), yPos(yPosition), size(Size),checked(false), backColour(BackColour), foreColour(ForeColour) {
+                    CheckBox(uint16_t xPosition, uint16_t yPosition, uint16_t Size, bool Checked = false, uint32_t BackColour = TFT_BLACK, uint32_t ForeColour = TFT_WHITE): xPos(xPosition), yPos(yPosition), size(Size),checked(Checked), backColour(BackColour), foreColour(ForeColour) {
                         tft.drawRect(xPos,yPos,size,size,foreColour);
                         setChecked(Checked);
                     }
