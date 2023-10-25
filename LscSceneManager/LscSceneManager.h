@@ -309,7 +309,10 @@ class SceneManager{
                         clear();
                     }
                     void reDraw(){
-                        CheckBox(xPos,yPos,size,checked, backColour,foreColour);
+                        tft.drawRect(xPos,yPos,size,size,foreColour);
+                        bool temp_checked = checked;
+                        checked = false;
+                        setChecked(temp_checked);
                     }
 
                     void clear()const override{
@@ -357,7 +360,10 @@ class SceneManager{
                         clear();
                     }
                     void reDraw(){
-                        ProgressBar(xPos,yPos,height,width,progress,foreColour,backColour);
+                        tft.drawRect(xPos,yPos, width,height,foreColour);
+                        long temp_progress  = progress;
+                        progress = 0;
+                        setProgress(temp_progress);
                     }
                     long getProgress() const {
                         return progress;
