@@ -1,7 +1,8 @@
 // LSC.cpp
-#include <vector>
+
 #include "LscHardwareAbstraction.h"
 #define BEEPER Beeper::getInstance() // macro for the ErrorHandler singleton
+#define min(a,b) ((a)<(b)?(a):(b))
 
 void (*Buttons::bt_0_external_callback)() = nullptr;
 void (*Buttons::bt_1_external_callback)() = nullptr;

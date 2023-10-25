@@ -19,14 +19,47 @@ RECOURCES:  TODO
 #include "LscOS.h"
 #include "vector"
 #include "math.h"
+#include <algorithm>
+
+
+
+
+struct BaseUI_element;
+
+struct ElementTracker{
+    private:
+        
+        ElementTracker(){}
+    public:
+        static std::vector<BaseUI_element*> elements;
+        static ElementTracker& getInstance() {
+            static ElementTracker instance;
+        return instance;
+        }
+        static void registerElement(BaseUI_element* element){
+            elements.push_back(element);
+        }
+        static void removeElement(BaseUI_element* element){
+            elements.erase(std::remove(elements.begin(), elements.end(), element), elements.end());
+        }
+};
 
 struct BaseUI_element{
     private:
-        
     public:
         virtual void clear() const  = 0;
         virtual void reDraw() = 0;
+
+        BaseUI_element(){
+            ElementTracker::getInstance().registerElement(this);
+        }
+        ~BaseUI_element(){
+            ElementTracker::getInstance().removeElement(this);
+        }
 };
+
+
+
 
 
 class SceneManager{
@@ -35,8 +68,22 @@ class SceneManager{
         void (*volatile nextScene)();
         SceneManager(){
         }
+        
  
     public:
+        static void clearAllElements(){
+            for(BaseUI_element* element: ElementTracker::getInstance().elements){
+                element->clear();
+            }
+        }
+        static void reDrawAllElements(){
+            for(BaseUI_element* element: ElementTracker::getInstance().elements){
+                element->reDraw();
+            }
+        }
+        static int getNumberOfElements(){
+            return ElementTracker::getInstance().elements.size();
+        }
         void init(void (*scene)()){
             tft.init();
             tft.setRotation(3);
@@ -48,7 +95,6 @@ class SceneManager{
         }
         void begin(){
             while(true){
-                Serial.println("inManager");
                 currentScene();
                 currentScene = nextScene; 
             }
@@ -212,14 +258,14 @@ class SceneManager{
                         fontColour = FontColour;
                         tft.setFreeFont(font);
                         setText(Text);
-                        //tft.drawString(Text,xPos,yPos);
                     }
                     ~TextBox(){
-                        //setText("");
                         clear();
                     }
                     void reDraw(){
-                        TextBox(xPos,yPos,text,font,backColour,fontColour);
+                        String temp_text = text;
+                        text = "";
+                        setText(temp_text);
                     }
 
                     String getText(){

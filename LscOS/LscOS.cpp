@@ -1,7 +1,4 @@
 #include "LscOS.h"
-#include "LscHardwareAbstraction.h"
-
-
 
 namespace OS{
     bool watchdogRunning = false;

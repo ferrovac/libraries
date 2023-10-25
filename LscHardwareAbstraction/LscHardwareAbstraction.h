@@ -15,6 +15,8 @@ RECOURCES:  TIMER: TC3-0 FOR: struct Beeper
 #include <Arduino.h>
 #include "LscError.h"
 #include "RingBuf.h"
+#include "vector"
+#include "math.h"
 #define ERROR_HANDLER ErrorHandler::getInstance() // macro for the ErrorHandler singleton
 #define BEEPER Beeper::getInstance() // macro for the ErrorHandler singleton
 

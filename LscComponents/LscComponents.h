@@ -200,11 +200,10 @@ class Components{
                 }
 
                 std::vector<String> getComponentConfiguration() override {
-                    std::vector<String> tempRet;
-                    tempRet.push_back("Temperature,S,R," + String(getTemperature())); //ID 0
-                    tempRet.push_back("DisplayUnit,C,S,{"+flattenOptionsString(Units::Temperature::getOptions())+ "}" + String(static_cast<int>(displayUnit))); // ID 1
-                    return tempRet;
-                }
+                    return {    ("Temperature,S,R," + String(getTemperature())), //ID 0
+                                ("DisplayUnit,C,S,{"+flattenOptionsString(Units::Temperature::getOptions())+ "}" + String(static_cast<int>(displayUnit))) // ID 1
+                            }; 
+                }                        
                 std::vector<String> getComponentState(){
                     std::vector<String> tempRet;
                     tempRet.push_back(String(getTemperature())); //ID0
@@ -242,6 +241,8 @@ class Components{
                     displayUnit = Units::Pressure::Unit::Pa;
                     ComponentTracker::getInstance().registerComponent(this);
                 }
+
+
 
                 //Returns the pressure in Pa
                 double getPressure(){
@@ -298,6 +299,14 @@ class Components{
                     ERROR_HANDLER.throwError(0x0, "Failed to corretly format number in scientific notation. This has to be an error in LscComponents lib. see doubleToSciString()",SeverityLevel::NORMAL);
                     return String(value,10);
                 }
+
+                std::vector<String> getComponentConfiguration() override{
+                   return   {   ("Pressure,S,R," + String(getPressure(),20)), //ID 0
+                                "DisplayUnit,C,S,{" + flattenOptionsString(Units::Pressure::getOptions()) + "}" + String(static_cast<int>(displayUnit)), // ID 1
+                                ("GaugeType,C,S,{" + flattenOptionsString(getOptions()) + "}" + String(static_cast<int>(gaugeType))) //ID 2
+                            };
+                }  
+
             private:
                 String componentName;
                 AnalogInBase &analogIn;
@@ -361,6 +370,8 @@ class Components{
                 
         };
 };
+
+
 
 
 #endif
