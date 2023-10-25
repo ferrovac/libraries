@@ -98,6 +98,12 @@ class SceneManager{
         void begin(){
             while(true){
                 currentScene();
+                LSC::getInstance().buttons.bt_0.hasBeenClicked();
+                LSC::getInstance().buttons.bt_1.hasBeenClicked();
+                LSC::getInstance().buttons.bt_2.hasBeenClicked();
+                LSC::getInstance().buttons.bt_3.hasBeenClicked();
+                LSC::getInstance().buttons.bt_4.hasBeenClicked();
+                LSC::getInstance().buttons.bt_5.hasBeenClicked();
                 currentScene = nextScene; 
             }
         }
@@ -436,14 +442,31 @@ class SceneManager{
                 LSC::getInstance().buttons.bt_5.hasBeenClicked();
 
                 clearAllElements();
-                tft.drawRect(0,0,320,160,TFT_WHITE);
+                tft.drawRect(0,0,320,200,TFT_WHITE);
                 UI_elements::TextBox* title = new UI_elements::TextBox(5,20,Title);
                 tft.drawLine(0,25,320,25,TFT_WHITE);
-                UI_elements::TextBox* message = new UI_elements::TextBox(5,45,Message,FM9);
-                tft.drawLine(0,240,320,240,TFT_WHITE);
-                UI_elements::TextBox* no = new UI_elements::TextBox(80 -tft.textWidth(OptionFalse)/2,200+12,OptionFalse);
-                UI_elements::TextBox* yes = new UI_elements::TextBox(240-tft.textWidth(OptionTrue)/2,200+12,OptionTrue);
-                tft.drawLine(160,160,160,240,TFT_WHITE);
+                
+                //tft.drawLine(0,240,320,240,TFT_WHITE);
+                UI_elements::TextBox* no = new UI_elements::TextBox(80 -tft.textWidth(OptionFalse)/2,225,OptionFalse);
+                UI_elements::TextBox* yes = new UI_elements::TextBox(240-tft.textWidth(OptionTrue)/2,225,OptionTrue);
+                tft.drawLine(160,200,160,240,TFT_WHITE);
+                std::vector<UI_elements::TextBox*> messageTextBoxCollection;
+                int lastSpace = 0;
+                int lastLineFeed = -1;
+                int index = 0;
+                int numberOfLines = 0;
+                tft.setFreeFont(FM9);
+                for(char character : Message){
+                    if(character == ' ') lastSpace = index;
+                    if(tft.textWidth(Message.substring(lastLineFeed + 1,index )) > 300){
+                        
+                        messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(),Message.substring(lastLineFeed + 1,lastSpace),FM9));
+                        lastLineFeed = lastSpace ;
+                        numberOfLines++;
+                    }
+                    index++;
+                }
+                messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(),Message.substring(lastLineFeed + 1,Message.length()),FM9));
 
                 while(true){
                     if(LSC::getInstance().buttons.bt_2.hasBeenClicked()){
@@ -457,13 +480,15 @@ class SceneManager{
                 }
                 
                 delete(title);
-                delete(message);
                 delete(yes);
                 delete(no);
-                tft.drawRect(0,0,320,160,TFT_BLACK);
+                for(UI_elements::TextBox* tbs : messageTextBoxCollection){
+                    delete(tbs);
+                }
+                tft.drawRect(0,0,320,200,TFT_BLACK);
                 tft.drawLine(0,25,320,25,TFT_BLACK);
                 tft.drawLine(0,240,320,240,TFT_BLACK);
-                tft.drawLine(160,160,160,240,TFT_BLACK);
+                tft.drawLine(160,200,160,240,TFT_BLACK);
                 reDrawAllElements();
                 LSC::getInstance().buttons.bt_0.active = true;
                 LSC::getInstance().buttons.bt_1.active = true;
