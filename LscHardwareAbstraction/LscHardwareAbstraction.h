@@ -513,8 +513,9 @@ struct Button{
 
   public:
     volatile bool clicked;
+    volatile bool active;
     //--- CONSTRUCTOR ---
-    Button(uint8_t arduinoPin, void (*callback)()) : arduinoPin(arduinoPin), clicked(false){
+    Button(uint8_t arduinoPin, void (*callback)()) : arduinoPin(arduinoPin), clicked(false), active(true){
       attachInterrupt(digitalPinToInterrupt(arduinoPin), callback , CHANGE);   
     }
     bool isPressed(){
@@ -565,7 +566,7 @@ class Buttons{
       if(Buttons::getInstance().bt_0.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_0.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
-        if(bt_0_external_callback != nullptr){ //make sure the external function is set propperly
+        if(bt_0_external_callback != nullptr && Buttons::getInstance().bt_0.active){ //make sure the external function is set propperly
           bt_0_external_callback();
         } 
       }
@@ -576,7 +577,7 @@ class Buttons{
       if(Buttons::getInstance().bt_1.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_1.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
-        if(bt_1_external_callback != nullptr){ //make sure the external function is set propperly
+        if(bt_1_external_callback != nullptr && Buttons::getInstance().bt_1.active){ //make sure the external function is set propperly
            bt_1_external_callback();
         }
       }
@@ -587,7 +588,7 @@ class Buttons{
       if(Buttons::getInstance().bt_2.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_2.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
-        if(bt_2_external_callback != nullptr){ //make sure the external function is set propperly
+        if(bt_2_external_callback != nullptr && Buttons::getInstance().bt_2.active){ //make sure the external function is set propperly
           bt_2_external_callback();
         } 
       }
@@ -598,7 +599,7 @@ class Buttons{
       if(Buttons::getInstance().bt_3.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_3.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
-        if(bt_3_external_callback != nullptr){ //make sure the external function is set propperly
+        if(bt_3_external_callback != nullptr && Buttons::getInstance().bt_3.active){ //make sure the external function is set propperly
           bt_3_external_callback();
         } 
       }
@@ -609,7 +610,7 @@ class Buttons{
       if(Buttons::getInstance().bt_4.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_4.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
-        if(bt_4_external_callback != nullptr){ //make sure the external function is set propperly
+        if(bt_4_external_callback != nullptr && Buttons::getInstance().bt_4.active){ //make sure the external function is set propperly
           bt_4_external_callback();
         } 
       }
@@ -620,7 +621,7 @@ class Buttons{
       if(Buttons::getInstance().bt_5.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_5.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
-        if(bt_5_external_callback != nullptr){ //make sure the external function is set propperly
+        if(bt_5_external_callback != nullptr && Buttons::getInstance().bt_5.active){ //make sure the external function is set propperly
           bt_5_external_callback();
         } 
       }
@@ -631,12 +632,12 @@ class Buttons{
     
   public:
     //these pointers store the addreses of the external callbacks
-    static void (*bt_0_external_callback)();
-    static void (*bt_1_external_callback)();
-    static void (*bt_2_external_callback)();
-    static void (*bt_3_external_callback)();
-    static void (*bt_4_external_callback)();
-    static void (*bt_5_external_callback)();
+    static  void (*volatile bt_0_external_callback)();
+    static  void (*volatile bt_1_external_callback)();
+    static  void (*volatile bt_2_external_callback)();
+    static  void (*volatile bt_3_external_callback)();
+    static  void (*volatile bt_4_external_callback)();
+    static  void (*volatile bt_5_external_callback)();
     //Top Left
     Button bt_0;
     //Middle Left

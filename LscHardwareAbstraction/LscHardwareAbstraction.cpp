@@ -4,12 +4,12 @@
 #define BEEPER Beeper::getInstance() // macro for the ErrorHandler singleton
 #define min(a,b) ((a)<(b)?(a):(b))
 
-void (*Buttons::bt_0_external_callback)() = nullptr;
-void (*Buttons::bt_1_external_callback)() = nullptr;
-void (*Buttons::bt_2_external_callback)() = nullptr;
-void (*Buttons::bt_3_external_callback)() = nullptr;
-void (*Buttons::bt_4_external_callback)() = nullptr;
-void (*Buttons::bt_5_external_callback)() = nullptr;
+void (*volatile Buttons::bt_0_external_callback)() = nullptr;
+void (*volatile Buttons::bt_1_external_callback)() = nullptr;
+void (*volatile Buttons::bt_2_external_callback)() = nullptr;
+void (*volatile Buttons::bt_3_external_callback)() = nullptr;
+void (*volatile Buttons::bt_4_external_callback)() = nullptr;
+void (*volatile Buttons::bt_5_external_callback)() = nullptr;
 //defining the static uart buffer see sync UART explanation
 RingBuf<char, 3450> LSC::uartBuffer;
 
