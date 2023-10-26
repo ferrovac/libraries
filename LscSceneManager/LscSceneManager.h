@@ -126,61 +126,76 @@ struct BaseUI_element{
     //---- END SCENEMANAGET EXPLANATION ----
 class SceneManager{
     private:
-        //holds a pointer to the currently running scene
-        void (*volatile currentScene)();
-        //holds a pointer to the next scene to be loded. If this is not the same as currentScene a scene switch will be triggered
-        void (*volatile nextScene)();
-        //holds the global backgroud color of the tft display. This is set in the init function and should not be changed later
-        uint32_t backgroundColor;
+        void (*volatile currentScene)();    //holds a pointer to the currently running scene
+        void (*volatile nextScene)();   //holds a pointer to the next scene to be loded. If this is not the same as currentScene a scene switch will be triggered
+        static uint32_t backGroundColor;   //holds the global backgroud color of the tft display. This is set in the init function and should not be changed later
+        static uint32_t defaultForeGroundColor; //holds the default fore ground color
+        static const GFXfont* defaultFont; //holds the defualt font
+
         //private constructor for singelton pattern
         SceneManager(){}
         
- 
     public:
+        //clears all elements form the screen
         static void clearAllElements(){
+            //The ElementTracker holds pointers to all elements we can simply iterate through all elements and clear them
+            //This works because all elements inherit form BaseUI_element making clear a mandatory function
             for(BaseUI_element* element: ElementTracker::getInstance().elements){
-                element->clear();
+                element->clear(); //dereference the pointer and clear the element
             }
         }
+        //re draws all the defined elements on the screen
         static void reDrawAllElements(){
+            //See clearAllElements() for implentation
             for(BaseUI_element* element: ElementTracker::getInstance().elements){
                 element->reDraw();
             }
         }
+        //returns the number of all currently defined elements
         static int getNumberOfElements(){
             return ElementTracker::getInstance().elements.size();
         }
-        void init(void (*scene)()){
+        //inizialises the SceneManager setting the first scene and background color
+        void init(void (*scene)(), uint32_t BackGroundColor=TFT_BLACK, uint32_t ForeGroundColor=TFT_WHITE, const GFXfont* DefaultFont=FF12){
+            backGroundColor = BackGroundColor;
+            defaultForeGroundColor = ForeGroundColor;
+            defaultFont = DefaultFont;
             tft.init();
             tft.setRotation(3);
-            tft.fillScreen(TFT_BLACK);
+            tft.fillScreen(backGroundColor);
             tft.setTextColor(TFT_WHITE, TFT_BLACK);
             tft.setFreeFont(FMB12);     
             currentScene = scene;    
             nextScene = scene;
         }
+        //starts the sceneManager. This will enter an endless loop 
         void begin(){
             while(true){
-                currentScene();
+                currentScene(); //execute the scene function
+                //We want to clear the state of all buttons when switching scenes
                 LSC::getInstance().buttons.bt_0.hasBeenClicked();
                 LSC::getInstance().buttons.bt_1.hasBeenClicked();
                 LSC::getInstance().buttons.bt_2.hasBeenClicked();
                 LSC::getInstance().buttons.bt_3.hasBeenClicked();
                 LSC::getInstance().buttons.bt_4.hasBeenClicked();
                 LSC::getInstance().buttons.bt_5.hasBeenClicked();
+                //load next scene
                 currentScene = nextScene; 
             }
         }
+        //defines the tft display
         static TFT_eSPI tft;
+        //singelton lazy init
         static SceneManager& getInstance() {
             static SceneManager instance;
             return instance;
         }
-
+        //sets the next scene to be loaded if scene is different than the current scene a scene switch will be triggered
         void loadScene(void (*scene)()){
             nextScene = scene;
         }
-
+        //will return false for as long as now new scene has to be loaded. Use this in a while loop in the every scene:
+        //while(!sceneManager.switchScene()) 
         bool switchScene(){
             if (nextScene == currentScene){
                 return false;
@@ -190,7 +205,6 @@ class SceneManager{
         }
 
         struct UI_elements{
-
             /*
                 UI ELEMENTS GERNERELL CONCEPT
                 The idea is that the ui elements are created in functions in the main loop. Typically these functions 
@@ -220,19 +234,24 @@ class SceneManager{
                     might be the case and declare them as volatile.
                 
             */
-
+            //A TextBox can be used to display text. 
             struct TextBox : BaseUI_element{
                 private:
-                    uint16_t xPos;
-                    uint16_t yPos;
-                    String text;
+                    uint16_t xPos;  //holds the x position of the element on the tft
+                    uint16_t yPos;  //holds the y position of the element on the tft
+                    String text;    //holds the text 
                     uint32_t backColour;
                     uint32_t fontColour;
                     const GFXfont* font;
                     
-                    void clearChar(String Text, uint16_t index, uint16_t yPosition) const {
+                    //removes a single character from the tft
+                    void clearChar(String Text, uint16_t index) const {
                         tft.setFreeFont(font);
                         tft.setTextColor(backColour);
+                        //we basically overrite the character on the screen with the exact same char in the background color
+                        //by doing this we achive pixel level difference update which is as efficient as we can get
+                        //there are a lot of highlevel function calls to string functions, but compared to the time if takes to 
+                        //write to the tft its neglectable
                         if(Text.length() > index){
                             tft.drawChar(Text[index], xPos + tft.textWidth(Text.substring(0,index+1)) -tft.textWidth(String(Text[index])),yPos);
                         }
@@ -251,7 +270,7 @@ class SceneManager{
 
                         if(tft.textWidth(text) > tft.textWidth(Text) && tft.textWidth(text) != 0){
                             for(int cleared = text.length(); tft.textWidth(text.substring(0,cleared)) >= tft.textWidth(Text);cleared--){
-                                clearChar(text,cleared,yPos);
+                                clearChar(text,cleared);
                                 if (cleared <= 0) break;
                             }
                         }
@@ -274,7 +293,7 @@ class SceneManager{
                                         }
                                     }
                                     while(true){
-                                        clearChar(text,alreadyCleared,yPos);
+                                        clearChar(text,alreadyCleared);
 
                                         alreadyCleared += 1;
 
@@ -320,8 +339,9 @@ class SceneManager{
                         tft.setFreeFont(font);
                         return tft.fontHeight();
                     }
+                    
 
-                    TextBox(uint16_t xPosition, uint16_t yPosition, String Text = "", const GFXfont* Font=FMB12, uint32_t BackColour = TFT_BLACK, uint32_t FontColour = TFT_WHITE){
+                    TextBox(uint16_t xPosition, uint16_t yPosition, String Text="" , const GFXfont* Font=defaultFont , uint32_t BackColour=backGroundColor, uint32_t FontColour=defaultForeGroundColor){
                         text = "";
                         xPos = xPosition;
                         yPos = yPosition;
@@ -331,6 +351,7 @@ class SceneManager{
                         tft.setFreeFont(font);
                         setText(Text);
                     }
+
                     ~TextBox(){
                         clear();
                     }
@@ -373,7 +394,7 @@ class SceneManager{
                     uint32_t backColour;
                     volatile bool checked;
                 public:
-                    CheckBox(uint16_t xPosition, uint16_t yPosition, uint16_t Size, bool Checked = false, uint32_t BackColour = TFT_BLACK, uint32_t ForeColour = TFT_WHITE): xPos(xPosition), yPos(yPosition), size(Size),checked(Checked), backColour(BackColour), foreColour(ForeColour) {
+                    CheckBox(uint16_t xPosition, uint16_t yPosition, uint16_t Size, bool Checked = false, uint32_t BackColour = backGroundColor, uint32_t ForeColour = TFT_WHITE): xPos(xPosition), yPos(yPosition), size(Size),checked(Checked), backColour(BackColour), foreColour(ForeColour) {
                         tft.drawRect(xPos,yPos,size,size,foreColour);
                         setChecked(Checked);
                     }
@@ -507,12 +528,12 @@ class SceneManager{
 
                 clearAllElements();
                 tft.drawRect(0,0,320,200,TFT_WHITE);
-                UI_elements::TextBox* title = new UI_elements::TextBox(5,20,Title);
+                UI_elements::TextBox* title = new UI_elements::TextBox(5,20,Title,FMB12);
                 tft.drawLine(0,25,320,25,TFT_WHITE);
                 
                 //tft.drawLine(0,240,320,240,TFT_WHITE);
-                UI_elements::TextBox* no = new UI_elements::TextBox(80 -tft.textWidth(OptionFalse)/2,225,OptionFalse);
-                UI_elements::TextBox* yes = new UI_elements::TextBox(240-tft.textWidth(OptionTrue)/2,225,OptionTrue);
+                UI_elements::TextBox* no = new UI_elements::TextBox(80 -tft.textWidth(OptionFalse)/2,225,OptionFalse,FMB12);
+                UI_elements::TextBox* yes = new UI_elements::TextBox(240-tft.textWidth(OptionTrue)/2,225,OptionTrue,FMB12);
                 tft.drawLine(160,200,160,240,TFT_WHITE);
                 std::deque<String> linesUnderScreen;
                 std::deque<String> linesOverScreen;
@@ -593,7 +614,7 @@ class SceneManager{
                     tft.drawLine(319,0,319,yDepth,TFT_BLACK);
                     tft.drawLine(320-xDepth,0,320,0,TFT_BLACK);
                     tft.drawLine(320-xDepth,25,320,25,TFT_BLACK);
-                    tft.drawLine(320-xDepth,0,320-xDepth,200,TFT_WHITE);
+                    tft.drawLine(320-xDepth,0,320-xDepth,199,TFT_WHITE);
                     tft.drawLine(320-xDepth,yDepth,320,yDepth,TFT_WHITE);
                     tb_page->setText(String(page+1));
                     tb_slash->setText("/");
