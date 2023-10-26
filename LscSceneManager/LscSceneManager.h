@@ -394,7 +394,7 @@ class SceneManager{
                     uint32_t backColour;
                     volatile bool checked;
                 public:
-                    CheckBox(uint16_t xPosition, uint16_t yPosition, uint16_t Size, bool Checked = false, uint32_t BackColour = backGroundColor, uint32_t ForeColour = TFT_WHITE): xPos(xPosition), yPos(yPosition), size(Size),checked(Checked), backColour(BackColour), foreColour(ForeColour) {
+                    CheckBox(uint16_t xPosition, uint16_t yPosition, uint16_t Size, bool Checked = false,  uint32_t ForeColour = defaultForeGroundColor, uint32_t BackColour = backGroundColor): xPos(xPosition), yPos(yPosition), size(Size),checked(Checked), foreColour(ForeColour), backColour(BackColour) {
                         tft.drawRect(xPos,yPos,size,size,foreColour);
                         setChecked(Checked);
                     }
@@ -439,12 +439,12 @@ class SceneManager{
                     uint32_t height;
                     uint32_t width;
                     uint32_t foreColour;
-                    uint32_t backColour;
+                    uint32_t backgColour;
                     long progress;
                     uint32_t progressInPixel;
 
                 public:
-                    ProgressBar(uint32_t xPos, uint32_t yPos, uint32_t height, uint32_t width, long Progress = 0, uint32_t foreColour = TFT_WHITE, uint32_t backColour = TFT_BLACK): xPos(xPos), yPos(yPos), height(height), width(width), progress(0), foreColour(foreColour), backColour(backColour){
+                    ProgressBar(uint32_t xPos, uint32_t yPos, uint32_t height, uint32_t width, long Progress = 0, uint32_t foreColour = defaultForeGroundColor, uint32_t BackGroundColor = backGroundColor): xPos(xPos), yPos(yPos), height(height), width(width), progress(0), foreColour(foreColour), backgColour(BackGroundColor){
                         tft.drawRect(xPos,yPos, width,height,foreColour);
                         progressInPixel = 0;
                         setProgress(Progress);
@@ -478,7 +478,7 @@ class SceneManager{
                                 progressInPixel = fillTo;
                             }else{
                                 uint16_t fillTo = map(Progress, 0, 100, 1., (long)(width-1));
-                                tft.fillRect(fillTo + xPos,yPos + 1 , progressInPixel - fillTo   , height - 2,backColour);
+                                tft.fillRect(fillTo + xPos,yPos + 1 , progressInPixel - fillTo   , height - 2,backgColour);
                                 progressInPixel = fillTo;
                             }
                             progress = Progress;
@@ -492,7 +492,7 @@ class SceneManager{
                         setProgress(tempProgress);
                     }
                     void setBackColour(uint32_t Colour){
-                        backColour = Colour;
+                        backgColour = Colour;
                         tft.drawRect(xPos,yPos, width,height,foreColour);
                         long tempProgress = progress;
                         setProgress(100);
@@ -500,9 +500,68 @@ class SceneManager{
                     }
 
                     void clear() const override {
-                        tft.fillRect(xPos,yPos, width,height,backColour);
+                        tft.fillRect(xPos,yPos, width,height,backgColour);
                     }          
             };
+            struct Line : BaseUI_element{ //TODO: implement pixel lvl update (not sure if it is worth it tho)
+                public:
+                    Line(uint16_t xStart, uint16_t yStart, uint16_t xEnd, uint16_t yEnd, uint32_t ForeColour = defaultForeGroundColor, uint32_t BackColour = backGroundColor ): xPosStart(xStart), yPosStart(yStart), xPosEnd(xEnd), yPosEnd(yEnd), foreColor(ForeColour), backColor(BackColour) {
+                        tft.drawLine(xPosStart,yPosStart,xPosEnd,yPosEnd,foreColor);
+                    }
+                    ~Line(){
+                        clear();
+                    }
+                    void clear() const{
+                        tft.drawLine(xPosStart,yPosStart,xPosEnd,yPosEnd,backColor);
+                    }
+                    void reDraw(){
+                        tft.drawLine(xPosStart,yPosStart,xPosEnd,yPosEnd,foreColor);
+                    }
+
+                private:
+                    uint16_t xPosStart;
+                    uint16_t xPosEnd;
+                    uint16_t yPosStart;
+                    uint16_t yPosEnd;
+                    uint32_t foreColor;
+                    uint32_t backColor;
+            };
+
+            struct Rectangle : BaseUI_element{
+                public:
+                    Rectangle(uint16_t xPosition, uint16_t yPosition, uint16_t xWidth, uint16_t yWidth, bool Filled = false, uint32_t ForeColour = defaultForeGroundColor, uint32_t BackColour = backGroundColor) : xPos(xPosition),yPos(yPosition), x_width(xWidth), y_width(yWidth), filled(Filled), foreColor(ForeColour), backColor(BackColour) {
+                        reDraw();
+                    } 
+                    ~Rectangle(){
+                        clear();
+                    }
+                    void clear() const{
+                        if(filled){
+                            tft.fillRect(xPos,yPos,x_width,y_width,backColor);
+                        }else{
+                            tft.drawRect(xPos,yPos,x_width,y_width,backColor);
+                        }
+                    }
+                    void reDraw(){
+                        if(filled){
+                            tft.fillRect(xPos,yPos,x_width,y_width,foreColor);
+                        }else{
+                            tft.drawRect(xPos,yPos,x_width,y_width,foreColor);
+                        }
+                    }
+
+                private:
+                    uint16_t xPos;
+                    uint16_t x_width;
+                    uint16_t yPos;
+                    uint16_t y_width;
+                    uint32_t foreColor;
+                    uint32_t backColor;
+                    bool filled;
+
+            };
+
+
             struct Chart : BaseUI_element{ //TODO: Implement
                 public:
                     void clear() const override{
@@ -516,20 +575,27 @@ class SceneManager{
         };
         
         bool showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES"){
+               //first we disable all butttons we dont want buttion handlers to be executed while the textbox is shown
                 LSC::getInstance().buttons.bt_0.active = false;
                 LSC::getInstance().buttons.bt_1.active = false;
                 LSC::getInstance().buttons.bt_2.active = false;
                 LSC::getInstance().buttons.bt_3.active = false;
                 LSC::getInstance().buttons.bt_4.active = false;
                 LSC::getInstance().buttons.bt_5.active = false;
-                bool returnValue;
+
+                bool returnValue; //the value the textbox will return in the end depends on user choice
+                //reset button 2 and 5 (yes / no button)
                 LSC::getInstance().buttons.bt_2.hasBeenClicked();
                 LSC::getInstance().buttons.bt_5.hasBeenClicked();
 
-                clearAllElements();
+                clearAllElements(); //clear everything on the screen
+                std::vector<BaseUI_element*> textBoxConstructionElements; // we add all the ui elements that we ned to construct the box here (makes cleanup in the end easy)
+
                 tft.drawRect(0,0,320,200,TFT_WHITE);
+
                 UI_elements::TextBox* title = new UI_elements::TextBox(5,20,Title,FMB12);
-                tft.drawLine(0,25,320,25,TFT_WHITE);
+                textBoxConstructionElements.push_back(new UI_elements::Line(0,25,320,25, backGroundColor, defaultForeGroundColor));
+                //tft.drawLine(0,25,320,25,TFT_WHITE);
                 
                 //tft.drawLine(0,240,320,240,TFT_WHITE);
                 UI_elements::TextBox* no = new UI_elements::TextBox(80 -tft.textWidth(OptionFalse)/2,225,OptionFalse,FMB12);
@@ -655,16 +721,14 @@ class SceneManager{
                 delete(tb_page);
                 delete(tb_slash);
                 delete(tb_pages);
+                for(BaseUI_element* el : textBoxConstructionElements){
+                    delete(el);
+                }
+
                 for(UI_elements::TextBox* tbs : messageTextBoxCollection){
                     delete(tbs);
                 }
-                tft.drawLine(320-xDepth,0,320-xDepth,200,TFT_BLACK);
-                tft.drawLine(320-xDepth,yDepth,320,yDepth,TFT_BLACK);
 
-                tft.drawRect(0,0,320,200,TFT_BLACK);
-                tft.drawLine(0,25,320,25,TFT_BLACK);
-                tft.drawLine(0,240,320,240,TFT_BLACK);
-                tft.drawLine(160,200,160,240,TFT_BLACK);
                 reDrawAllElements();
                 LSC::getInstance().buttons.bt_0.active = true;
                 LSC::getInstance().buttons.bt_1.active = true;
