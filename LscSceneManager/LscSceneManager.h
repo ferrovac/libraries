@@ -27,33 +27,49 @@ RECOURCES:  TODO
 
 struct BaseUI_element;
 
+//The ElementTracker keeps track of all UI_element instances that are created. When an element is created, a pointer
+//to the element will be stored in the ElementTracker. The tracker provides two functions one to register elments and 
+//one to remove elements. The Tracker is implemented as singelton. 
 struct ElementTracker{
     private:
-        
+        //private constructor to follow singelton pattern
         ElementTracker(){}
     public:
+        //vecor that holds the pointer of all elements
         static std::vector<BaseUI_element*> elements;
+        //singelton lazy init
         static ElementTracker& getInstance() {
             static ElementTracker instance;
         return instance;
         }
+        //Adds a UI_element to the tracker
         static void registerElement(BaseUI_element* element){
             elements.push_back(element);
         }
+        //removes an element form the tracker. Takes a pointer to the element to be removed as argument
+        //if the element to be removed does not exist the function does nothing.
         static void removeElement(BaseUI_element* element){
             elements.erase(std::remove(elements.begin(), elements.end(), element), elements.end());
         }
 };
 
+//Represents a UI_element all objects that reder something on the tft should inherit form this class.
+//there are two functions that have to be imlemented in the child class:
+//  1.  clear
+//          removes everyting the elment rendered on the screen, without changing the object itself
+//          this is usefull to temporaraly clear the screen to for exemple render a popup
+//  2.  reDraw
+//          after clear has been called reDraw should be able to rerender an object based on the internal state
 struct BaseUI_element{
     private:
     public:
         virtual void clear() const  = 0;
         virtual void reDraw() = 0;
-
+        //constructor adds the element to the ElementTracker
         BaseUI_element(){
             ElementTracker::getInstance().registerElement(this);
         }
+        //destructor removes the element from the ElementTracker
         ~BaseUI_element(){
             ElementTracker::getInstance().removeElement(this);
         }
@@ -62,15 +78,62 @@ struct BaseUI_element{
 
 
 
-
+      //---- SCENEMANAGET EXPLANATION ----
+  /*
+    GENERALL CONCEPT    
+        The SceneManager is responsible to handle everything that has to do with the tft display. It provides a lot of UI functions
+        to manipulate the sceen and a library of ui elements like TextBoxes ProgressBars and more.
+        The SceneManager is implemented as singelton and has to be implemented with the init() function and then
+        started with the begin() function. The init function will prepare the tft screen and set the first sceene.
+        The init function also sets the BackgroudColor of the screen. Currently the user can not change the backgroud color
+        after this point. The reason behind this is, that backgroud color changes are VERY expensive on the cpu and almost always
+        look very bad in the end. Local areas with different color can be crated with rectangles. Another reason for a fixed background
+        color is that; removing an elment form the screen means overwriting the element with the background color, which is much
+        easier the implement if the background color is fixed (this could be changed at a later point if needed).
+        All SceneManager functions should be thread save. The begin() function will enter an endless loop and start managing
+        scenes. Therefor all code after begin() will never be executed!
+    SCENES
+        To make writing ui code as easy as possible, we implemented the whole ui logic in scenes. A scene is nothing but
+        a void function with a while loop in the end:
+            void scene(){
+                //setup code here like defining ui_elements
+                while(!sceneManager.switchScene()){
+                    //main ui loop. Manipulate the ui_elements here. Here lives the ui_logic the user can interact with
+                }
+            }
+        To switch to another scene sceneManager.loadScene(void (*scene)()); can be called. This tells the SceneManager that
+        a scene change is pending. Practically this will make sceneManager.switchScene() return true, thus terminating the while
+        loop. This terminates the execution of the current scene. As soon as the void scene functoin returns all elements definded
+        in the context of the scene are destroyed thus automatically removing everything belonging to these elements form the screen
+        To interact with the user there are two main ways:
+        1.  Set Button handler:
+                    lsc.buttons.setOnClickHandler(lsc.buttons.bt_2, switchTo2);
+                this will execute the switchTo2 function when button 2 is pressed. the switchTo2 could look like this:
+                    void switchTo2(){
+                        sceneManager.loadScene(scene2);
+                    }
+                in this exemple we switch to scene2 when button 2 is pressed. This methode is most usefull when the function
+                of a button is the same in the whole scene and does not change. Because then the handler can be set in the 
+                setup part of the scene such that one does not not have to querry the state of the button in the ui loop.
+        2.  Querry button state:
+                    lsc.buttons.bt_4.hasBeenClicked()
+                checks if button 4 has been clicked. The button does not have to be pressed at the exact time the funtion
+                is called. As soon as the button is pressed an internal flag is set such that the function returns true 
+                when it is called. By calling hasBeenClicked() the flag is reset. i.e. until the button is pressed again the
+                function will return false. This means you can use hasBeenClicked() to clear previous putton presses.
+                When switching to a new scene the state of all buttons is automatically cleared.
+  */
+    //---- END SCENEMANAGET EXPLANATION ----
 class SceneManager{
     private:
+        //holds a pointer to the currently running scene
         void (*volatile currentScene)();
+        //holds a pointer to the next scene to be loded. If this is not the same as currentScene a scene switch will be triggered
         void (*volatile nextScene)();
-        
-        
-        SceneManager(){
-        }
+        //holds the global backgroud color of the tft display. This is set in the init function and should not be changed later
+        uint32_t backgroundColor;
+        //private constructor for singelton pattern
+        SceneManager(){}
         
  
     public:
@@ -461,7 +524,7 @@ class SceneManager{
                 
                 bool tooManyLinesForScreen = false;
                 tft.setFreeFont(FM9);
-                int maxLinesOnScreen = 130 / tft.fontHeight();
+                int maxLinesOnScreen = 150 / tft.fontHeight(); //there will be one more line on the screen then this number indecates...
                 int pages = 0;
                 int startTime = millis();
                 for(char character : Message){
@@ -473,10 +536,11 @@ class SceneManager{
                         if( tooManyLinesForScreen) linesUnderScreen.push_back(Message.substring(lastLineFeed + 1,lastSpace));
                         lastLineFeed = lastSpace ;
                         numberOfLines++;
-                        if(numberOfLines > maxLinesOnScreen) tooManyLinesForScreen = true;
+                        if(numberOfLines >= maxLinesOnScreen) tooManyLinesForScreen = true;
                     }
                     index++;
                 }
+
 
 
 
@@ -485,14 +549,35 @@ class SceneManager{
                     if( tooManyLinesForScreen) linesUnderScreen.push_back(Message.substring(lastLineFeed + 1,Message.length()));
                     numberOfLines++;
                 }
-                pages = numberOfLines / maxLinesOnScreen;
+                Serial.println( numberOfLines );
+                Serial.println( maxLinesOnScreen);
+                
+                int addedNumberOfLinesForPadding = 0;
 
-                for(int k = 0; k < (numberOfLines % maxLinesOnScreen); k++){
-                    linesUnderScreen.push_back("");
-                }
+                    if((numberOfLines % maxLinesOnScreen) != 0){
+                        for(int k = 0; k < maxLinesOnScreen-(numberOfLines % maxLinesOnScreen); k++){
+                            linesUnderScreen.push_back("");
+                            addedNumberOfLinesForPadding++;
+                        }
+                    }
+
+                numberOfLines += addedNumberOfLinesForPadding;
+
+                pages = numberOfLines / maxLinesOnScreen;
+                                Serial.println( numberOfLines );
+
+                Serial.println((float)numberOfLines / (float)maxLinesOnScreen);
+
 
 
                 int page = 0;
+                int tbPageCounterXpos = 150;
+                UI_elements::TextBox* tb_page = new UI_elements::TextBox(304,tbPageCounterXpos,"",FM9);
+                UI_elements::TextBox* tb_slash = new UI_elements::TextBox(304,tbPageCounterXpos + 15,"",FM9);
+                UI_elements::TextBox* tb_pages = new UI_elements::TextBox(304,tbPageCounterXpos + 30,"",FM9);
+                int yDepth = 130;
+                int xDepth = 20;
+
                 while(true){
                     if(LSC::getInstance().buttons.bt_2.hasBeenClicked()){
                         returnValue = false;
@@ -502,10 +587,20 @@ class SceneManager{
                         returnValue = true;
                         break;
                     }
-                    if(!tooManyLinesForScreen) continue;;
+                    if(!tooManyLinesForScreen) continue;
+
+
+                    tft.drawLine(319,0,319,yDepth,TFT_BLACK);
+                    tft.drawLine(320-xDepth,0,320,0,TFT_BLACK);
+                    tft.drawLine(320-xDepth,25,320,25,TFT_BLACK);
+                    tft.drawLine(320-xDepth,0,320-xDepth,200,TFT_WHITE);
+                    tft.drawLine(320-xDepth,yDepth,320,yDepth,TFT_WHITE);
+                    tb_page->setText(String(page+1));
+                    tb_slash->setText("/");
+                    tb_pages->setText(String(pages));
 
                     if(LSC::getInstance().buttons.bt_3.hasBeenClicked() && page > 0){
-                                                
+                         tb_page->setText(String(page+1));                       
                         for(int32_t i = messageTextBoxCollection.size() -1; i >=0 ; i--){
                             linesUnderScreen.push_front(messageTextBoxCollection[i]->getText());
                         }
@@ -517,9 +612,9 @@ class SceneManager{
                         page--;                       
 
                     }
-                    if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && page < pages){
+                    if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && page < pages-1){
                         int linesToPrint = linesUnderScreen.size();
-
+                        tb_page->setText(String(page+1));
                         for(int32_t i = 0; i < messageTextBoxCollection.size(); i++){
                             linesOverScreen.push_back(messageTextBoxCollection[i]->getText());
                             if(i > linesToPrint) continue;
@@ -530,14 +625,21 @@ class SceneManager{
 
                         
                     }
+                    
                 }
                 
                 delete(title);
                 delete(yes);
                 delete(no);
+                delete(tb_page);
+                delete(tb_slash);
+                delete(tb_pages);
                 for(UI_elements::TextBox* tbs : messageTextBoxCollection){
                     delete(tbs);
                 }
+                tft.drawLine(320-xDepth,0,320-xDepth,200,TFT_BLACK);
+                tft.drawLine(320-xDepth,yDepth,320,yDepth,TFT_BLACK);
+
                 tft.drawRect(0,0,320,200,TFT_BLACK);
                 tft.drawLine(0,25,320,25,TFT_BLACK);
                 tft.drawLine(0,240,320,240,TFT_BLACK);
