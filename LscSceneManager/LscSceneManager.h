@@ -70,7 +70,7 @@ struct BaseUI_element{
             ElementTracker::getInstance().registerElement(this);
         }
         //destructor removes the element from the ElementTracker
-        ~BaseUI_element(){
+        virtual ~BaseUI_element(){
             ElementTracker::getInstance().removeElement(this);
         }
 };
@@ -341,7 +341,7 @@ class SceneManager{
                     }
                     
 
-                    TextBox(uint16_t xPosition, uint16_t yPosition, String Text="" , const GFXfont* Font=defaultFont , uint32_t BackColour=backGroundColor, uint32_t FontColour=defaultForeGroundColor){
+                    TextBox(uint16_t xPosition, uint16_t yPosition, String Text="" , const GFXfont* Font=defaultFont , uint32_t FontColour=defaultForeGroundColor , uint32_t BackColour=backGroundColor){
                         text = "";
                         xPos = xPosition;
                         yPos = yPosition;
@@ -532,7 +532,7 @@ class SceneManager{
                     Rectangle(uint16_t xPosition, uint16_t yPosition, uint16_t xWidth, uint16_t yWidth, bool Filled = false, uint32_t ForeColour = defaultForeGroundColor, uint32_t BackColour = backGroundColor) : xPos(xPosition),yPos(yPosition), x_width(xWidth), y_width(yWidth), filled(Filled), foreColor(ForeColour), backColor(BackColour) {
                         reDraw();
                     } 
-                    ~Rectangle(){
+                    ~Rectangle() override {
                         clear();
                     }
                     void clear() const{
@@ -574,7 +574,7 @@ class SceneManager{
 
         };
         
-        bool showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES"){
+        bool showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES", uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9){
                //first we disable all butttons we dont want buttion handlers to be executed while the textbox is shown
                 LSC::getInstance().buttons.bt_0.active = false;
                 LSC::getInstance().buttons.bt_1.active = false;
@@ -583,24 +583,25 @@ class SceneManager{
                 LSC::getInstance().buttons.bt_4.active = false;
                 LSC::getInstance().buttons.bt_5.active = false;
 
+
                 bool returnValue; //the value the textbox will return in the end depends on user choice
                 //reset button 2 and 5 (yes / no button)
                 LSC::getInstance().buttons.bt_2.hasBeenClicked();
                 LSC::getInstance().buttons.bt_5.hasBeenClicked();
 
                 clearAllElements(); //clear everything on the screen
-                std::vector<BaseUI_element*> textBoxConstructionElements; // we add all the ui elements that we ned to construct the box here (makes cleanup in the end easy)
-
-                tft.drawRect(0,0,320,200,TFT_WHITE);
-
-                UI_elements::TextBox* title = new UI_elements::TextBox(5,20,Title,FMB12);
-                textBoxConstructionElements.push_back(new UI_elements::Line(0,25,320,25, backGroundColor, defaultForeGroundColor));
-                //tft.drawLine(0,25,320,25,TFT_WHITE);
                 
-                //tft.drawLine(0,240,320,240,TFT_WHITE);
-                UI_elements::TextBox* no = new UI_elements::TextBox(80 -tft.textWidth(OptionFalse)/2,225,OptionFalse,FMB12);
-                UI_elements::TextBox* yes = new UI_elements::TextBox(240-tft.textWidth(OptionTrue)/2,225,OptionTrue,FMB12);
-                tft.drawLine(160,200,160,240,TFT_WHITE);
+                tft.drawRect(0,0,320,200,LineColor);
+                tft.setFreeFont(TitleFont);
+                UI_elements::TextBox* title = new UI_elements::TextBox((320 - tft.textWidth(Title))/2, 20 - (25 - tft.fontHeight())/2 ,Title,TitleFont,TitleColor);
+
+                tft.drawLine(0,25,320,25,LineColor);
+                tft.setFreeFont(TitleFont);
+                UI_elements::TextBox* no = new UI_elements::TextBox(80 -tft.textWidth(OptionFalse)/2,234 - (40 - tft.fontHeight())/2,OptionFalse,TitleFont, OptionFalseColor);
+                UI_elements::TextBox* yes = new UI_elements::TextBox(240-tft.textWidth(OptionTrue)/2,234 - (40 - tft.fontHeight())/2,OptionTrue, TitleFont, OptionTrueColor);
+                
+                tft.drawLine(160,200,160,240,LineColor);
+                
                 std::deque<String> linesUnderScreen;
                 std::deque<String> linesOverScreen;
                 std::vector<UI_elements::TextBox*> messageTextBoxCollection;
@@ -610,15 +611,15 @@ class SceneManager{
                 int numberOfLines = 0;
                 
                 bool tooManyLinesForScreen = false;
-                tft.setFreeFont(FM9);
-                int maxLinesOnScreen = 150 / tft.fontHeight(); //there will be one more line on the screen then this number indecates...
+                tft.setFreeFont(TextFont);
+                int maxLinesOnScreen = 174 / tft.fontHeight(); //there will be one more line on the screen then this number indecates...
                 int pages = 0;
                 int startTime = millis();
                 for(char character : Message){
                     if(character == ' ') lastSpace = index;
                     if(tft.textWidth(Message.substring(lastLineFeed + 1,index )) > 280){
 
-                        if(!tooManyLinesForScreen) messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(),Message.substring(lastLineFeed + 1,lastSpace),FM9));
+                        if(!tooManyLinesForScreen) messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(),Message.substring(lastLineFeed + 1,lastSpace),TextFont,TextColor));
                         
                         if( tooManyLinesForScreen) linesUnderScreen.push_back(Message.substring(lastLineFeed + 1,lastSpace));
                         lastLineFeed = lastSpace ;
@@ -628,17 +629,12 @@ class SceneManager{
                     index++;
                 }
 
-
-
-
                 if((lastLineFeed + 1 < Message.length())){
-                    if(!tooManyLinesForScreen) messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(),Message.substring(lastLineFeed + 1,Message.length()),FM9));
+                    tft.setFreeFont(TextFont);
+                    if(!tooManyLinesForScreen) messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(),Message.substring(lastLineFeed + 1,Message.length()),TextFont,TextColor));
                     if( tooManyLinesForScreen) linesUnderScreen.push_back(Message.substring(lastLineFeed + 1,Message.length()));
                     numberOfLines++;
                 }
-                Serial.println( numberOfLines );
-                Serial.println( maxLinesOnScreen);
-                
                 int addedNumberOfLinesForPadding = 0;
 
                     if((numberOfLines % maxLinesOnScreen) != 0){
@@ -649,21 +645,16 @@ class SceneManager{
                     }
 
                 numberOfLines += addedNumberOfLinesForPadding;
-
                 pages = numberOfLines / maxLinesOnScreen;
-                                Serial.println( numberOfLines );
-
-                Serial.println((float)numberOfLines / (float)maxLinesOnScreen);
-
-
 
                 int page = 0;
-                int tbPageCounterXpos = 150;
-                UI_elements::TextBox* tb_page = new UI_elements::TextBox(304,tbPageCounterXpos,"",FM9);
-                UI_elements::TextBox* tb_slash = new UI_elements::TextBox(304,tbPageCounterXpos + 15,"",FM9);
-                UI_elements::TextBox* tb_pages = new UI_elements::TextBox(304,tbPageCounterXpos + 30,"",FM9);
-                int yDepth = 130;
-                int xDepth = 20;
+                int tbPageCounterYpos = 159;
+                UI_elements::TextBox* tb_page = new UI_elements::TextBox(305,tbPageCounterYpos,"", FM9,TextColor);
+                UI_elements::TextBox* tb_slash = new UI_elements::TextBox(305,tbPageCounterYpos + 15,"", FM9,TextColor);
+                UI_elements::TextBox* tb_pages = new UI_elements::TextBox(305,tbPageCounterYpos + 30,"", FM9,TextColor);
+                int yDepth = 140;
+                int xDepth = 19;
+                bool trianglesAlreadyDrawn = false;
 
                 while(true){
                     if(LSC::getInstance().buttons.bt_2.hasBeenClicked()){
@@ -675,13 +666,31 @@ class SceneManager{
                         break;
                     }
                     if(!tooManyLinesForScreen) continue;
+                    int triangleSize = 25;
+                    if(!trianglesAlreadyDrawn){
+                        
+
+                        tft.drawLine(319,0,319,yDepth,backGroundColor);
+                        tft.drawLine(320-xDepth,0,320,0,backGroundColor);
+                        tft.drawLine(320-xDepth,25,320,25,backGroundColor);
+                    
+                        tft.drawLine(320-xDepth,0,320-xDepth,199,LineColor);
+
+                        tft.drawLine(320-xDepth,yDepth,320,yDepth,LineColor);
+                        
+                        //Lower triabgle
+                        tft.drawLine(320-xDepth + 1,yDepth-25 ,320-(xDepth/2),yDepth,LineColor);
+                        tft.drawLine(320-1, yDepth -25,320-(xDepth/2),yDepth,LineColor);
+                        //upe driangle
+                        tft.drawLine(320-xDepth + 1,25,320-(xDepth/2),0,LineColor);
+                        tft.drawLine(320-1,25,320-(xDepth/2),0,LineColor);
+                        trianglesAlreadyDrawn = true;
+
+                    }
+                    
 
 
-                    tft.drawLine(319,0,319,yDepth,TFT_BLACK);
-                    tft.drawLine(320-xDepth,0,320,0,TFT_BLACK);
-                    tft.drawLine(320-xDepth,25,320,25,TFT_BLACK);
-                    tft.drawLine(320-xDepth,0,320-xDepth,199,TFT_WHITE);
-                    tft.drawLine(320-xDepth,yDepth,320,yDepth,TFT_WHITE);
+                    
                     tb_page->setText(String(page+1));
                     tb_slash->setText("/");
                     tb_pages->setText(String(pages));
@@ -721,13 +730,22 @@ class SceneManager{
                 delete(tb_page);
                 delete(tb_slash);
                 delete(tb_pages);
-                for(BaseUI_element* el : textBoxConstructionElements){
-                    delete(el);
-                }
 
                 for(UI_elements::TextBox* tbs : messageTextBoxCollection){
                     delete(tbs);
                 }
+                
+                tft.drawRect(0,0,320,200,backGroundColor);
+                tft.drawLine(0,25,320,25,backGroundColor);
+                tft.drawLine(160,200,160,240,backGroundColor);
+                tft.drawLine(320-xDepth,0,320-xDepth,199,backGroundColor);
+                tft.drawLine(320-xDepth,yDepth,320,yDepth,backGroundColor);
+                // Lower triabgle
+                tft.drawLine(320 - xDepth + 1, yDepth - 25, 320 - (xDepth / 2), yDepth, backGroundColor);
+                tft.drawLine(320 - 1, yDepth - 25, 320 - (xDepth / 2), yDepth, backGroundColor);
+                // upe driangle
+                tft.drawLine(320 - xDepth + 1, 25, 320 - (xDepth / 2), 0, backGroundColor);
+                tft.drawLine(320 - 1, 25, 320 - (xDepth / 2), 0, backGroundColor);
 
                 reDrawAllElements();
                 LSC::getInstance().buttons.bt_0.active = true;
