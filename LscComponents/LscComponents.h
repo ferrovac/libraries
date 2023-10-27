@@ -38,14 +38,13 @@ RECOURCES:  TODO
 struct Units{
     //List of all available temperature units
     struct Temperature {
-        
         enum struct Unit{
             //Kelvin
             K, 
             //Celsius
             C, 
             //Fahrenheit
-            F,
+            F
         };
         //Provides a collection of conversion funcions
         struct Conversions{

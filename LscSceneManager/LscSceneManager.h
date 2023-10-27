@@ -276,8 +276,6 @@ class SceneManager{
                         }
 
                         uint32_t alreadyCleared = 0;
-
-
                         for(uint16_t i = 0; i < Text.length();i++){
                             textSubstringLength = tft.textWidth(text.substring(0,i + 1));
                             TextSubstringLength = tft.textWidth(Text.substring(0,i + 1));
@@ -574,6 +572,96 @@ class SceneManager{
 
         };
         
+        struct StandardMenu{
+            public:
+                StandardMenu(String Title, String LeftOption, String RightOption, uint32_t TitleColor = defaultForeGroundColor, uint32_t LeftOptionColor = defaultForeGroundColor, uint32_t RightOptionColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* Font = FMB12): titleColor(TitleColor), leftOptionColor(LeftOptionColor), rightOptionColor(RightOptionColor),lineColor(LineColor),font(Font){
+                    rightControllDrawn = false;
+                    tft.drawRect(0, 0, 320 - 19, 200, LineColor); //Big Box
+                    tft.drawRect(1, 1, 320 - 21, 24, LineColor);  //Title Box
+                    tft.drawLine(1, 25,320 - 20, 25, LineColor);   //Title Box under Line fat
+                    tft.drawLine(160,200,160,240,LineColor);    //yes / no separator
+                    int yDepth = 140;
+                    int xDepth = 19;
+                    tft.drawLine(320 - xDepth, yDepth, 320, yDepth, LineColor);
+                    tft.drawLine(320 - xDepth, 199, 320, 199, LineColor);
+                    tft.drawLine(319 , yDepth, 319, 199, LineColor);
+
+
+
+                    tft.setFreeFont(font);
+                    title = new UI_elements::TextBox((301 - tft.textWidth(Title)) / 2, 20 - (25 - tft.fontHeight()) / 2, Title, font, titleColor);
+                    
+                    leftOption = new UI_elements::TextBox(80 - tft.textWidth(LeftOption) / 2, 234 - (40 - tft.fontHeight()) / 2, LeftOption, font, leftOptionColor);
+                    rightOption = new UI_elements::TextBox(240 - tft.textWidth(RightOption) / 2, 234 - (40 - tft.fontHeight()) / 2, RightOption, font, rightOptionColor);
+                    int tbPageCounterYpos = 159;
+                    page = new UI_elements::TextBox(305,tbPageCounterYpos,"1", FM9,lineColor);
+                    slash = new UI_elements::TextBox(305,tbPageCounterYpos + 15,"/", FM9,lineColor);
+                    pages = new UI_elements::TextBox(305,tbPageCounterYpos + 30,"1", FM9,lineColor);
+                }
+                ~StandardMenu(){
+                    tft.drawRect(0, 0, 320 - 19, 200, backGroundColor); //Big Box
+                    tft.drawRect(1, 1, 320 - 21, 24, backGroundColor);  //Title Box
+                    tft.drawLine(1, 25,320 - 20, 25, backGroundColor);   //Title Box under Line fat
+                    tft.drawLine(160,200,160,240,backGroundColor);    //yes / no separator
+                    int yDepth = 140;
+                    int xDepth = 19;
+                    tft.drawLine(320 - xDepth, yDepth, 320, yDepth, backGroundColor);
+                    tft.drawLine(320 - xDepth, 199, 320, 199, backGroundColor);
+                    tft.drawLine(319 , yDepth, 319, 199, backGroundColor);
+                    if(rightControllDrawn){
+                        // Lower triabgle
+                        tft.drawLine(320 - xDepth + 1, yDepth - 25, 320 - (xDepth / 2), yDepth, backGroundColor);
+                        tft.drawLine(320 - 1, yDepth - 25, 320 - (xDepth / 2), yDepth, backGroundColor);
+                        // upe driangle
+                        tft.drawLine(320 - xDepth + 1, 25, 320 - (xDepth / 2), 0, backGroundColor);
+                        tft.drawLine(320 - 1, 25, 320 - (xDepth / 2), 0, backGroundColor);
+                    }
+                    delete(title);
+                    delete(leftOption);
+                    delete(rightOption);
+                    delete(pages);
+                    delete(page);
+                    delete(slash);
+
+                }
+
+                void drawRightControll(){
+                    if(!rightControllDrawn){
+                        int yDepth = 140;
+                        int xDepth = 19;
+                        // Lower triabgle
+                        tft.drawLine(320 - xDepth + 1, yDepth - 25, 320 - (xDepth / 2), yDepth, lineColor);
+                        tft.drawLine(320 - 1, yDepth - 25, 320 - (xDepth / 2), yDepth, lineColor);
+                        // upe driangle
+                        tft.drawLine(320 - xDepth + 1, 25, 320 - (xDepth / 2), 0, lineColor);
+                        tft.drawLine(320 - 1, 25, 320 - (xDepth / 2), 0, lineColor);
+                        rightControllDrawn = true;
+                    }
+                }
+                void setCurrentPageNumber(uint16_t number){
+                    page->setText(String(number));
+                }
+                void setOfPagesNumber(uint16_t number){
+                    pages->setText(String(number));
+                }
+
+            private:
+                UI_elements::TextBox* title;
+                UI_elements::TextBox* leftOption;
+                UI_elements::TextBox* rightOption;
+                UI_elements::TextBox* page;
+                UI_elements::TextBox* pages;
+                UI_elements::TextBox* slash;
+                uint32_t titleColor;
+                uint32_t leftOptionColor;
+                uint32_t rightOptionColor;
+                uint32_t lineColor;
+                const GFXfont* font;
+                bool rightControllDrawn;
+
+
+        };
+        
         bool showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES", uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9){
                //first we disable all butttons we dont want buttion handlers to be executed while the textbox is shown
                 LSC::getInstance().buttons.bt_0.active = false;
@@ -590,20 +678,11 @@ class SceneManager{
                 LSC::getInstance().buttons.bt_5.hasBeenClicked();
 
                 clearAllElements(); //clear everything on the screen
-                
-                tft.drawRect(0,0,320,200,LineColor);
-                tft.setFreeFont(TitleFont);
-                UI_elements::TextBox* title = new UI_elements::TextBox((320 - tft.textWidth(Title))/2, 20 - (25 - tft.fontHeight())/2 ,Title,TitleFont,TitleColor);
+                StandardMenu* menuFramePtr = new StandardMenu(Title,OptionFalse,OptionTrue,TitleColor,OptionFalseColor,OptionTrueColor,LineColor,TitleFont);
 
-                tft.drawLine(0,25,320,25,LineColor);
-                tft.setFreeFont(TitleFont);
-                UI_elements::TextBox* no = new UI_elements::TextBox(80 -tft.textWidth(OptionFalse)/2,234 - (40 - tft.fontHeight())/2,OptionFalse,TitleFont, OptionFalseColor);
-                UI_elements::TextBox* yes = new UI_elements::TextBox(240-tft.textWidth(OptionTrue)/2,234 - (40 - tft.fontHeight())/2,OptionTrue, TitleFont, OptionTrueColor);
-                
-                tft.drawLine(160,200,160,240,LineColor);
-                
                 std::deque<String> linesUnderScreen;
                 std::deque<String> linesOverScreen;
+
                 std::vector<UI_elements::TextBox*> messageTextBoxCollection;
                 int lastSpace = 0;
                 int lastLineFeed = -1;
@@ -611,8 +690,9 @@ class SceneManager{
                 int numberOfLines = 0;
                 
                 bool tooManyLinesForScreen = false;
+
                 tft.setFreeFont(TextFont);
-                int maxLinesOnScreen = 174 / tft.fontHeight(); //there will be one more line on the screen then this number indecates...
+                int maxLinesOnScreen = 174 / tft.fontHeight(); //there will be one more line on the screen then this number indecates... because of reasons
                 int pages = 0;
                 int startTime = millis();
                 for(char character : Message){
@@ -648,10 +728,6 @@ class SceneManager{
                 pages = numberOfLines / maxLinesOnScreen;
 
                 int page = 0;
-                int tbPageCounterYpos = 159;
-                UI_elements::TextBox* tb_page = new UI_elements::TextBox(305,tbPageCounterYpos,"", FM9,TextColor);
-                UI_elements::TextBox* tb_slash = new UI_elements::TextBox(305,tbPageCounterYpos + 15,"", FM9,TextColor);
-                UI_elements::TextBox* tb_pages = new UI_elements::TextBox(305,tbPageCounterYpos + 30,"", FM9,TextColor);
                 int yDepth = 140;
                 int xDepth = 19;
                 bool trianglesAlreadyDrawn = false;
@@ -668,35 +744,17 @@ class SceneManager{
                     if(!tooManyLinesForScreen) continue;
                     int triangleSize = 25;
                     if(!trianglesAlreadyDrawn){
-                        
-
-                        tft.drawLine(319,0,319,yDepth,backGroundColor);
-                        tft.drawLine(320-xDepth,0,320,0,backGroundColor);
-                        tft.drawLine(320-xDepth,25,320,25,backGroundColor);
-                    
-                        tft.drawLine(320-xDepth,0,320-xDepth,199,LineColor);
-
-                        tft.drawLine(320-xDepth,yDepth,320,yDepth,LineColor);
-                        
-                        //Lower triabgle
-                        tft.drawLine(320-xDepth + 1,yDepth-25 ,320-(xDepth/2),yDepth,LineColor);
-                        tft.drawLine(320-1, yDepth -25,320-(xDepth/2),yDepth,LineColor);
-                        //upe driangle
-                        tft.drawLine(320-xDepth + 1,25,320-(xDepth/2),0,LineColor);
-                        tft.drawLine(320-1,25,320-(xDepth/2),0,LineColor);
-                        trianglesAlreadyDrawn = true;
-
+                        menuFramePtr->drawRightControll();
                     }
                     
 
 
                     
-                    tb_page->setText(String(page+1));
-                    tb_slash->setText("/");
-                    tb_pages->setText(String(pages));
+                    menuFramePtr->setCurrentPageNumber(page+1);
+                    menuFramePtr->setOfPagesNumber(pages);
 
                     if(LSC::getInstance().buttons.bt_3.hasBeenClicked() && page > 0){
-                         tb_page->setText(String(page+1));                       
+                        menuFramePtr->setCurrentPageNumber(page+1);                       
                         for(int32_t i = messageTextBoxCollection.size() -1; i >=0 ; i--){
                             linesUnderScreen.push_front(messageTextBoxCollection[i]->getText());
                         }
@@ -710,7 +768,7 @@ class SceneManager{
                     }
                     if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && page < pages-1){
                         int linesToPrint = linesUnderScreen.size();
-                        tb_page->setText(String(page+1));
+                        menuFramePtr->setCurrentPageNumber(page+1);
                         for(int32_t i = 0; i < messageTextBoxCollection.size(); i++){
                             linesOverScreen.push_back(messageTextBoxCollection[i]->getText());
                             if(i > linesToPrint) continue;
@@ -724,29 +782,12 @@ class SceneManager{
                     
                 }
                 
-                delete(title);
-                delete(yes);
-                delete(no);
-                delete(tb_page);
-                delete(tb_slash);
-                delete(tb_pages);
+                delete(menuFramePtr);
 
                 for(UI_elements::TextBox* tbs : messageTextBoxCollection){
                     delete(tbs);
                 }
                 
-                tft.drawRect(0,0,320,200,backGroundColor);
-                tft.drawLine(0,25,320,25,backGroundColor);
-                tft.drawLine(160,200,160,240,backGroundColor);
-                tft.drawLine(320-xDepth,0,320-xDepth,199,backGroundColor);
-                tft.drawLine(320-xDepth,yDepth,320,yDepth,backGroundColor);
-                // Lower triabgle
-                tft.drawLine(320 - xDepth + 1, yDepth - 25, 320 - (xDepth / 2), yDepth, backGroundColor);
-                tft.drawLine(320 - 1, yDepth - 25, 320 - (xDepth / 2), yDepth, backGroundColor);
-                // upe driangle
-                tft.drawLine(320 - xDepth + 1, 25, 320 - (xDepth / 2), 0, backGroundColor);
-                tft.drawLine(320 - 1, 25, 320 - (xDepth / 2), 0, backGroundColor);
-
                 reDrawAllElements();
                 LSC::getInstance().buttons.bt_0.active = true;
                 LSC::getInstance().buttons.bt_1.active = true;

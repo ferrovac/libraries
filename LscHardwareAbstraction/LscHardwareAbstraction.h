@@ -221,7 +221,7 @@ struct PowerSwitch : DigitalOutBase{
     using DigitalOutBase::operator=;
     //--- CONSTRUCTOR ---
     PowerSwitch(uint8_t arduinoPin) : DigitalOutBase(arduinoPin){
-      description = "PowerSwitch (Leistungsshalter)\n24V 0.25A max\nArduino PIN: " + String(arduinoPin);
+      description = "PowerSwitch (Leistungsschalter)\n24V 0.25A max\nArduino PIN: " + String(arduinoPin);
     } 
 };
 
