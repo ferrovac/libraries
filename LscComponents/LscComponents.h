@@ -172,8 +172,9 @@ with the explanation string -> makes it easy to get index.
 
 
 enum struct ExposedStateType{
-    ReadOnlyNumber,
-    ReadWriteNumber,
+    ReadOnly,
+    ReadWrite,
+    ReadWriteNumberRanged,
     ReadWriteSelection
 };
 
@@ -193,10 +194,13 @@ public:
     }
 };
 
+template <typename T>
 struct BaseExposedState{
     private:
+        const String stateName;
     public:
-        BaseExposedState(){
+        T state;
+        BaseExposedState(String StateName, T State) : stateName(StateName), state(State){
             StateTracker::getInstance().registerState(this);
         }
         virtual ~BaseExposedState(){
@@ -204,28 +208,35 @@ struct BaseExposedState{
         }
 };
 
-template <ExposedStateType StateType, typename T>
+template <ExposedStateType StateType, T>
 struct ExposedState;
 
 template <typename T>
-struct ExposedState<ExposedStateType::ReadOnlyNumber, T> : BaseExposedState {
-    const T* const statePtr;
-    ExposedState(const T* StatePtr): statePtr(StatePtr){
+//is the same as ReadWrite will check in menu if setting state is allowed
+struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState<T> {
+    ExposedState(String StateName,T State): BaseExposedState(StateName, State) {
+    }
+};
+
+template <typename T>
+struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState<T> {
+    ExposedState(String StateName,T State): BaseExposedState(StateName, State){
+    }
+};
+
+template <typename T>
+struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState<T> {
+    //static_assert if T is orderable
+    T minState;
+    T maxState;
+    T stepState;
+    ExposedState(String StateName,T State, T MinState, T MaxState, T stepState): BaseExposedState(StateName, State), minState(MinState), maxState(MaxState), stepState(stepState){
     }
 };
 template <typename T>
-struct ExposedState<ExposedStateType::ReadWriteNumber, T> : BaseExposedState {
-    T* const statePtr;
-    T minValue;
-    T maxValue;
-    ExposedState(T* StatePtr, T MinValue, T MaxValue): statePtr(StatePtr), minValue(MinValue), maxValue(MaxValue){
-    }
-};
-template <typename T>
-struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState {
-    T* const statePtr;
-    std::vector<String> selection;
-    ExposedState(T* StatePtr, std::vector<String> Selection): statePtr(StatePtr), selection(Selection){
+struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState<T> {
+    Selection& _selection;
+    ExposedState(String StateName,T State, Selection& selection): BaseExposedState(StateName,State), _selection(selection){
     }
 };
 
@@ -252,14 +263,17 @@ class Components{
                 double temperature;
                 Units::Temperature::Unit displayUnit;
             public:
-                //Sets the display unit based on the index of the getOptions() function. CAREFULL there are no checks on the index!
-                void setDisplayUnitByIndex(uint16_t index){
-                    setDisplayUnit(Units::Temperature::getUnitByIndex(index));
-                }
-                TemperatureSensor(AnalogInPt100 &analogInPt100, String componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), componentName(componentName) {
+                ExposedState<ExposedStateType::ReadOnly, double> temp;
+
+                TemperatureSensor(AnalogInPt100 &analogInPt100, String componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), componentName(componentName), temp("Temperature",0){
                     temperature = 0;
                     displayUnit = Units::Temperature::Unit::C;
                     ComponentTracker::getInstance().registerComponent(this);
+                }
+                
+                //Sets the display unit based on the index of the getOptions() function. CAREFULL there are no checks on the index!
+                void setDisplayUnitByIndex(uint16_t index){
+                    setDisplayUnit(Units::Temperature::getUnitByIndex(index));
                 }
                 //Returns the temperature in K
                 double getTemperature(){
