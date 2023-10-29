@@ -20,7 +20,6 @@ namespace OS{
   void init();
   void startWatchdog();
   void stopWatchdog();
-
 }
 
 

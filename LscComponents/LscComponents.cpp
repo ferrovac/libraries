@@ -5,6 +5,8 @@
     There seams to be an issue with the standard lib in arduino, leading to errors working with std:vectors
     adding the following code fixes the porblem.
 */
+
+std::vector<BaseExposedState*> StateTracker::states;
 namespace std
 {
     void __throw_bad_alloc()

@@ -15,6 +15,32 @@ RECOURCES:  TODO
 #include "LscHardwareAbstraction.h"
 
 
+
+template<typename T>
+struct Selection{
+    private:
+        std::vector<std::pair<T, String>> _selection ;
+    public:
+        Selection(std::vector<std::pair<T, String>> selection) : _selection(selection){
+        }
+        int getIndexByValue(T value){
+            uint16_t counter = 0;
+            for(std::pair<T, String> &pair : _selection){
+                if(pair.first == value){
+                    return counter;
+                }
+                counter++;
+            }
+            return -1;
+        }
+        std::vector<String> getOptions(){
+            std::vector<String> ret;
+            for(std::pair<T, String> &pair : _selection){
+                ret.push_back(pair.second);
+            }
+            return ret;
+        }
+};
     //---- UNITS EXPLANATION ----
 /*
     Generally all calculations should be done in SI units i.e. whenever a value that represents a pysical unit is returned by a function it HAS
@@ -50,7 +76,7 @@ struct Units{
         struct Conversions{
             //Converts Kelvin to Celsius
             static double K_C(double K){
-                return K -273.15;
+                return K -273.15;You can, however, have pointers to string literals. For example, the following code is valid:
             }
             //Converts Kelvin to Fahrenheit
             static double K_F(double K){
@@ -128,6 +154,83 @@ class BaseComponent{
         virtual std::vector<String> getComponentConfiguration() = 0;
 };
 
+/*
+IDEA:
+components are definded by states-> 
+create a state struct like a type exposed state with pointer to state variable
+if you want to change the state change the member variables directly then call update()
+update is responsible to:
+    1. read the external changes and update the object
+    2. if the object has been changed by the user/prog take apropriate acction such that the external 
+        hardware reflects the changed state. 
+Create a state tracker class -> add exposed states to the tracker. -> easy menu creation and external com=)
+
+Put selections in theire own class. keep the struct but also provide something like a dict that contains the enum
+with the explanation string -> makes it easy to get index.
+*/
+
+
+
+enum struct ExposedStateType{
+    ReadOnlyNumber,
+    ReadWriteNumber,
+    ReadWriteSelection
+};
+
+struct BaseExposedState;
+struct StateTracker {
+private:
+    static std::vector<BaseExposedState*> states;
+    StateTracker() {}
+    ~StateTracker() {}
+public:
+    void registerState(BaseExposedState* State){
+        states.push_back(State);
+    }
+    static StateTracker& getInstance() {
+        static StateTracker instance; 
+        return instance;
+    }
+};
+
+struct BaseExposedState{
+    private:
+    public:
+        BaseExposedState(){
+            StateTracker::getInstance().registerState(this);
+        }
+        virtual ~BaseExposedState(){
+
+        }
+};
+
+template <ExposedStateType StateType, typename T>
+struct ExposedState;
+
+template <typename T>
+struct ExposedState<ExposedStateType::ReadOnlyNumber, T> : BaseExposedState {
+    const T* const statePtr;
+    ExposedState(const T* StatePtr): statePtr(StatePtr){
+    }
+};
+template <typename T>
+struct ExposedState<ExposedStateType::ReadWriteNumber, T> : BaseExposedState {
+    T* const statePtr;
+    T minValue;
+    T maxValue;
+    ExposedState(T* StatePtr, T MinValue, T MaxValue): statePtr(StatePtr), minValue(MinValue), maxValue(MaxValue){
+    }
+};
+template <typename T>
+struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState {
+    T* const statePtr;
+    std::vector<String> selection;
+    ExposedState(T* StatePtr, std::vector<String> Selection): statePtr(StatePtr), selection(Selection){
+    }
+};
+
+
+
 
 
 //Contains a list of all available system components
@@ -198,7 +301,7 @@ class Components{
                     componentName = name;
                 }
 
-                std::vector<String> getComponentConfiguration() override {
+                std::vector<String> getComponentConfiguration() override {//this is stupdide do it better!!!
                     return {    ("Temperature,S,R," + String(getTemperature())), //ID 0
                                 ("DisplayUnit,C,S,{"+flattenOptionsString(Units::Temperature::getOptions())+ "}" + String(static_cast<int>(displayUnit))) // ID 1
                             }; 
@@ -228,7 +331,7 @@ class Components{
                     //PKR (Pirani/cold cathode gauge)
                     PKR,
                     //TPR (ActiveLine Pirani gauge)
-                    TPR,
+                    TPR
                 };
                 //Returns a list of all available pressure gauges.
                 static std::vector<String> getOptions(){
