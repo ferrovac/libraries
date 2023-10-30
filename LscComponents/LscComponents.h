@@ -104,9 +104,9 @@ class Unit<Units::Temperature> : BaseUnit{
     private:
         
     public:
-        const Selection<Units::Temperature> selection;
+        Selection<Units::Temperature> selection;
         Units::Temperature unitType;
-        Unit(Units::Temperature TemperatureUnit) : unitType(TemperatureUnit), selection({{Units::Temperature::K, "Kelvin"},{Units::Temperature::C, "Celsius"},{Units::Temperature::F, "Fahrenheit"}}){
+        Unit(Units::Temperature unitPtr) : unitType(unitPtr), selection({{Units::Temperature::K, "Kelvin"},{Units::Temperature::C, "Celsius"},{Units::Temperature::F, "Fahrenheit"}}){
             //Fill the selection 
         }
 
@@ -136,9 +136,9 @@ class Unit<Units::Pressure> : BaseUnit{
     private:
         
     public:
-        const Selection<Units::Pressure> selection;
+        Selection<Units::Pressure> selection;
         Units::Pressure unitType;
-        Unit(Units::Pressure PressureUnit) : unitType(PressureUnit), selection({{Units::Pressure::Pa, "Pascal"},{Units::Pressure::mBar, "mbar"},{Units::Pressure::Torr, "Torr"},{Units::Pressure::psi, "psi"},{Units::Pressure::atm, "atm"}}){
+        Unit(Units::Pressure unitPtr) : unitType(unitPtr), selection({{Units::Pressure::Pa, "Pascal"},{Units::Pressure::mBar, "mbar"},{Units::Pressure::Torr, "Torr"},{Units::Pressure::psi, "psi"},{Units::Pressure::atm, "atm"}}){
             //Fill the selection 
         }
 
@@ -173,68 +173,6 @@ class Unit<Units::Pressure> : BaseUnit{
 };
 
 
-/*
-
-
-//A list of all available physical units
-namespace Units{
-    //List of all available temperature units
-    struct Temperature {
-        struct Unit{
-            struct K{};
-            struct C{};
-            struct F{};
-        };
-        static Selection<Units::Temperature::Unit> selection; 
-        //Provides a collection of conversion funcions
-        struct Conversions{
-            //Converts Kelvin to Celsius
-            static double K_C(double K){
-                return K -273.15;
-            }
-            //Converts Kelvin to Fahrenheit
-            static double K_F(double K){
-                return K * (9./5.) - 459.67;
-            }
-        };
-    };
-    //List of all available pressure units
-    struct Pressure{
-        enum struct Unit{
-            //mbar
-            mBar,
-            //Pascal
-            Pa,
-            //Torr mmHg
-            Torr,
-            //Pounds Per Square Inch
-            psi,
-            //Atmospheres
-            atm
-        };
-        static Selection<Units::Pressure::Unit> selection; 
-        //Provides a collection of conversion funcions
-        struct Conversions{
-            //Converts Pascal to mbar
-            static double Pa_mbar(double Pa){
-                return Pa * 0.01;
-            }
-            //Converts Pascal to Torr
-            static double Pa_Torr(double Pa){
-                return Pa * 0.0007500617;
-            }
-            //Converts Pascal to psi
-            static double Pa_psi(double Pa){
-                return Pa * 0.0001450377;
-            }
-            //Converts Pascal to atm
-            static double Pa_atm(double Pa){
-                return Pa *0.00000986923;
-            }
-        };
-    };
-}
-*/
 
 class BaseComponent;
 struct BaseExposedState;
@@ -279,10 +217,7 @@ struct BaseExposedState;
 class BaseComponent{
     public:
         virtual void update() = 0;
-        virtual String const getComponentType() const = 0;
-        virtual String const getComponentName() const = 0;
-        virtual void setComponentName(const String& name) = 0;
-        virtual std::vector<String> getComponentConfiguration() = 0;
+
         BaseComponent(){
             ComponentTracker::getInstance().registerComponent(this);
         }
@@ -331,33 +266,33 @@ struct ExposedState;
 template <typename T>
 //is the same as ReadWrite will check in menu if setting state is allowed
 struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
-    T state;
-    ExposedState(String StateName,T State): BaseExposedState(StateName), state(State) {
+    T* state;
+    ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State) {
     }
 };
 
 template <typename T>
 struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
-    T state;
-    ExposedState(String StateName,T State): BaseExposedState(StateName), state(State){
+    T* state;
+    ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State){
     }
 };
 
 template <typename T>
 struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
     //static_assert if T is orderable
-    T state;
+    T* state;
     T minState;
     T maxState;
     T stepState;
-    ExposedState(String StateName,T State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
+    ExposedState(String StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
     }
 };
 template <typename T>
 struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState {
-    T state;
+    T* state;
     Selection<T>& _selection;
-    ExposedState(String StateName,T State, Selection<T>& selection): BaseExposedState(StateName), state(State), _selection(selection){}
+    ExposedState(String StateName,T* State, Selection<T>& selection): BaseExposedState(StateName), state(State), _selection(selection){}
 
 };
 
@@ -374,32 +309,29 @@ class Components{
             private:
                 String componentName;
                 AnalogInPt100 &analogInPt100;
-                ExposedState<ExposedStateType::ReadOnly, double> temperature;
-                ExposedState<ExposedStateType::ReadWriteSelection, Units::Temperature::Unit> displayUnit;
+                double temperature;
+                ExposedState<ExposedStateType::ReadOnly, double> temeraturePtr;
+                Unit<Units::Temperature> displayUnit;
+                ExposedState<ExposedStateType::ReadWriteSelection, Units::Temperature> displayUnitPtr;
+                
+
             public:
-                TemperatureSensor(AnalogInPt100 &analogInPt100, String componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), componentName(componentName), temperature("Temperature",0), displayUnit("DisplayUnit", Units::Temperature::Unit::C,Units::Temperature::selection){
+                TemperatureSensor(AnalogInPt100 &analogInPt100, String componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), componentName(componentName), temperature(0), temeraturePtr("Temp",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("dispUnit", &(displayUnit.unitType), displayUnit.selection){
                 }
 
                 //Returns the temperature in K
                 double getTemperature(){
                     update();
-                    return temperature.state;
+                    return temperature;
                 }
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getTeperatureAsString() {
                     update();
-                    if(displayUnit.state == Units::Temperature::Unit::K){
-                        return String(temperature.state) + " " + displayUnit._selection.getDescriptionByValue (Units::Temperature::Unit::K);
-                    }else if(displayUnit == Units::Temperature::Unit::C){
-                        return String(Units::Temperature::Conversions::K_C(temperature)) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::C);
-                    }else if(displayUnit == Units::Temperature::Unit::F){
-                        return String(Units::Temperature::Conversions::K_F(temperature)) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::F);
-                    }
                     return "Error"; 
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
-                void setDisplayUnit(Units::Temperature::Unit unit){
-                    displayUnit = unit;
+                void setDisplayUnit(Units::Temperature unit){
+                    displayUnit.unitType = unit;
                 }
 
                 //Reads the current temperature and updates the internal state
@@ -408,39 +340,19 @@ class Components{
                 }
 
                 //Retuns the component type
-                String const getComponentType() const override {
+                String const getComponentType()   {
                     return "TemperatureSensor";
                 }
                 //Returns the component Name
-                String const getComponentName() const override{
+                String const getComponentName() {
                     return componentName;
                 }
                 //Sets the component Name. This name is used for logging and ui purposes
-                void setComponentName(const String& name) override{
+                void setComponentName(const String& name) {
                     componentName = name;
                 }
-
-                std::vector<String> getComponentConfiguration() override {//this is stupdide do it better!!!
-                    return {    ("Temperature,S,R," + String(getTemperature())), //ID 0
-                                ("DisplayUnit,C,S,{"+flattenOptionsString(Units::Temperature::getOptions())+ "}" + String(static_cast<int>(displayUnit))) // ID 1
-                            }; 
-                }                        
-                std::vector<String> getComponentState(){
-                    std::vector<String> tempRet;
-                    tempRet.push_back(String(getTemperature())); //ID0
-                    return tempRet;
-                }
-                void setComponentState(uint16_t ID, String ComandString){
-                    switch (ID){
-                        case 0:
-                            //error cant set Temperature
-                            break;
-                        default:
-                            //error invalid ID
-                            break;
-                    }
-                }
         };
+        /*
 
         //Represents a pressure gauge
         class PressureGauge : BaseComponent {
@@ -545,7 +457,8 @@ class Components{
                     return 0.;
                 }
 
-        };        
+        };     
+        */   
        
 };
 
