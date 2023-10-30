@@ -19,13 +19,13 @@ RECOURCES:  TODO
 template<typename T>
 struct Selection{
     private:
-        std::vector<std::pair<T, String>> _selection ;
+        std::vector<std::pair<T, const char*>> _selection ;
     public:
-        Selection(std::vector<std::pair<T, String>> selection) : _selection(selection){
+        Selection(std::vector<std::pair<T, const char*>> selection) : _selection(selection){
         }
         int getIndexByValue(T value){
             uint16_t counter = 0;
-            for(std::pair<T, String> &pair : _selection){
+            for(std::pair<T, const char*> &pair : _selection){
                 if(pair.first == value){
                     return counter;
                 }
@@ -33,9 +33,18 @@ struct Selection{
             }
             return -1;
         }
+        const char* getDescriptionByValue(T value){
+            for(std::pair<T, const char*> &pair : _selection){
+                if(pair.first == value){
+                    return pair.second;
+                }
+            }
+            return "not found";
+        }
+
         std::vector<String> getOptions(){
-            std::vector<String> ret;
-            for(std::pair<T, String> &pair : _selection){
+            std::vector<const char*> ret;
+            for(std::pair<T, const char*> &pair : _selection){
                 ret.push_back(pair.second);
             }
             return ret;
@@ -60,42 +69,134 @@ struct Selection{
 */
     //---- END UNITS EXPLANATION ----
 
+namespace Units{
+
+    enum struct Temperature{
+        K,
+        C,
+        F
+    };
+    enum struct Pressure{
+        // mbar
+        Pa,
+        // Pascal
+        mBar,
+        // Torr mmHg
+        Torr,
+        // Pounds Per Square Inch
+        psi,
+        // Atmospheres
+        atm
+    };
+}
+
+class BaseUnit{
+    public:
+        virtual double convertFromSI(double SI) = 0;
+        virtual String getSuffix() = 0;
+};
+
+template<typename T>
+class Unit;
+
+template<>
+class Unit<Units::Temperature> : BaseUnit{
+    private:
+        
+    public:
+        const Selection<Units::Temperature> selection;
+        Units::Temperature unitType;
+        Unit(Units::Temperature TemperatureUnit) : unitType(TemperatureUnit), selection({{Units::Temperature::K, "Kelvin"},{Units::Temperature::C, "Celsius"},{Units::Temperature::F, "Fahrenheit"}}){
+            //Fill the selection 
+        }
+
+        double convertFromSI(double SI) override{
+            switch (unitType) {
+                case Units::Temperature::K :
+                    return SI; 
+                case Units::Temperature::C:
+                    return SI - 273.15; 
+                case Units::Temperature::F:
+                    return SI * (9./5.) - 459.67; 
+            }
+        }
+        String getSuffix() override{
+            switch (unitType) {
+                case Units::Temperature::K :
+                    return "K"; 
+                case Units::Temperature::C:
+                    return "°C"; 
+                case Units::Temperature::F:
+                    return "°F"; 
+            }
+        }
+};
+template<>
+class Unit<Units::Pressure> : BaseUnit{
+    private:
+        
+    public:
+        const Selection<Units::Pressure> selection;
+        Units::Pressure unitType;
+        Unit(Units::Pressure PressureUnit) : unitType(PressureUnit), selection({{Units::Pressure::Pa, "Pascal"},{Units::Pressure::mBar, "mbar"},{Units::Pressure::Torr, "Torr"},{Units::Pressure::psi, "psi"},{Units::Pressure::atm, "atm"}}){
+            //Fill the selection 
+        }
+
+        double convertFromSI(double SI) override{
+            switch (unitType) {
+                case Units::Pressure::Pa:
+                    return SI; 
+                case Units::Pressure::mBar:
+                    return SI * 0.01; 
+                case Units::Pressure::Torr:
+                    return SI * 0.0007500617;
+                case Units::Pressure::psi:
+                    return SI * 0.0001450377;
+                case Units::Pressure::atm:
+                    return SI *0.00000986923; 
+            }
+        }
+        String getSuffix() override{
+            switch (unitType) {
+                case Units::Pressure::Pa:
+                    return "Pa"; 
+                case Units::Pressure::mBar:
+                    return "mbar"; 
+                case Units::Pressure::Torr:
+                    return "Torr";
+                case Units::Pressure::psi:
+                    return "psi";
+                case Units::Pressure::atm:
+                    return "atm"; 
+            }
+        }
+};
+
+
+/*
+
+
 //A list of all available physical units
-struct Units{
+namespace Units{
     //List of all available temperature units
     struct Temperature {
-        enum struct Unit{
-            //Kelvin
-            K, 
-            //Celsius
-            C, 
-            //Fahrenheit
-            F
+        struct Unit{
+            struct K{};
+            struct C{};
+            struct F{};
         };
+        static Selection<Units::Temperature::Unit> selection; 
         //Provides a collection of conversion funcions
         struct Conversions{
             //Converts Kelvin to Celsius
             static double K_C(double K){
-                return K -273.15;You can, however, have pointers to string literals. For example, the following code is valid:
+                return K -273.15;
             }
             //Converts Kelvin to Fahrenheit
             static double K_F(double K){
                 return K * (9./5.) - 459.67;
             }
         };
-        //Returns a list of all available temperature units
-        static std::vector<String> getOptions() {
-            return {"Kelvin", "Celsius", "Fahrenheit"};
-        }
-        //Returns the unit given an index, carefull there is no bound check on the index!
-        static Unit getUnitByIndex(int index) {
-            return static_cast<Units::Temperature::Unit>(index);
-        }
-        //Retruns a string that represents the unit suffix
-        static String getSuffix(Unit unit){
-            const String suffix[]= {"K","°C", "°F"};
-            return suffix[static_cast<int>(unit)];
-        }
     };
     //List of all available pressure units
     struct Pressure{
@@ -111,6 +212,7 @@ struct Units{
             //Atmospheres
             atm
         };
+        static Selection<Units::Pressure::Unit> selection; 
         //Provides a collection of conversion funcions
         struct Conversions{
             //Converts Pascal to mbar
@@ -130,18 +232,47 @@ struct Units{
                 return Pa *0.00000986923;
             }
         };
-        //Returns a list of all available pressure units
-        static std::vector<String> getOptions(){
-            return {"mbar", "Torr mmHg", "Pounds Per Square Inch", "Atmospheres"};
-        }
-
-        //Retruns a string that represents the unit suffix
-        static String getSuffix(Unit unit){
-            const String suffix[]= {"mbar", "Pa","torr", "psi", "atm"};
-            return suffix[static_cast<int>(unit)];
-        }
     };
-};
+}
+*/
+
+class BaseComponent;
+struct BaseExposedState;
+
+ /*
+            The ComponentTracker is resposible to keep track of all instances of components. 
+               
+            in the constructor to register the instance with the Tracker. 
+            This is usefull for two main reasons:
+                1. We can create automatic UI menues for all the component that have been defined.
+                2. We can inform external controll/monitoring hardware about which components are available.
+            It is also usefull for debugging. The ComponentTracker is designed as a singelton.
+        */
+        class ComponentTracker{
+            private:
+                static std::vector<BaseComponent*> components;
+                static std::vector<std::pair<BaseComponent*, BaseExposedState*>> states;
+                ComponentTracker() {}
+
+            public:
+
+                static ComponentTracker& getInstance() {
+                    static ComponentTracker instance;  
+                    return instance;
+                }
+                //Returns a vector with pointers to all registered components. 
+                std::vector<BaseComponent*> getComponets(){
+                    return components;
+                }
+                //Registers the given component with the ComponentTracker
+                static void registerComponent(BaseComponent* component){
+                    components.push_back(component);
+                }
+                static void registerState(BaseExposedState* State){
+                    states.push_back({components.back(), State});
+                }
+        };
+
 
 
 //The class privides a base that all components should be derived from to enforce design pattern. This class is purely virtual.
@@ -152,6 +283,9 @@ class BaseComponent{
         virtual String const getComponentName() const = 0;
         virtual void setComponentName(const String& name) = 0;
         virtual std::vector<String> getComponentConfiguration() = 0;
+        BaseComponent(){
+            ComponentTracker::getInstance().registerComponent(this);
+        }
 };
 
 /*
@@ -174,71 +308,59 @@ with the explanation string -> makes it easy to get index.
 enum struct ExposedStateType{
     ReadOnly,
     ReadWrite,
-    ReadWriteNumberRanged,
+    ReadWriteRanged,
     ReadWriteSelection
 };
 
-struct BaseExposedState;
-struct StateTracker {
-private:
-    static std::vector<BaseExposedState*> states;
-    StateTracker() {}
-    ~StateTracker() {}
-public:
-    void registerState(BaseExposedState* State){
-        states.push_back(State);
-    }
-    static StateTracker& getInstance() {
-        static StateTracker instance; 
-        return instance;
-    }
-};
 
-template <typename T>
 struct BaseExposedState{
     private:
         const String stateName;
     public:
-        T state;
-        BaseExposedState(String StateName, T State) : stateName(StateName), state(State){
-            StateTracker::getInstance().registerState(this);
+        BaseExposedState(String StateName) : stateName(StateName) {
+            ComponentTracker::getInstance().registerState(this);
         }
         virtual ~BaseExposedState(){
 
         }
 };
 
-template <ExposedStateType StateType, T>
+template <ExposedStateType StateType, typename T>
 struct ExposedState;
 
 template <typename T>
 //is the same as ReadWrite will check in menu if setting state is allowed
-struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState<T> {
-    ExposedState(String StateName,T State): BaseExposedState(StateName, State) {
+struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
+    T state;
+    ExposedState(String StateName,T State): BaseExposedState(StateName), state(State) {
     }
 };
 
 template <typename T>
-struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState<T> {
-    ExposedState(String StateName,T State): BaseExposedState(StateName, State){
+struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
+    T state;
+    ExposedState(String StateName,T State): BaseExposedState(StateName), state(State){
     }
 };
 
 template <typename T>
-struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState<T> {
+struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
     //static_assert if T is orderable
+    T state;
     T minState;
     T maxState;
     T stepState;
-    ExposedState(String StateName,T State, T MinState, T MaxState, T stepState): BaseExposedState(StateName, State), minState(MinState), maxState(MaxState), stepState(stepState){
+    ExposedState(String StateName,T State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
     }
 };
 template <typename T>
-struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState<T> {
-    Selection& _selection;
-    ExposedState(String StateName,T State, Selection& selection): BaseExposedState(StateName,State), _selection(selection){
-    }
+struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState {
+    T state;
+    Selection<T>& _selection;
+    ExposedState(String StateName,T State, Selection<T>& selection): BaseExposedState(StateName), state(State), _selection(selection){}
+
 };
+
 
 
 
@@ -247,44 +369,27 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState<
 //Contains a list of all available system components
 class Components{
     public:
-        static String flattenOptionsString(std::vector<String> options){
-            String optionsString;
-                for(String options : Units::Temperature::getOptions()){
-                    optionsString += options + ",";
-                }
-            return optionsString.substring(0,optionsString.length()-1);
-        }
-
         //Class that represents a TP100 temperature sensor
         class TemperatureSensor : BaseComponent {
             private:
                 String componentName;
                 AnalogInPt100 &analogInPt100;
-                double temperature;
-                Units::Temperature::Unit displayUnit;
+                ExposedState<ExposedStateType::ReadOnly, double> temperature;
+                ExposedState<ExposedStateType::ReadWriteSelection, Units::Temperature::Unit> displayUnit;
             public:
-                ExposedState<ExposedStateType::ReadOnly, double> temp;
+                TemperatureSensor(AnalogInPt100 &analogInPt100, String componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), componentName(componentName), temperature("Temperature",0), displayUnit("DisplayUnit", Units::Temperature::Unit::C,Units::Temperature::selection){
+                }
 
-                TemperatureSensor(AnalogInPt100 &analogInPt100, String componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), componentName(componentName), temp("Temperature",0){
-                    temperature = 0;
-                    displayUnit = Units::Temperature::Unit::C;
-                    ComponentTracker::getInstance().registerComponent(this);
-                }
-                
-                //Sets the display unit based on the index of the getOptions() function. CAREFULL there are no checks on the index!
-                void setDisplayUnitByIndex(uint16_t index){
-                    setDisplayUnit(Units::Temperature::getUnitByIndex(index));
-                }
                 //Returns the temperature in K
                 double getTemperature(){
                     update();
-                    return temperature;
+                    return temperature.state;
                 }
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getTeperatureAsString() {
                     update();
-                    if(displayUnit == Units::Temperature::Unit::K){
-                        return String(temperature) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::K);
+                    if(displayUnit.state == Units::Temperature::Unit::K){
+                        return String(temperature.state) + " " + displayUnit._selection.getDescriptionByValue (Units::Temperature::Unit::K);
                     }else if(displayUnit == Units::Temperature::Unit::C){
                         return String(Units::Temperature::Conversions::K_C(temperature)) + " " + Units::Temperature::getSuffix(Units::Temperature::Unit::C);
                     }else if(displayUnit == Units::Temperature::Unit::F){
@@ -441,50 +546,7 @@ class Components{
                 }
 
         };        
-        /*
-            The ComponentTracker is resposible to keep track of all instances of components. Every component should have:
-                ComponentTracker::getInstance().registerComponent(this);
-            in the constructor to register the instance with the Tracker. 
-            This is usefull for two main reasons:
-                1. We can create automatic UI menues for all the component that have been defined.
-                2. We can inform external controll/monitoring hardware about which components are available.
-            It is also usefull for debugging. The ComponentTracker is designed as a singelton.
-        */
-        class ComponentTracker{
-            private:
-                std::vector<BaseComponent*> components;
-                ComponentTracker() {}
-
-            public:
-
-                static ComponentTracker& getInstance() {
-                    static ComponentTracker instance;  
-                    return instance;
-                }
-                //Returns a vector with pointers to all registered components. 
-                std::vector<BaseComponent*> getComponets(){
-                    return components;
-                }
-                //Registers the given component with the ComponentTracker
-                void registerComponent(BaseComponent* component){
-                    components.push_back(component);
-
-                }
-                //Returns a vector with the name strings of all registered components
-                std::vector<String> listAllComponentNames(){
-                    std::vector<String> componentList;
-                    for(BaseComponent* comp : components){
-                        componentList.push_back(comp->getComponentName());
-                        
-                        for(String comStr :comp->getComponentConfiguration()){
-                            Serial.println(comStr);
-                        }
-                    }
-
-                    return componentList;
-                }
-                
-        };
+       
 };
 
 
