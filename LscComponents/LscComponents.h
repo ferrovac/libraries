@@ -351,7 +351,7 @@ class Components{
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getTeperatureAsString() {
                     update();
-                    return "Error"; 
+                    return String(displayUnit.convertFromSI(temperature)) + displayUnit.getSuffix();
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
                 void setDisplayUnit(Units::Temperature unit){
