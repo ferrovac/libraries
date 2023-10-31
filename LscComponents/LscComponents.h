@@ -16,6 +16,35 @@ RECOURCES:  TODO
 
 
 
+
+class BaseComponent;
+struct BaseExposedState;
+
+        class ComponentTracker{
+            private:
+                ComponentTracker() {}
+            public:
+                std::vector<BaseComponent*> components;
+                std::vector<std::pair<BaseComponent*, BaseExposedState*>> states;
+
+                static ComponentTracker& getInstance() {
+                    static ComponentTracker instance;  
+                    return instance;
+                }
+                //Returns a vector with pointers to all registered components. 
+                std::vector<BaseComponent*> getComponets(){
+                    return ComponentTracker::getInstance().components;
+                }
+                //Registers the given component with the ComponentTracker
+                void registerComponent(BaseComponent* component){
+                    ComponentTracker::getInstance().components.push_back(component);
+                }
+                void registerState(BaseExposedState* State){
+                    ComponentTracker::getInstance().states.push_back({ComponentTracker::getInstance().components.back(), State});
+                }
+        };
+
+
 template<typename T>
 struct Selection{
     private:
@@ -174,42 +203,7 @@ class Unit<Units::Pressure> : BaseUnit{
 
 
 
-class BaseComponent;
-struct BaseExposedState;
 
- /*
-            The ComponentTracker is resposible to keep track of all instances of components. 
-               
-            in the constructor to register the instance with the Tracker. 
-            This is usefull for two main reasons:
-                1. We can create automatic UI menues for all the component that have been defined.
-                2. We can inform external controll/monitoring hardware about which components are available.
-            It is also usefull for debugging. The ComponentTracker is designed as a singelton.
-        */
-        class ComponentTracker{
-            private:
-                static std::vector<BaseComponent*> components;
-                static std::vector<std::pair<BaseComponent*, BaseExposedState*>> states;
-                ComponentTracker() {}
-
-            public:
-
-                static ComponentTracker& getInstance() {
-                    static ComponentTracker instance;  
-                    return instance;
-                }
-                //Returns a vector with pointers to all registered components. 
-                std::vector<BaseComponent*> getComponets(){
-                    return components;
-                }
-                //Registers the given component with the ComponentTracker
-                static void registerComponent(BaseComponent* component){
-                    components.push_back(component);
-                }
-                static void registerState(BaseExposedState* State){
-                    states.push_back({components.back(), State});
-                }
-        };
 
 
 
@@ -250,8 +244,9 @@ enum struct ExposedStateType{
 
 struct BaseExposedState{
     private:
-        const String stateName;
+        
     public:
+        const String stateName;
         BaseExposedState(String StateName) : stateName(StateName) {
             ComponentTracker::getInstance().registerState(this);
         }
@@ -304,6 +299,19 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
 //Contains a list of all available system components
 class Components{
     public:
+        class test : public BaseComponent{
+            public:
+                test(){
+                    ComponentTracker::getInstance().registerComponent(this);
+
+                }
+                void update() override{
+
+                }
+                void reg(){
+                    
+                }
+        };
         //Class that represents a TP100 temperature sensor
         class TemperatureSensor : BaseComponent {
             private:
@@ -317,6 +325,7 @@ class Components{
 
             public:
                 TemperatureSensor(AnalogInPt100 &analogInPt100, String componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), componentName(componentName), temperature(0), temeraturePtr("Temp",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("dispUnit", &(displayUnit.unitType), displayUnit.selection){
+                    ComponentTracker::getInstance().registerComponent(this);
                 }
 
                 //Returns the temperature in K

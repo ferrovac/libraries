@@ -6,8 +6,8 @@
     adding the following code fixes the porblem.
 */
 
-std::vector<std::pair<BaseComponent*, BaseExposedState*>> ComponentTracker::states;
-std::vector<BaseComponent*> ComponentTracker::components;
+//std::vector<BaseComponent*> ComponentTracker::components;
+//std::vector<std::pair<BaseComponent*, BaseExposedState*>> ComponentTracker::states;
 namespace std
 {
     void __throw_bad_alloc()
