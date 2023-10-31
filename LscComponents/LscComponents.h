@@ -32,6 +32,8 @@ struct BaseExposedState;
                     static ComponentTracker instance;  
                     return instance;
                 }
+
+
                 //Returns a vector with pointers to all registered components. 
                 std::vector<BaseComponent*> getComponets(){
                     return ComponentTracker::getInstance().components;

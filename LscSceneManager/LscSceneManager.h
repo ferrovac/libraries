@@ -661,6 +661,73 @@ class SceneManager{
 
 
         };
+        int showSelectionBox(String Title, std::vector<String> selection , uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9){
+            // first we disable all butttons we dont want buttion handlers to be executed while the textbox is shown
+            LSC::getInstance().buttons.bt_0.active = false;
+            LSC::getInstance().buttons.bt_1.active = false;
+            LSC::getInstance().buttons.bt_2.active = false;
+            LSC::getInstance().buttons.bt_3.active = false;
+            LSC::getInstance().buttons.bt_4.active = false;
+            LSC::getInstance().buttons.bt_5.active = false;
+
+            bool returnValue; // the value the textbox will return in the end depends on user choice
+            // reset button 2 and 5 (yes / no button)
+            LSC::getInstance().buttons.bt_2.hasBeenClicked();
+            LSC::getInstance().buttons.bt_5.hasBeenClicked();
+
+            clearAllElements(); // clear everything on the screen
+            StandardMenu *menuFramePtr = new StandardMenu(Title, "Back", "Select", TitleColor, OptionFalseColor, OptionTrueColor, LineColor, TitleFont);
+
+            std::deque<String> linesUnderScreen;
+            std::deque<String> linesOverScreen;
+
+            std::vector<UI_elements::TextBox *> messageTextBoxCollection;
+            int maxLinesOnScreen = 174 / tft.fontHeight(); //there will be one more line on the screen then this number indecates... because of reasons
+            int pages = 0;
+            bool tooManyLinesForScreen = false;
+            int numberOfLines = 0;
+            menuFramePtr->drawRightControll();
+
+            for(String selectionLine : selection){
+                if(!tooManyLinesForScreen) messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(), selectionLine,TextFont,TextColor));    
+                if( tooManyLinesForScreen) linesUnderScreen.push_back(selectionLine);
+                numberOfLines++;
+                if(numberOfLines >= maxLinesOnScreen) tooManyLinesForScreen = true;
+                    
+            }
+
+
+            while(true){
+                    if(LSC::getInstance().buttons.bt_2.hasBeenClicked()){
+                        returnValue = 1;
+                        break;
+                    }
+                    if(LSC::getInstance().buttons.bt_5.hasBeenClicked()){
+                        returnValue = 2;
+                        break;
+                    }
+            }
+            
+            delete(menuFramePtr);
+            for(UI_elements::TextBox* tbs : messageTextBoxCollection){
+                delete(tbs);
+            }
+            reDrawAllElements();
+            LSC::getInstance().buttons.bt_0.active = true;
+            LSC::getInstance().buttons.bt_1.active = true;
+            LSC::getInstance().buttons.bt_2.active = true;
+            LSC::getInstance().buttons.bt_3.active = true;
+            LSC::getInstance().buttons.bt_4.active = true;
+            LSC::getInstance().buttons.bt_5.active = true;
+
+            LSC::getInstance().buttons.bt_0.hasBeenClicked();
+            LSC::getInstance().buttons.bt_1.hasBeenClicked();
+            LSC::getInstance().buttons.bt_2.hasBeenClicked();
+            LSC::getInstance().buttons.bt_3.hasBeenClicked();
+            LSC::getInstance().buttons.bt_4.hasBeenClicked();
+            LSC::getInstance().buttons.bt_5.hasBeenClicked();
+            return -1;
+        }
         
         bool showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES", uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9){
                //first we disable all butttons we dont want buttion handlers to be executed while the textbox is shown
@@ -746,10 +813,7 @@ class SceneManager{
                     if(!trianglesAlreadyDrawn){
                         menuFramePtr->drawRightControll();
                     }
-                    
 
-
-                    
                     menuFramePtr->setCurrentPageNumber(page+1);
                     menuFramePtr->setOfPagesNumber(pages);
 
