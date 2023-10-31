@@ -13,6 +13,7 @@ RECOURCES:  TODO
 #include <Arduino.h>
 #include <vector>
 #include "LscHardwareAbstraction.h"
+#include <type_traits>
 
 
 
@@ -44,6 +45,22 @@ struct BaseExposedState;
                 }
         };
 
+/*  How to use the tracker =)
+              for(std::pair<BaseComponent*,BaseExposedState*> pair : ComponentTracker::getInstance().states){
+                Serial.println("Component: " + String(pair.first->componentName));
+                Serial.println("-> State: " + pair.second->stateName);
+                if(pair.second->stateType == ExposedStateType::ReadWriteSelection){
+                  using T = typename std::remove_reference<decltype(pair.second)>::type;
+                  auto myPtr = static_cast< ExposedState<ExposedStateType::ReadWriteSelection, T>* >(pair.second); 
+                  Serial.println("--> Options: ");
+                  for(const char* option : myPtr->_selection.getOptions()){
+                    Serial.println(option);
+                  }
+                  Serial.println("IS: " + String(myPtr->_selection.getDescriptionByValue(*(myPtr->state))));
+                  *(myPtr->state) = myPtr->_selection.getValueByIndex(0);
+                }
+              }
+*/
 
 template<typename T>
 struct Selection{
@@ -62,6 +79,13 @@ struct Selection{
             }
             return -1;
         }
+        T getValueByIndex(int index){
+            if(index < _selection.size()){
+                return _selection[index].first;
+            }
+            return _selection[0].first;
+            
+        }
         const char* getDescriptionByValue(T value){
             for(std::pair<T, const char*> &pair : _selection){
                 if(pair.first == value){
@@ -71,7 +95,7 @@ struct Selection{
             return "not found";
         }
 
-        std::vector<String> getOptions(){
+        std::vector<const char*> getOptions(){
             std::vector<const char*> ret;
             for(std::pair<T, const char*> &pair : _selection){
                 ret.push_back(pair.second);
@@ -211,8 +235,9 @@ class Unit<Units::Pressure> : BaseUnit{
 class BaseComponent{
     public:
         virtual void update() = 0;
+        const char* componentName;
 
-        BaseComponent(){
+        BaseComponent(const char* ComponentName): componentName(ComponentName){
             ComponentTracker::getInstance().registerComponent(this);
         }
 };
@@ -246,6 +271,7 @@ struct BaseExposedState{
     private:
         
     public:
+        ExposedStateType stateType;
         const String stateName;
         BaseExposedState(String StateName) : stateName(StateName) {
             ComponentTracker::getInstance().registerState(this);
@@ -263,6 +289,7 @@ template <typename T>
 struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
     T* state;
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State) {
+        stateType = ExposedStateType::ReadOnly;
     }
 };
 
@@ -270,6 +297,7 @@ template <typename T>
 struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
     T* state;
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State){
+        stateType = ExposedStateType::ReadWrite;
     }
 };
 
@@ -281,14 +309,16 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
     T maxState;
     T stepState;
     ExposedState(String StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
+        stateType = ExposedStateType::ReadWriteRanged;
     }
 };
 template <typename T>
 struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState {
     T* state;
     Selection<T>& _selection;
-    ExposedState(String StateName,T* State, Selection<T>& selection): BaseExposedState(StateName), state(State), _selection(selection){}
-
+    ExposedState(String StateName,T* State, Selection<T>& selection): BaseExposedState(StateName), state(State), _selection(selection){
+        stateType = ExposedStateType::ReadWriteSelection;
+    }
 };
 
 
@@ -299,23 +329,9 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
 //Contains a list of all available system components
 class Components{
     public:
-        class test : public BaseComponent{
-            public:
-                test(){
-                    ComponentTracker::getInstance().registerComponent(this);
-
-                }
-                void update() override{
-
-                }
-                void reg(){
-                    
-                }
-        };
         //Class that represents a TP100 temperature sensor
         class TemperatureSensor : BaseComponent {
             private:
-                String componentName;
                 AnalogInPt100 &analogInPt100;
                 double temperature;
                 ExposedState<ExposedStateType::ReadOnly, double> temeraturePtr;
@@ -324,8 +340,7 @@ class Components{
                 
 
             public:
-                TemperatureSensor(AnalogInPt100 &analogInPt100, String componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), componentName(componentName), temperature(0), temeraturePtr("Temp",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("dispUnit", &(displayUnit.unitType), displayUnit.selection){
-                    ComponentTracker::getInstance().registerComponent(this);
+                TemperatureSensor(AnalogInPt100 &analogInPt100, const char* componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), BaseComponent(componentName), temperature(0), temeraturePtr("Temp",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("dispUnit", &(displayUnit.unitType), displayUnit.selection){
                 }
 
                 //Returns the temperature in K
@@ -353,12 +368,8 @@ class Components{
                     return "TemperatureSensor";
                 }
                 //Returns the component Name
-                String const getComponentName() {
+                const char* const getComponentName() {
                     return componentName;
-                }
-                //Sets the component Name. This name is used for logging and ui purposes
-                void setComponentName(const String& name) {
-                    componentName = name;
                 }
         };
         /*
