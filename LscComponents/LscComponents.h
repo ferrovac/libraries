@@ -69,6 +69,12 @@ struct Selection{
     public:
         Selection(std::vector<std::pair<T, const char*>> selection) : _selection(selection){
         }
+        Selection(std::initializer_list<std::pair<T, const char*>> selection): _selection(selection){
+
+        }
+        Selection& getSelection(){
+            return _selection;
+        }
         int getIndexByValue(T value){
             uint16_t counter = 0;
             for(std::pair<T, const char*> &pair : _selection){
@@ -365,35 +371,48 @@ class Components{
 
                 //Retuns the component type
                 String const getComponentType()   {
-                    return "TemperatureSensor";
+                    return "Temperature Sensor";
                 }
                 //Returns the component Name
                 const char* const getComponentName() {
                     return componentName;
                 }
         };
-        /*
+        
 
         //Represents a pressure gauge
         class PressureGauge : BaseComponent {
             public:
                 //Collection of all available gauge types
-                enum struct GaugeTypes{
+                enum struct GaugeType{
                     //PKR (Pirani/cold cathode gauge)
                     PKR,
                     //TPR (ActiveLine Pirani gauge)
                     TPR
                 };
+
+                double pressure;
+                ExposedState<ExposedStateType::ReadOnly,double> pressureState;
+                Unit<Units::Pressure> displayUnit;
+                ExposedState<ExposedStateType::ReadWriteSelection, Units::Pressure> displayUnitState;
+                GaugeType gaugeType;
+
+                ExposedState<ExposedStateType::ReadWriteSelection, GaugeType> gaugeTypeState;
+
+
+                Selection<GaugeType> GaugesTypesSelection = {{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"}};
                 //Returns a list of all available pressure gauges.
-                static std::vector<String> getOptions(){
-                    return {"PKR (Pirani/cold cathode gauge)", "TPR (ActiveLine Pirani gauge)"};
-                }
-                
-                PressureGauge(AnalogInBase &analogIn, GaugeTypes gaugeType, String componentName = "genericPressureGauge") : analogIn(analogIn), gaugeType(gaugeType) ,componentName(componentName) {
-                    pressure = 0;
-                    displayUnit = Units::Pressure::Unit::Pa;
-                    ComponentTracker::getInstance().registerComponent(this);
-                }
+
+                PressureGauge(AnalogInBase &analogIn, GaugeType gaugeType, const char* componentName = "genericPressureGauge") 
+                    :BaseComponent(componentName),
+                    analogIn(analogIn), 
+                    gaugeType(gaugeType),
+                    pressure(0), 
+                    pressureState("Pressure",&pressure),
+                    displayUnit(Units::Pressure::Pa),
+                    displayUnitState("Display Unit",&(displayUnit.unitType),
+                    displayUnit.selection),
+                    gaugeTypeState("Gauge Type",&gaugeType,GaugesTypesSelection) {}
 
 
 
@@ -406,22 +425,11 @@ class Components{
                 //Returns the pressure as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getPressureAsString() {
                     update();
-                    if(displayUnit == Units::Pressure::Unit::atm){
-                        return String(doubleToSciString(Units::Pressure::Conversions::Pa_atm(pressure))) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::atm);
-                    }else if(displayUnit == Units::Pressure::Unit::mBar){
-                        return String(doubleToSciString(Units::Pressure::Conversions::Pa_mbar(pressure))) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::mBar);
-                    }else if(displayUnit == Units::Pressure::Unit::psi){
-                        return String(doubleToSciString(Units::Pressure::Conversions::Pa_psi(pressure))) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::psi);
-                    }else if(displayUnit == Units::Pressure::Unit::Torr){
-                        return String(doubleToSciString(Units::Pressure::Conversions::Pa_Torr(pressure))) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::Torr);
-                    }else if(displayUnit == Units::Pressure::Unit::Pa){
-                        return String(doubleToSciString(pressure)) + " " + Units::Pressure::getSuffix(Units::Pressure::Unit::Pa);
-                    }
-                    return "Error";  
+                    return doubleToSciString(displayUnit.convertFromSI(pressure)) + displayUnit.getSuffix();
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
-                void setDisplayUnit(Units::Pressure::Unit unit){
-                    displayUnit = unit;
+                void setDisplayUnit(Units::Pressure unit){
+                    displayUnit.unitType = unit;
                 }
                 //Reads the current temperature and updates the internal state
                 void update() override {
@@ -429,17 +437,14 @@ class Components{
                 }
 
                 //Retuns the component type
-                String const getComponentType() const override {
-                    return "PressureGauge";
+                String const getComponentType() const  {
+                    return "Pressure Gauge";
                 }
                 //Returns the component Name
-                String const getComponentName() const override{
+                const char* getComponentName() const {
                     return componentName;
                 }
-                //Sets the component Name. This name is used for logging and ui purposes
-                void setComponentName(const String& name) override{
-                    componentName = name;
-                }
+
                 //This is probably horrible and one should not do this, but it works remakably well XD... TODO: find a good library to handle this (MathHelper.h is terrible because it uses a global buffer, which makes it not thread save)!!!
                 static String doubleToSciString(double value) {
                     if(value == 0) return "0.000E+00";
@@ -453,32 +458,21 @@ class Components{
                     return String(value,10);
                 }
 
-                std::vector<String> getComponentConfiguration() override{
-                   return   {   ("Pressure,S,R," + String(getPressure(),20)), //ID 0
-                                "DisplayUnit,C,S,{" + flattenOptionsString(Units::Pressure::getOptions()) + "}" + String(static_cast<int>(displayUnit)), // ID 1
-                                ("GaugeType,C,S,{" + flattenOptionsString(getOptions()) + "}" + String(static_cast<int>(gaugeType))) //ID 2
-                            };
-                }  
-
             private:
-                String componentName;
+                const char* componentName;
                 AnalogInBase &analogIn;
-                double pressure;
-                Units::Pressure::Unit displayUnit;
-                GaugeTypes gaugeType;
                 //Converts a given voltage to a pressure value, with respect to the given gauge Type
-                static double voltageToPressure(GaugeTypes gauge, double voltage){
-                    if(gauge == GaugeTypes::PKR){
-                        return voltage;
+                static double voltageToPressure(GaugeType gauge, double voltage){
+                    if(gauge == GaugeType::PKR){
                         return pow(10., (1.667*voltage-9.33));
-                    }else if (gauge == GaugeTypes::TPR){
+                    }else if (gauge == GaugeType::TPR){
                         return pow(10., (voltage-3.5));
                     }
                     return 0.;
                 }
 
         };     
-        */   
+         
        
 };
 
