@@ -661,72 +661,158 @@ class SceneManager{
 
 
         };
+        struct SelectionBox{
+            private:
+                StandardMenu *menuFramePtr;
+                std::deque<String> linesUnderScreen;
+                std::deque<String> linesOverScreen;
+                std::vector<UI_elements::TextBox *> messageTextBoxCollection;
+                std::vector<UI_elements::TextBox *> arrowCollection;
+                int maxLinesOnScreen;
+                int pages;
+                bool tooManyLinesForScreen;
+                int numberOfLines;
+                String title;
+                std::vector<String> options;
+                uint32_t titleColor;
+                uint32_t textColor;
+                uint32_t optionFalseColor;
+                uint32_t optionTrueColor;
+                uint32_t lineColor;
+                const GFXfont* titleFont;
+                const GFXfont* textFont;
+                int selectedItem;
+
+                void createTextBoxList(){
+                    for(int i = 0; i < maxLinesOnScreen; i++){
+                        messageTextBoxCollection.push_back(new UI_elements::TextBox(5+tft.fontHeight(),45+i*tft.fontHeight(), "",textFont,textColor));
+                        arrowCollection.push_back(new UI_elements::TextBox(5,45+i*tft.fontHeight(), "",textFont,textColor));
+                    }
+                }
+                void destroyTextBoxList(){
+                    for(UI_elements::TextBox* tbs : arrowCollection){
+                        delete(tbs);
+                    }
+                    for(UI_elements::TextBox* tbs : messageTextBoxCollection){
+                        delete(tbs);
+                    }
+                }
+
+
+
+            public:
+                SelectionBox(String Title, std::vector<String> Options ,int SelectedItem = 0, uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9)
+                :   title(Title),
+                    selectedItem(SelectedItem),
+                    titleColor(TitleColor), 
+                    textColor(TextColor), 
+                    optionFalseColor(OptionFalseColor), 
+                    optionTrueColor(OptionTrueColor), 
+                    lineColor(LineColor),
+                    titleFont(TitleFont),
+                    textFont(TextFont)
+                {
+                    // first we disable all butttons we dont want buttion handlers to be executed while the textbox is shown
+                    LSC::getInstance().buttons.bt_0.active = false;
+                    LSC::getInstance().buttons.bt_1.active = false;
+                    LSC::getInstance().buttons.bt_2.active = false;
+                    LSC::getInstance().buttons.bt_3.active = false;
+                    LSC::getInstance().buttons.bt_4.active = false;
+                    LSC::getInstance().buttons.bt_5.active = false;
+
+                    // reset button 2 and 5 (yes / no button)
+                    LSC::getInstance().buttons.bt_2.hasBeenClicked();
+                    LSC::getInstance().buttons.bt_5.hasBeenClicked();
+                    clearAllElements(); // clear everything on the screen
+                    menuFramePtr = new StandardMenu(Title, "Back", "Select", TitleColor, OptionFalseColor, OptionTrueColor, LineColor, TitleFont);
+                    maxLinesOnScreen = 174 / tft.fontHeight(); //there will be one more line on the screen then this number indecates... because of reasons
+                    pages = 0;
+                    tooManyLinesForScreen = false;
+                    numberOfLines = 0;
+                    menuFramePtr->drawRightControll();
+                    createTextBoxList();
+                    loadList(Options);
+                    arrowCollection[selectedItem]->setText(">");
+                }
+                void loadList(std::vector<String> list){
+                    if(options != list){
+                        linesUnderScreen.clear();
+                        linesOverScreen.clear();
+
+                        tooManyLinesForScreen = false;
+                        numberOfLines = 0;
+                        for(String selectionLine : list){
+                            if(!tooManyLinesForScreen) messageTextBoxCollection[numberOfLines]->setText(selectionLine);// .push_back(new UI_elements::TextBox(5+tft.fontHeight(),45+numberOfLines*tft.fontHeight(), selectionLine,textFont,textColor));    
+                            if( tooManyLinesForScreen) linesUnderScreen.push_back(selectionLine);
+                            numberOfLines++;
+                            if(numberOfLines >= maxLinesOnScreen) tooManyLinesForScreen = true;   
+                        }
+                        for(int i = list.size(); i < maxLinesOnScreen; i++){
+                            messageTextBoxCollection[i]->setText("");
+                        }
+                        tft.setFreeFont(textFont);
+                        int selectedItem = 0;
+                        
+                    }
+                }
+                int getSelectedItem(){
+                    return selectedItem;
+                }
+                bool selectHasBeenClicked(){
+                    return LSC::getInstance().buttons.bt_5.hasBeenClicked();
+                }
+                bool backHasBeenClicked(){
+                    return LSC::getInstance().buttons.bt_2.hasBeenClicked();
+                }
+                void update(){
+                    if(LSC::getInstance().buttons.bt_3.hasBeenClicked() && selectedItem > 0){
+                        selectedItem--;
+                        int counter = 0;
+                        for(UI_elements::TextBox* tb : arrowCollection){
+                            if(counter == selectedItem){
+                                tb->setText(">");
+                            }else{
+                                tb->setText("");
+                            }
+                            counter++;
+                        }
+                    }
+                    if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && selectedItem < numberOfLines -1){
+                        selectedItem++;
+                        int counter = 0;
+                        for(UI_elements::TextBox* tb : arrowCollection){
+                            if(counter == selectedItem){
+                                tb->setText(">");
+                            }else{
+                                tb->setText("");
+                            }
+                            counter++;
+                        }
+                    }
+                }
+    
+
+            ~SelectionBox(){
+                delete(menuFramePtr);
+                destroyTextBoxList();
+                LSC::getInstance().buttons.bt_0.active = true;
+                LSC::getInstance().buttons.bt_1.active = true;
+                LSC::getInstance().buttons.bt_2.active = true;
+                LSC::getInstance().buttons.bt_3.active = true;
+                LSC::getInstance().buttons.bt_4.active = true;
+                LSC::getInstance().buttons.bt_5.active = true;
+
+                LSC::getInstance().buttons.bt_0.hasBeenClicked();
+                LSC::getInstance().buttons.bt_1.hasBeenClicked();
+                LSC::getInstance().buttons.bt_2.hasBeenClicked();
+                LSC::getInstance().buttons.bt_3.hasBeenClicked();
+                LSC::getInstance().buttons.bt_4.hasBeenClicked();
+                LSC::getInstance().buttons.bt_5.hasBeenClicked();
+            }
+
+        };
         int showSelectionBox(String Title, std::vector<String> selection , uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9){
-            // first we disable all butttons we dont want buttion handlers to be executed while the textbox is shown
-            LSC::getInstance().buttons.bt_0.active = false;
-            LSC::getInstance().buttons.bt_1.active = false;
-            LSC::getInstance().buttons.bt_2.active = false;
-            LSC::getInstance().buttons.bt_3.active = false;
-            LSC::getInstance().buttons.bt_4.active = false;
-            LSC::getInstance().buttons.bt_5.active = false;
-
-            bool returnValue; // the value the textbox will return in the end depends on user choice
-            // reset button 2 and 5 (yes / no button)
-            LSC::getInstance().buttons.bt_2.hasBeenClicked();
-            LSC::getInstance().buttons.bt_5.hasBeenClicked();
-
-            clearAllElements(); // clear everything on the screen
-            StandardMenu *menuFramePtr = new StandardMenu(Title, "Back", "Select", TitleColor, OptionFalseColor, OptionTrueColor, LineColor, TitleFont);
-
-            std::deque<String> linesUnderScreen;
-            std::deque<String> linesOverScreen;
-
-            std::vector<UI_elements::TextBox *> messageTextBoxCollection;
-            int maxLinesOnScreen = 174 / tft.fontHeight(); //there will be one more line on the screen then this number indecates... because of reasons
-            int pages = 0;
-            bool tooManyLinesForScreen = false;
-            int numberOfLines = 0;
-            menuFramePtr->drawRightControll();
-
-            for(String selectionLine : selection){
-                if(!tooManyLinesForScreen) messageTextBoxCollection.push_back(new UI_elements::TextBox(5,45+numberOfLines*tft.fontHeight(), selectionLine,TextFont,TextColor));    
-                if( tooManyLinesForScreen) linesUnderScreen.push_back(selectionLine);
-                numberOfLines++;
-                if(numberOfLines >= maxLinesOnScreen) tooManyLinesForScreen = true;
-                    
-            }
-
-
-            while(true){
-                    if(LSC::getInstance().buttons.bt_2.hasBeenClicked()){
-                        returnValue = 1;
-                        break;
-                    }
-                    if(LSC::getInstance().buttons.bt_5.hasBeenClicked()){
-                        returnValue = 2;
-                        break;
-                    }
-            }
-            
-            delete(menuFramePtr);
-            for(UI_elements::TextBox* tbs : messageTextBoxCollection){
-                delete(tbs);
-            }
-            reDrawAllElements();
-            LSC::getInstance().buttons.bt_0.active = true;
-            LSC::getInstance().buttons.bt_1.active = true;
-            LSC::getInstance().buttons.bt_2.active = true;
-            LSC::getInstance().buttons.bt_3.active = true;
-            LSC::getInstance().buttons.bt_4.active = true;
-            LSC::getInstance().buttons.bt_5.active = true;
-
-            LSC::getInstance().buttons.bt_0.hasBeenClicked();
-            LSC::getInstance().buttons.bt_1.hasBeenClicked();
-            LSC::getInstance().buttons.bt_2.hasBeenClicked();
-            LSC::getInstance().buttons.bt_3.hasBeenClicked();
-            LSC::getInstance().buttons.bt_4.hasBeenClicked();
-            LSC::getInstance().buttons.bt_5.hasBeenClicked();
-            return -1;
+ 
         }
         
         bool showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES", uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9){
@@ -746,7 +832,7 @@ class SceneManager{
 
                 clearAllElements(); //clear everything on the screen
                 StandardMenu* menuFramePtr = new StandardMenu(Title,OptionFalse,OptionTrue,TitleColor,OptionFalseColor,OptionTrueColor,LineColor,TitleFont);
-
+                
                 std::deque<String> linesUnderScreen;
                 std::deque<String> linesOverScreen;
 
@@ -762,6 +848,7 @@ class SceneManager{
                 int maxLinesOnScreen = 174 / tft.fontHeight(); //there will be one more line on the screen then this number indecates... because of reasons
                 int pages = 0;
                 int startTime = millis();
+
                 for(char character : Message){
                     if(character == ' ') lastSpace = index;
                     if(tft.textWidth(Message.substring(lastLineFeed + 1,index )) > 280){
