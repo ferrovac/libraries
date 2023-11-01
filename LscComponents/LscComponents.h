@@ -281,6 +281,7 @@ struct BaseExposedState{
     public:
         ExposedStateType stateType;
         const String stateName;
+        virtual String toString() =  0;
         BaseExposedState(String StateName) : stateName(StateName) {
             ComponentTracker::getInstance().registerState(this);
         }
@@ -296,6 +297,9 @@ template <typename T>
 //is the same as ReadWrite will check in menu if setting state is allowed
 struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
     T* state;
+    String toString() override{
+        return String(*state);
+    }
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State) {
         stateType = ExposedStateType::ReadOnly;
     }
@@ -304,6 +308,9 @@ struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
 template <typename T>
 struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
     T* state;
+    String toString() override{
+        return String(*state);
+    }
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State){
         stateType = ExposedStateType::ReadWrite;
     }
@@ -316,6 +323,9 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
     T minState;
     T maxState;
     T stepState;
+    String toString() override{
+        return String(*state);
+    }
     ExposedState(String StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
         stateType = ExposedStateType::ReadWriteRanged;
     }
@@ -324,6 +334,9 @@ template <typename T>
 struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState {
     T* state;
     Selection<T>& _selection;
+    String toString() override{
+        return _selection.getDescriptionByValue(*state);
+    }
     ExposedState(String StateName,T* State, Selection<T>& selection): BaseExposedState(StateName), state(State), _selection(selection){
         stateType = ExposedStateType::ReadWriteSelection;
     }
@@ -402,7 +415,7 @@ class Components{
                 ExposedState<ExposedStateType::ReadWriteSelection, GaugeType> gaugeTypeState;
 
 
-                Selection<GaugeType> GaugesTypesSelection = {{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"}};
+                Selection<GaugeType> gaugesTypesSelection = {{Components::PressureGauge::GaugeType::PKR, "PKR"} ,{Components::PressureGauge::GaugeType::TPR, "TPR"}};
                 //Returns a list of all available pressure gauges.
 
                 PressureGauge(AnalogInBase &analogIn, GaugeType gaugeType, const char* componentName = "genericPressureGauge") 
@@ -414,7 +427,7 @@ class Components{
                     displayUnit(Units::Pressure::Pa),
                     displayUnitState("Display Unit",&(displayUnit.unitType),
                     displayUnit.selection),
-                    gaugeTypeState("Gauge Type",&gaugeType,GaugesTypesSelection) {}
+                    gaugeTypeState("Gauge Type", &gaugeType, gaugesTypesSelection) {}
 
 
 

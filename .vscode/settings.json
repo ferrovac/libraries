@@ -74,6 +74,7 @@
         "semaphore": "cpp",
         "shared_mutex": "cpp",
         "stop_token": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "__config": "cpp"
     }
 }

@@ -131,9 +131,33 @@ class SceneManager{
         static uint32_t backGroundColor;   //holds the global backgroud color of the tft display. This is set in the init function and should not be changed later
         static uint32_t defaultForeGroundColor; //holds the default fore ground color
         static const GFXfont* defaultFont; //holds the defualt font
-
         //private constructor for singelton pattern
         SceneManager(){}
+        
+        std::vector<String> getComponentListAsString(){
+            std::vector<String> retVec;
+            for(BaseComponent* component : ComponentTracker::getInstance().components){
+                retVec.push_back(String(component->componentName));
+            }
+            return retVec;
+        }
+        std::vector<BaseExposedState*> getComponentStateListByIndex(uint16_t index){
+            std::vector<BaseExposedState*> retVec;
+            for(std::pair<BaseComponent*,BaseExposedState*> pair : ComponentTracker::getInstance().states){
+                if(pair.first == ComponentTracker::getInstance().components[index]){
+                retVec.push_back(pair.second);
+                }
+            }
+            return retVec;
+        }
+
+        std::vector<String> componentStateListToString(std::vector<BaseExposedState*> list){
+            std::vector<String> retVec;
+            for(BaseExposedState* state: list){
+                retVec.push_back(state->stateName);
+            }
+            return retVec;
+        }
         
     public:
         //clears all elements form the screen
@@ -644,6 +668,13 @@ class SceneManager{
                 void setOfPagesNumber(uint16_t number){
                     pages->setText(String(number));
                 }
+                void setTitle(String Title){
+                    delete(title);
+                    tft.setFreeFont(font);
+                    title = new UI_elements::TextBox((301 - tft.textWidth(Title)) / 2, 20 - (25 - tft.fontHeight()) / 2, Title, font, titleColor);
+                    tft.drawLine(1, 25,320 - 20, 25, lineColor);
+                    tft.drawLine(1, 24,320 - 20, 24, lineColor);
+                }
 
             private:
                 UI_elements::TextBox* title;
@@ -755,7 +786,16 @@ class SceneManager{
                         
                     }
                 }
-                int getSelectedItem(){
+                void setTitle(String Title){
+                    menuFramePtr->setTitle(Title);
+                }
+                void setSelectedIndex(uint16_t index){
+                    if(index < maxLinesOnScreen && index >= 0){
+                        selectedItem = index;
+                        update();
+                    }
+                }
+                int getSelectedIndex(){
                     return selectedItem;
                 }
                 bool selectHasBeenClicked(){
@@ -767,19 +807,11 @@ class SceneManager{
                 void update(){
                     if(LSC::getInstance().buttons.bt_3.hasBeenClicked() && selectedItem > 0){
                         selectedItem--;
-                        int counter = 0;
-                        for(UI_elements::TextBox* tb : arrowCollection){
-                            if(counter == selectedItem){
-                                tb->setText(">");
-                            }else{
-                                tb->setText("");
-                            }
-                            counter++;
-                        }
                     }
                     if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && selectedItem < numberOfLines -1){
                         selectedItem++;
-                        int counter = 0;
+                    }
+                    int counter = 0;
                         for(UI_elements::TextBox* tb : arrowCollection){
                             if(counter == selectedItem){
                                 tb->setText(">");
@@ -788,7 +820,6 @@ class SceneManager{
                             }
                             counter++;
                         }
-                    }
                 }
     
 
@@ -811,9 +842,74 @@ class SceneManager{
             }
 
         };
-        int showSelectionBox(String Title, std::vector<String> selection , uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9){
- 
+
+        
+        void showConfigMenu(){
+            std::vector<String> componentListString = getComponentListAsString();
+            std::vector<BaseExposedState*> exposedStateList;
+            SelectionBox* selectionBox = new SelectionBox("Components",componentListString);
+            int menuLevel = 0;
+            int selectionOnMenuLevel_0 = 0;
+            int selectionOnMenuLevel_1 = 0;
+            int selectionOnMenuLevel_2 = 0;
+            
+            while(true){
+                if(menuLevel == 0){
+                    selectionBox->update();
+                    if(selectionBox->backHasBeenClicked()) break;
+                    if(selectionBox->selectHasBeenClicked()){
+                        selectionOnMenuLevel_0 = selectionBox->getSelectedIndex();
+                        selectionBox->setTitle(componentListString[selectionOnMenuLevel_0]);
+                        exposedStateList = getComponentStateListByIndex(selectionOnMenuLevel_0);
+                        selectionBox->loadList(componentStateListToString(exposedStateList));
+                        selectionBox->setSelectedIndex(0);
+                        menuLevel++;
+                    }
+                }
+                if(menuLevel == 1){
+                    selectionBox->update();
+                    if(selectionBox->backHasBeenClicked()){
+                        selectionBox->setTitle("Components");
+                        selectionBox->loadList(componentListString);
+                        selectionBox->setSelectedIndex(selectionOnMenuLevel_0);
+                        menuLevel--;
+                        LSC::getInstance().buttons.bt_5.hasBeenClicked();
+                    } 
+                    if(selectionBox->selectHasBeenClicked()){
+                        selectionOnMenuLevel_1 = selectionBox->getSelectedIndex();
+                        selectionBox->setTitle(componentStateListToString(exposedStateList)[selectionOnMenuLevel_1]);
+                        if(exposedStateList[selectionOnMenuLevel_1]->stateType  == ExposedStateType::ReadWriteSelection){
+                            using T = typename std::remove_reference<decltype(exposedStateList[selectionOnMenuLevel_1])>::type;
+                            auto myPtr = static_cast< ExposedState<ExposedStateType::ReadWriteSelection, T>* >(exposedStateList[selectionOnMenuLevel_1]); 
+                            
+                            std::vector<String> tempBuf;
+                            for(const char* item : myPtr->_selection.getOptions()){
+                                tempBuf.push_back(String(item));
+                            }
+                            selectionBox->loadList(tempBuf);
+                            menuLevel++;
+                        }
+                    }
+                }
+                if(menuLevel == 2){
+                    selectionBox->update();
+                    if(selectionBox->backHasBeenClicked()){
+                        selectionBox->setTitle(componentListString[selectionOnMenuLevel_0]);
+                        selectionBox->loadList(componentStateListToString(exposedStateList));
+                        selectionBox->setSelectedIndex(selectionOnMenuLevel_1);
+                        LSC::getInstance().buttons.bt_5.hasBeenClicked();
+                    menuLevel--;
+                    }
+
+
+                }
+
+            }
+            
+            delete(selectionBox);
+            reDrawAllElements();
         }
+
         
         bool showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES", uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9){
                //first we disable all butttons we dont want buttion handlers to be executed while the textbox is shown
