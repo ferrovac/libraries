@@ -75,12 +75,12 @@ struct Selection{
         Selection(std::initializer_list<std::pair<T, const char*>> selection): _selection(selection){
 
         }
-        Selection& getSelection(){
+        Selection getSelection(){
             return _selection;
         }
         int getIndexByValue(T value){
             uint16_t counter = 0;
-            for(std::pair<T, const char*> &pair : _selection){
+            for(std::pair<T, const char*> pair : _selection){
                 if(pair.first == value){
                     return counter;
                 }
@@ -96,7 +96,7 @@ struct Selection{
             
         }
         const char* getDescriptionByValue(T value){
-            for(std::pair<T, const char*> &pair : _selection){
+            for(std::pair<T, const char*> pair : _selection){
                 if(pair.first == value){
                     return pair.second;
                 }
@@ -106,7 +106,7 @@ struct Selection{
 
         std::vector<const char*> getOptions(){
             std::vector<const char*> ret;
-            for(std::pair<T, const char*> &pair : _selection){
+            for(std::pair<T, const char*> pair : _selection){
                 ret.push_back(pair.second);
             }
             return ret;
@@ -341,16 +341,31 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
 template <typename T>
 struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState {
     T* state;
-    Selection<T>& _selection;
+    Selection<T> _selection;
     String toString() override{
         return _selection.getDescriptionByValue(*state);
     }
-    ExposedState(String StateName,T* State, Selection<T>& selection): BaseExposedState(StateName), state(State), _selection(selection){
+    ExposedState(String StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection){
         stateType = ExposedStateType::ReadWriteSelection;
     }
 };
 
+namespace G{
+    enum class TYP{
+        PKR,
+        TPR,
+        AAA
+    };
+}
+class Gau{
+    public:
+        G::TYP gaugeType;
+        Selection<G::TYP> selection;
+        Gau(G::TYP GAUGETYPE) : gaugeType(GAUGETYPE), selection({{G::TYP::PKR, "PKR"} ,{G::TYP::TPR, "TPR"},{G::TYP::AAA, "AAA"}}){
+            
+        }
 
+};
 
 //Contains a list of all available system components
 class Components{
@@ -366,10 +381,12 @@ class Components{
                 ExposedState<ExposedStateType::ReadOnly, volatile double> temeraturePtr;
                 Unit<Units::Temperature> displayUnit;
                 ExposedState<ExposedStateType::ReadWriteSelection, Units::Temperature> displayUnitPtr;
+                Gau test;
+                ExposedState<ExposedStateType::ReadWriteSelection, G::TYP> testPtr;
                 
 
             public:
-                TemperatureSensor(AnalogInPt100 &analogInPt100, const char* componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), BaseComponent(componentName), temperature(0), temeraturePtr("Temp",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection){
+                TemperatureSensor(AnalogInPt100 &analogInPt100, const char* componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), BaseComponent(componentName), temperature(0), temeraturePtr("Temperature",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),test(G::TYP::AAA), testPtr("test",&(test.gaugeType),test.selection){
                 }
 
                 //Returns the temperature in K
@@ -399,72 +416,16 @@ class Components{
                     return componentName;
                 }
         };
-        
-
-        //Represents a pressure gauge
         class PressureGauge : BaseComponent {
-            public:
-                //Collection of all available gauge types
-                enum struct GaugeType{
-                    //PKR (Pirani/cold cathode gauge)
-                    PKR,
-                    //TPR (ActiveLine Pirani gauge)
-                    TPR
-                };
-
-                double pressure;
-                ExposedState<ExposedStateType::ReadOnly,double> pressureState;
+            private:
+                AnalogInBase &analogIn;
+                volatile double pressure;
+                ExposedState<ExposedStateType::ReadOnly, volatile double> pressurePtr;
                 Unit<Units::Pressure> displayUnit;
-                ExposedState<ExposedStateType::ReadWriteSelection, Units::Pressure> displayUnitState;
-                GaugeType gaugeType;
-
-                ExposedState<ExposedStateType::ReadWriteSelection, GaugeType> gaugeTypeState;
-
-
-                Selection<GaugeType> gaugesTypesSelection = {{Components::PressureGauge::GaugeType::PKR, "PKR"} ,{Components::PressureGauge::GaugeType::TPR, "TPR"}};
-                //Returns a list of all available pressure gauges.
-
-                PressureGauge(AnalogInBase &analogIn, GaugeType gaugeType, const char* componentName = "genericPressureGauge") 
-                    :BaseComponent(componentName),
-                    analogIn(analogIn), 
-                    gaugeType(gaugeType),
-                    pressure(0), 
-                    pressureState("Pressure",&pressure),
-                    displayUnit(Units::Pressure::Pa),
-                    displayUnitState("Display Unit",&(displayUnit.unitType),
-                    displayUnit.selection),
-                    gaugeTypeState("Gauge Type", &gaugeType, gaugesTypesSelection) {}
-
-
-
-                //Returns the pressure in Pa
-                double getPressure(){
-                    return getThreadSave(&pressure);
-                }
-    
-                //Returns the pressure as string including the unit suffix. The unit can be set with setDisplayUnit
-                String getPressureAsString() {
-                    return doubleToSciString(displayUnit.convertFromSI(getPressure())) + displayUnit.getSuffix();
-                }
-                //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
-                void setDisplayUnit(Units::Pressure unit){
-                    displayUnit.unitType = unit;
-                }
-                //Reads the current temperature and updates the internal state
-                void update() override {
-                    pressure = voltageToPressure(gaugeType, analogIn.getVoltage());
-                }
-
-                //Retuns the component type
-                String const getComponentType() const  {
-                    return "Pressure Gauge";
-                }
-                //Returns the component Name
-                const char* getComponentName() const {
-                    return componentName;
-                }
-
-                //This is probably horrible and one should not do this, but it works remakably well XD... TODO: find a good library to handle this (MathHelper.h is terrible because it uses a global buffer, which makes it not thread save)!!!
+                ExposedState<ExposedStateType::ReadWriteSelection, Units::Pressure> displayUnitPtr;
+                Gau test;
+                ExposedState<ExposedStateType::ReadWriteSelection, G::TYP> testPtr;
+                
                 static String doubleToSciString(double value) {
                     if(value == 0) return "0.000E+00";
                     int exponent = static_cast<int>(floor(log10(value)));
@@ -476,23 +437,47 @@ class Components{
                     ERROR_HANDLER.throwError(0x0, "Failed to corretly format number in scientific notation. This has to be an error in LscComponents lib. see doubleToSciString()",SeverityLevel::NORMAL);
                     return String(value,10);
                 }
+                
 
-            private:
-                const char* componentName;
-                AnalogInBase &analogIn;
-                //Converts a given voltage to a pressure value, with respect to the given gauge Type
-                static double voltageToPressure(GaugeType gauge, double voltage){
-                    if(gauge == GaugeType::PKR){
-                        return pow(10., (1.667*voltage-9.33));
-                    }else if (gauge == GaugeType::TPR){
-                        return pow(10., (voltage-3.5));
-                    }
-                    return 0.;
+            public:
+                PressureGauge(AnalogInBase &analogIn, const char* componentName = "genericPressureSensor") : analogIn(analogIn), BaseComponent(componentName), pressure(0), pressurePtr("Pressure",&pressure), displayUnit(Units::Pressure::mBar), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),test(G::TYP::AAA), testPtr("test",&(test.gaugeType),test.selection){
                 }
 
-        };     
-         
-       
+                //Returns the temperature in K
+                double getPressure(){
+                    return getThreadSave(&pressure);
+                }
+                //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
+                String getPressureAsString() {
+                    return String(displayUnit.convertFromSI(getPressure())) + displayUnit.getSuffix();
+                }
+                //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
+                void setDisplayUnit(Units::Pressure unit){
+                    displayUnit.unitType = unit;
+                }
+
+                //Reads the current temperature and updates the internal state
+                void update() override {
+                    double voltage = analogIn.getVoltage();
+                    if(test.gaugeType == G::TYP::PKR){
+                        pressure =  pow(10., (1.667*voltage-9.33));
+                    }else if (test.gaugeType == G::TYP::TPR){
+                        pressure = pow(10., (voltage-3.5));
+                    }
+                }
+
+                //Retuns the component type
+                String const getComponentType()   {
+                    return "Pressure Gauge";
+                }
+                //Returns the component Name
+                const char* const getComponentName() {
+                    return componentName;
+                }
+        };
+        
+
+        
 };
 
 

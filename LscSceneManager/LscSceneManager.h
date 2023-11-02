@@ -464,26 +464,35 @@ class SceneManager{
 
             struct ProgressBar : BaseUI_element{
                 private:
-                    uint32_t xPos;
-                    uint32_t yPos;
-                    uint32_t height;
-                    uint32_t width;
+                    uint16_t xPosition;
+                    uint16_t yPosition;
+                    uint16_t height;
+                    uint16_t width;
                     uint32_t foreColour;
-                    uint32_t backgColour;
+                    uint32_t backColour;
                     long progress;
-                    uint32_t progressInPixel;
+                    uint16_t progressInPixel;
 
                 public:
-                    ProgressBar(uint32_t xPos, uint32_t yPos, uint32_t height, uint32_t width, long Progress = 0, uint32_t foreColour = defaultForeGroundColor, uint32_t BackGroundColor = backGroundColor): xPos(xPos), yPos(yPos), height(height), width(width), progress(0), foreColour(foreColour), backgColour(BackGroundColor){
-                        tft.drawRect(xPos,yPos, width,height,foreColour);
-                        progressInPixel = 0;
+                    ProgressBar(uint16_t xPos, uint16_t yPos, uint16_t Height, uint16_t Width, long Progress = 0, uint32_t ForeColor = defaultForeGroundColor, uint32_t BackColor = backGroundColor)
+                                :xPosition(xPos), 
+                                yPosition(yPos), 
+                                height(Height), 
+                                width(Width), 
+                                progress(0), 
+                                foreColour(ForeColor), 
+                                backColour(BackColor),
+                                progressInPixel(0)
+                                {
+                        
+                        tft.drawRect(xPosition,yPosition, width,height,foreColour);
                         setProgress(Progress);
                     }
                     ~ProgressBar(){
                         clear();
                     }
                     void reDraw(){
-                        tft.drawRect(xPos,yPos, width,height,foreColour);
+                        tft.drawRect(xPosition,yPosition, width,height,foreColour);
                         long temp_progress  = progress;
                         progress = 0;
                         progressInPixel = 0;
@@ -503,12 +512,12 @@ class SceneManager{
                         if(Progress >= 0 && Progress <= 100){
                             
                             if(Progress > progress){
-                                uint32_t fillTo = (uint32_t)map(Progress, 0., 100., 1., (long)(width-1));
-                                tft.fillRect(progressInPixel + xPos  ,yPos + 1,fillTo - progressInPixel , height - 2,foreColour);
+                                uint16_t fillTo = (uint32_t)map(Progress, 0., 100., 1., (long)(width-1));
+                                tft.fillRect(progressInPixel + xPosition  ,yPosition + 1,fillTo - progressInPixel , height - 2,foreColour);
                                 progressInPixel = fillTo;
                             }else{
                                 uint16_t fillTo = map(Progress, 0, 100, 1., (long)(width-1));
-                                tft.fillRect(fillTo + xPos,yPos + 1 , progressInPixel - fillTo   , height - 2,backgColour);
+                                tft.fillRect(fillTo + xPosition,yPosition + 1 , progressInPixel - fillTo   , height - 2,backColour);
                                 progressInPixel = fillTo;
                             }
                             progress = Progress;
@@ -516,21 +525,21 @@ class SceneManager{
                     }    
                     void setForeColour(uint32_t Colour){
                         foreColour = Colour;
-                        tft.drawRect(xPos,yPos, width,height,foreColour);
+                        tft.drawRect(xPosition,yPosition, width,height,foreColour);
                         long tempProgress = progress;
                         setProgress(0);
                         setProgress(tempProgress);
                     }
                     void setBackColour(uint32_t Colour){
-                        backgColour = Colour;
-                        tft.drawRect(xPos,yPos, width,height,foreColour);
+                        backColour = Colour;
+                        tft.drawRect(yPosition,yPosition, width,height,foreColour);
                         long tempProgress = progress;
                         setProgress(100);
                         setProgress(tempProgress);
                     }
 
                     void clear() const override {
-                        tft.fillRect(xPos,yPos, width,height,backgColour);
+                        tft.fillRect(xPosition,yPosition, width,height,backColour);
                     }          
             };
             struct Line : BaseUI_element{ //TODO: implement pixel lvl update (not sure if it is worth it tho)
@@ -721,6 +730,7 @@ class SceneManager{
                 const GFXfont* titleFont;
                 const GFXfont* textFont;
                 int selectedItem;
+                int page;
 
                 void createTextBoxList(){
                     for(int i = 0; i < maxLinesOnScreen; i++){
@@ -765,13 +775,14 @@ class SceneManager{
                     clearAllElements(); // clear everything on the screen
                     menuFramePtr = new StandardMenu(Title, "Back", "Select", TitleColor, OptionFalseColor, OptionTrueColor, LineColor, TitleFont);
                     maxLinesOnScreen = 174 / tft.fontHeight(); //there will be one more line on the screen then this number indecates... because of reasons
-                    pages = 0;
+                    pages = Options.size()/maxLinesOnScreen;
                     tooManyLinesForScreen = false;
                     numberOfLines = 0;
                     menuFramePtr->drawRightControll();
                     createTextBoxList();
                     loadList(Options);
                     arrowCollection[selectedItem]->setText(">");
+                    menuFramePtr->setOfPagesNumber(pages);
                 }
                 void loadList(std::vector<String> list){
                     if(options != list){
@@ -824,9 +835,23 @@ class SceneManager{
                 void update(){
                     if(LSC::getInstance().buttons.bt_3.hasBeenClicked() && selectedItem > 0){
                         selectedItem--;
+
                     }
                     if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && selectedItem < numberOfLines -1){
                         selectedItem++;
+                        
+                        if(selectedItem > (page+1) * maxLinesOnScreen){
+                        int linesToPrint = linesUnderScreen.size();
+                        menuFramePtr->setCurrentPageNumber(page+1);
+                        for(int32_t i = 0; i < messageTextBoxCollection.size(); i++){
+                            linesOverScreen.push_back(messageTextBoxCollection[i]->getText());
+                            if(i > linesToPrint) continue;
+                            messageTextBoxCollection[i]->setText(linesUnderScreen.front());
+                            linesUnderScreen.pop_front();
+                        }
+                        page++;
+                        }
+                        
                     }
                     int counter = 0;
                         for(UI_elements::TextBox* tb : arrowCollection){
