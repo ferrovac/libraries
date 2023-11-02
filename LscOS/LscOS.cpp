@@ -19,6 +19,7 @@ namespace OS{
         NVIC_EnableIRQ(TC5_IRQn);
         NVIC_SetPriority(TC5_IRQn, 4);
         TC_Start(TC1, 2);  
+        NVIC_SetPriority(SysTick_IRQn, 0);
     }
 
     uint32_t getCycleCount(){
@@ -67,10 +68,12 @@ namespace OS{
     
 }
 void TC5_Handler(){
-    OS::lastOsCall = micros();
+    TC_GetStatus(TC1, 2);
+    OS::cycleCount = micros() - OS::timekeeper;
+    OS::timekeeper = micros();
+
     //Serial.println("now");
     ComponentTracker::getInstance().lastOsCall = millis();
-    TC_GetStatus(TC1, 2);
     int start = micros();
     
     for(BaseComponent* comp : ComponentTracker::getInstance().getComponets()){
@@ -84,9 +87,8 @@ void TC5_Handler(){
             NVIC_SystemReset();
         }
     }
-   // Serial.println(micros()-start);
-     OS::cycleCount = micros() - OS::timekeeper;
-     OS::timekeeper = micros();
+    Serial.println(micros()-start);
+
 
     
 }

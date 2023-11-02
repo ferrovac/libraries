@@ -271,7 +271,7 @@ T getThreadSave(T* variable){
     while(100-(millis()-ComponentTracker::getInstance().lastOsCall) < 2){
         Serial.println("waiting");
     }
-        return *variable;
+    return *variable;
 }
 
 enum struct ExposedStateType{

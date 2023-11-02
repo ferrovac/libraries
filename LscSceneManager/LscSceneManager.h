@@ -928,8 +928,8 @@ class SceneManager{
                         }
                         if(exposedStateList[selectionOnMenuLevel_1]->stateType  == ExposedStateType::ReadOnly){                            
                             while(true){
-                                selectionBox->loadList({"This state is","ReadOnly","","", exposedStateList[selectionOnMenuLevel_1]->toString()});
-                                selectionBox->setColorOfItemByIndex(4,TFT_GREEN);
+                                selectionBox->loadList({"ReadOnly State:",exposedStateList[selectionOnMenuLevel_1]->toString()});
+                                selectionBox->setColorOfItemByIndex(1,TFT_GREEN);
                                 selectionBox->update();
                                 if(selectionBox->backHasBeenClicked()){ // Go back to menu level 1
                                     selectionBox->setTitle(componentListString[selectionOnMenuLevel_0]);
