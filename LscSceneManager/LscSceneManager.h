@@ -382,6 +382,14 @@ class SceneManager{
                         text = "";
                         setText(temp_text);
                     }
+                    void setColor(uint32_t Color){
+                        if(Color == fontColour) return;
+                        uint32_t oldColor = backColour;
+                        backColour = Color;
+                        update("");
+                        backColour = oldColor;
+                        fontColour = Color;
+                    }
 
                     String getText(){
                         return text;
@@ -789,10 +797,19 @@ class SceneManager{
                 void setTitle(String Title){
                     menuFramePtr->setTitle(Title);
                 }
-                void setSelectedIndex(uint16_t index){
+                void setSelectedIndex(int index){
                     if(index < maxLinesOnScreen && index >= 0){
                         selectedItem = index;
                         update();
+                    }
+                }
+                void setColorOfItemByIndex(int index, uint32_t Color){
+                    if(index > maxLinesOnScreen || index < 0) return;
+                    messageTextBoxCollection[index]->setColor(Color);
+                }
+                void setColorOfAllItems(uint32_t Color){
+                    for(UI_elements::TextBox* tb : messageTextBoxCollection){
+                        tb->setColor(Color);
                     }
                 }
                 int getSelectedIndex(){
@@ -878,17 +895,54 @@ class SceneManager{
                     if(selectionBox->selectHasBeenClicked()){
                         selectionOnMenuLevel_1 = selectionBox->getSelectedIndex();
                         selectionBox->setTitle(componentStateListToString(exposedStateList)[selectionOnMenuLevel_1]);
+                        // --- ReadWriteSelection ---
                         if(exposedStateList[selectionOnMenuLevel_1]->stateType  == ExposedStateType::ReadWriteSelection){
                             using T = typename std::remove_reference<decltype(exposedStateList[selectionOnMenuLevel_1])>::type;
                             auto myPtr = static_cast< ExposedState<ExposedStateType::ReadWriteSelection, T>* >(exposedStateList[selectionOnMenuLevel_1]); 
-                            
                             std::vector<String> tempBuf;
                             for(const char* item : myPtr->_selection.getOptions()){
                                 tempBuf.push_back(String(item));
                             }
                             selectionBox->loadList(tempBuf);
-                            menuLevel++;
+                            int indexOfCurrentSetting = myPtr->_selection.getIndexByValue(*(myPtr->state));
+                            selectionBox->setSelectedIndex(indexOfCurrentSetting);
+                            selectionBox->setColorOfItemByIndex(indexOfCurrentSetting,TFT_GREEN);
+                            
+                            while(true){
+                                selectionBox->update();
+                                if(selectionBox->selectHasBeenClicked()){ //One onf the selection options has been chosen
+                                    *(myPtr->state) = myPtr->_selection.getValueByIndex(selectionBox->getSelectedIndex());
+                                    selectionBox->setColorOfAllItems(defaultForeGroundColor);
+                                    selectionBox->setColorOfItemByIndex(selectionBox->getSelectedIndex(), TFT_GREEN);
+                                }
+                                if(selectionBox->backHasBeenClicked()){ // Go back to menu level 1
+                                    selectionBox->setTitle(componentListString[selectionOnMenuLevel_0]);
+                                    selectionBox->loadList(componentStateListToString(exposedStateList));
+                                    selectionBox->setSelectedIndex(selectionOnMenuLevel_1);
+                                    selectionBox->setColorOfAllItems(defaultForeGroundColor);
+                                    LSC::getInstance().buttons.bt_5.hasBeenClicked();
+                                    break;
+                                }
+
+                            }
                         }
+                        if(exposedStateList[selectionOnMenuLevel_1]->stateType  == ExposedStateType::ReadOnly){                            
+                            while(true){
+                                selectionBox->loadList({"This is a ReadOnly value.", "Current State is:", "" , "",  exposedStateList[selectionOnMenuLevel_1]->toString()});
+                                selectionBox->setColorOfItemByIndex(4,TFT_GREEN);
+                                selectionBox->update();
+                                if(selectionBox->backHasBeenClicked()){ // Go back to menu level 1
+                                    selectionBox->setTitle(componentListString[selectionOnMenuLevel_0]);
+                                    selectionBox->loadList(componentStateListToString(exposedStateList));
+                                    selectionBox->setSelectedIndex(selectionOnMenuLevel_1);
+                                    selectionBox->setColorOfAllItems(defaultForeGroundColor);
+                                    LSC::getInstance().buttons.bt_5.hasBeenClicked();
+                                    break;
+                                }
+
+                            }
+                        }
+
                     }
                 }
                 if(menuLevel == 2){

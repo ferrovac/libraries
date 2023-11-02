@@ -290,6 +290,7 @@ struct BaseExposedState{
         }
 };
 
+
 template <ExposedStateType StateType, typename T>
 struct ExposedState;
 
@@ -318,7 +319,6 @@ struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
 
 template <typename T>
 struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
-    //static_assert if T is orderable
     T* state;
     T minState;
     T maxState;
@@ -344,9 +344,6 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
 
 
 
-
-
-
 //Contains a list of all available system components
 class Components{
     public:
@@ -361,7 +358,7 @@ class Components{
                 
 
             public:
-                TemperatureSensor(AnalogInPt100 &analogInPt100, const char* componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), BaseComponent(componentName), temperature(0), temeraturePtr("Temp",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("dispUnit", &(displayUnit.unitType), displayUnit.selection){
+                TemperatureSensor(AnalogInPt100 &analogInPt100, const char* componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), BaseComponent(componentName), temperature(0), temeraturePtr("Temp",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection){
                 }
 
                 //Returns the temperature in K
