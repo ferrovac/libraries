@@ -14,6 +14,7 @@ RECOURCES:  TODO
 #include <vector>
 #include "LscHardwareAbstraction.h"
 #include <type_traits>
+#include <atomic>
 
 
 
@@ -347,12 +348,14 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
 //Contains a list of all available system components
 class Components{
     public:
+
+       
         //Class that represents a TP100 temperature sensor
         class TemperatureSensor : BaseComponent {
             private:
                 AnalogInPt100 &analogInPt100;
-                double temperature;
-                ExposedState<ExposedStateType::ReadOnly, double> temeraturePtr;
+                volatile double temperature;
+                ExposedState<ExposedStateType::ReadOnly, volatile double> temeraturePtr;
                 Unit<Units::Temperature> displayUnit;
                 ExposedState<ExposedStateType::ReadWriteSelection, Units::Temperature> displayUnitPtr;
                 
@@ -363,13 +366,11 @@ class Components{
 
                 //Returns the temperature in K
                 double getTemperature(){
-                    update();
-                    return temperature;
+                    return getThreadSave(&temperature);
                 }
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getTeperatureAsString() {
-                    update();
-                    return String(displayUnit.convertFromSI(temperature)) + displayUnit.getSuffix();
+                    return String(displayUnit.convertFromSI(getTemperature())) + displayUnit.getSuffix();
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
                 void setDisplayUnit(Units::Temperature unit){

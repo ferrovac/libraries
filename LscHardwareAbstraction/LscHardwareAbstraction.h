@@ -701,6 +701,7 @@ class LSC{
               analogReadResolution(12);
 
               //Setting up the uart send timer see Async UART for explenation
+              
               pmc_set_writeprotect(false);
               pmc_enable_periph_clk(TC2_IRQn); 
               TC_Configure(TC0, 2, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4); 
@@ -711,6 +712,7 @@ class LSC{
               NVIC_EnableIRQ(TC2_IRQn);
               NVIC_SetPriority(TC2_IRQn, 5);
               TC_Start(TC0, 2);  
+              
               uartBuffer.clear();
         }
     //this is the handler function for the timer responsible for writing data to the uart see Async UART for explenation

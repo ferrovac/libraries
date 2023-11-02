@@ -52,9 +52,11 @@ namespace OS{
 }
 void TC5_Handler(){
     TC_GetStatus(TC1, 2);
+    int start = micros();
     for(BaseComponent* comp : ComponentTracker::getInstance().getComponets()){
         comp->update();
     }
+    
     if (OS::watchdogRunning){
         if(millis() - OS::watchdogStartTime > 2000){
             Serial.println("You Fucked up! Which is why we are restarting the whole thing!");
@@ -62,6 +64,7 @@ void TC5_Handler(){
             NVIC_SystemReset();
         }
     }
+    Serial.println(micros()-start);
 
     
 }
