@@ -3,8 +3,10 @@
 namespace OS{
     bool watchdogRunning = false;
     uint32_t watchdogStartTime = 0;
-    
-   
+    uint32_t cycleCount=0;
+    uint32_t timekeeper = 0;
+    uint32_t lastOsCall = 0;
+
     void init(){
         Serial.begin(115200);
         pmc_set_writeprotect(false);
@@ -17,6 +19,10 @@ namespace OS{
         NVIC_EnableIRQ(TC5_IRQn);
         NVIC_SetPriority(TC5_IRQn, 4);
         TC_Start(TC1, 2);  
+    }
+
+    uint32_t getCycleCount(){
+        return cycleCount;
     }
 
     void startWatchdog(){
@@ -47,12 +53,26 @@ namespace OS{
     void cleanUp(){
 
     }
+    uint32_t getNextOsCall_ms(){
+        return 100 - (millis() - lastOsCall);
+    }
+    bool saveToRead(){
+        if(getNextOsCall_ms() < 10){
+            return false;
+        }else{
+            return true;
+        }
+    }
 
     
 }
 void TC5_Handler(){
+    OS::lastOsCall = micros();
+    //Serial.println("now");
+    ComponentTracker::getInstance().lastOsCall = millis();
     TC_GetStatus(TC1, 2);
     int start = micros();
+    
     for(BaseComponent* comp : ComponentTracker::getInstance().getComponets()){
         comp->update();
     }
@@ -64,7 +84,9 @@ void TC5_Handler(){
             NVIC_SystemReset();
         }
     }
-    Serial.println(micros()-start);
+   // Serial.println(micros()-start);
+     OS::cycleCount = micros() - OS::timekeeper;
+     OS::timekeeper = micros();
 
     
 }

@@ -9,13 +9,12 @@ RECOURCES:  TODO
 
 #ifndef LscComponents_H
 #define LscComponents_H
-
+#include "LscOS.h"
 #include <Arduino.h>
 #include <vector>
 #include "LscHardwareAbstraction.h"
 #include <type_traits>
 #include <atomic>
-
 
 
 
@@ -26,6 +25,7 @@ struct BaseExposedState;
             private:
                 ComponentTracker() {}
             public:
+                volatile unsigned long lastOsCall;
                 std::vector<BaseComponent*> components;
                 std::vector<std::pair<BaseComponent*, BaseExposedState*>> states;
 
@@ -266,7 +266,13 @@ Put selections in theire own class. keep the struct but also provide something l
 with the explanation string -> makes it easy to get index.
 */
 
-
+template<typename T>
+T getThreadSave(T* variable){
+    while(100-(millis()-ComponentTracker::getInstance().lastOsCall) < 2){
+        Serial.println("waiting");
+    }
+        return *variable;
+}
 
 enum struct ExposedStateType{
     ReadOnly,
@@ -300,8 +306,9 @@ template <typename T>
 struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
     T* state;
     String toString() override{
-        return String(*state);
+        return String(getThreadSave(state));
     }
+
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State) {
         stateType = ExposedStateType::ReadOnly;
     }
@@ -349,7 +356,8 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
 class Components{
     public:
 
-       
+
+
         //Class that represents a TP100 temperature sensor
         class TemperatureSensor : BaseComponent {
             private:
@@ -431,14 +439,12 @@ class Components{
 
                 //Returns the pressure in Pa
                 double getPressure(){
-                    update();
-                    return pressure;
+                    return getThreadSave(&pressure);
                 }
     
                 //Returns the pressure as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getPressureAsString() {
-                    update();
-                    return doubleToSciString(displayUnit.convertFromSI(pressure)) + displayUnit.getSuffix();
+                    return doubleToSciString(displayUnit.convertFromSI(getPressure())) + displayUnit.getSuffix();
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
                 void setDisplayUnit(Units::Pressure unit){

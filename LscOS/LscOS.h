@@ -20,6 +20,10 @@ namespace OS{
   void init();
   void startWatchdog();
   void stopWatchdog();
+  uint32_t getCycleCount();
+  uint32_t getNextOsCall_ms();
+  bool saveToRead();
+  
 }
 
 
