@@ -185,11 +185,11 @@ class Unit<Units::Temperature> : BaseUnit{
         String getSuffix() override{
             switch (unitType) {
                 case Units::Temperature::K :
-                    return "K"; 
+                    return " K"; 
                 case Units::Temperature::C:
-                    return "°C"; 
+                    return " °C"; 
                 case Units::Temperature::F:
-                    return "°F"; 
+                    return " °F"; 
             }
         }
 };
@@ -221,20 +221,41 @@ class Unit<Units::Pressure> : BaseUnit{
         String getSuffix() override{
             switch (unitType) {
                 case Units::Pressure::Pa:
-                    return "Pa"; 
+                    return " Pa"; 
                 case Units::Pressure::mBar:
-                    return "mbar"; 
+                    return " mbar"; 
                 case Units::Pressure::Torr:
-                    return "Torr";
+                    return " Torr";
                 case Units::Pressure::psi:
-                    return "psi";
+                    return " psi";
                 case Units::Pressure::atm:
-                    return "atm"; 
+                    return " atm"; 
             }
         }
 };
 
 
+enum class GaugeType{
+    PKR,
+    TPR,
+};
+
+class Gauge{
+    public:
+        GaugeType gaugeType;
+        Selection<GaugeType> selection;
+        Gauge(GaugeType gaugeType) : gaugeType(gaugeType), selection({{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"}}){
+        }
+        double getPressureFromVoltage(double voltage){
+            switch(gaugeType){
+                case GaugeType::PKR:
+                    return pow(10., (1.667*voltage-9.33));
+                case GaugeType::TPR:
+                    return pow(10., (voltage-3.5));
+            }
+            return 0;
+        }
+};
 
 
 
@@ -269,7 +290,7 @@ with the explanation string -> makes it easy to get index.
 template<typename T>
 T getThreadSave(T* variable){
     while(100-(millis()-ComponentTracker::getInstance().lastOsCall) < 2){
-        Serial.println("waiting");
+       // Serial.println("waiting");
     }
     return *variable;
 }
@@ -350,28 +371,11 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
     }
 };
 
-namespace G{
-    enum class TYP{
-        PKR,
-        TPR,
-        AAA
-    };
-}
-class Gau{
-    public:
-        G::TYP gaugeType;
-        Selection<G::TYP> selection;
-        Gau(G::TYP GAUGETYPE) : gaugeType(GAUGETYPE), selection({{G::TYP::PKR, "PKR"} ,{G::TYP::TPR, "TPR"},{G::TYP::AAA, "AAA"}}){
-            
-        }
 
-};
 
 //Contains a list of all available system components
 class Components{
     public:
-
-
 
         //Class that represents a TP100 temperature sensor
         class TemperatureSensor : BaseComponent {
@@ -381,12 +385,10 @@ class Components{
                 ExposedState<ExposedStateType::ReadOnly, volatile double> temeraturePtr;
                 Unit<Units::Temperature> displayUnit;
                 ExposedState<ExposedStateType::ReadWriteSelection, Units::Temperature> displayUnitPtr;
-                Gau test;
-                ExposedState<ExposedStateType::ReadWriteSelection, G::TYP> testPtr;
                 
 
             public:
-                TemperatureSensor(AnalogInPt100 &analogInPt100, const char* componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), BaseComponent(componentName), temperature(0), temeraturePtr("Temperature",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),test(G::TYP::AAA), testPtr("test",&(test.gaugeType),test.selection){
+                TemperatureSensor(AnalogInPt100 &analogInPt100, const char* componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), BaseComponent(componentName), temperature(0), temeraturePtr("Temperature",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection){
                 }
 
                 //Returns the temperature in K
@@ -423,8 +425,8 @@ class Components{
                 ExposedState<ExposedStateType::ReadOnly, volatile double> pressurePtr;
                 Unit<Units::Pressure> displayUnit;
                 ExposedState<ExposedStateType::ReadWriteSelection, Units::Pressure> displayUnitPtr;
-                Gau test;
-                ExposedState<ExposedStateType::ReadWriteSelection, G::TYP> testPtr;
+                Gauge gauge;
+                ExposedState<ExposedStateType::ReadWriteSelection, GaugeType> gaugePtr;
                 
                 static String doubleToSciString(double value) {
                     if(value == 0) return "0.000E+00";
@@ -440,16 +442,17 @@ class Components{
                 
 
             public:
-                PressureGauge(AnalogInBase &analogIn, const char* componentName = "genericPressureSensor") : analogIn(analogIn), BaseComponent(componentName), pressure(0), pressurePtr("Pressure",&pressure), displayUnit(Units::Pressure::mBar), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),test(G::TYP::AAA), testPtr("test",&(test.gaugeType),test.selection){
+                PressureGauge(AnalogInBase &analogIn, const char* componentName = "genericPressureSensor", GaugeType gaugeType = GaugeType::PKR) : analogIn(analogIn), BaseComponent(componentName), pressure(0), pressurePtr("Pressure",&pressure), displayUnit(Units::Pressure::mBar), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),gauge(gaugeType), gaugePtr("Gauge Type",&(gauge.gaugeType),gauge.selection){
                 }
 
                 //Returns the temperature in K
                 double getPressure(){
+                    Serial.println(getThreadSave(&pressure),7);
                     return getThreadSave(&pressure);
                 }
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getPressureAsString() {
-                    return String(displayUnit.convertFromSI(getPressure())) + displayUnit.getSuffix();
+                    return doubleToSciString(displayUnit.convertFromSI(getPressure())) + displayUnit.getSuffix();
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
                 void setDisplayUnit(Units::Pressure unit){
@@ -458,12 +461,7 @@ class Components{
 
                 //Reads the current temperature and updates the internal state
                 void update() override {
-                    double voltage = analogIn.getVoltage();
-                    if(test.gaugeType == G::TYP::PKR){
-                        pressure =  pow(10., (1.667*voltage-9.33));
-                    }else if (test.gaugeType == G::TYP::TPR){
-                        pressure = pow(10., (voltage-3.5));
-                    }
+                    pressure = gauge.getPressureFromVoltage(analogIn.getVoltage());
                 }
 
                 //Retuns the component type

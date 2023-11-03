@@ -87,7 +87,7 @@ void TC5_Handler(){
             NVIC_SystemReset();
         }
     }
-    Serial.println(micros()-start);
+   // Serial.println(micros()-start);
 
 
     

@@ -839,7 +839,7 @@ class SceneManager{
                     }
                     if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && selectedItem < numberOfLines -1){
                         selectedItem++;
-                        
+                        /*
                         if(selectedItem > (page+1) * maxLinesOnScreen){
                         int linesToPrint = linesUnderScreen.size();
                         menuFramePtr->setCurrentPageNumber(page+1);
@@ -851,7 +851,7 @@ class SceneManager{
                         }
                         page++;
                         }
-                        
+                        */
                     }
                     int counter = 0;
                         for(UI_elements::TextBox* tb : arrowCollection){
