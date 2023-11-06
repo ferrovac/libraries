@@ -52,7 +52,11 @@ namespace LinAlg{
         Vector_2D operator+ (Vector_2D& other) const{
             return Vector_2D(vec[0] + other.vec[0], vec[1] + other.vec[1]);
         }
+        Vector_2D operator- (Vector_2D& other) const{
+            return Vector_2D(vec[0] - other.vec[0], vec[1] - other.vec[1]);
+        }
     };
+    constexpr double pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164;
 
 }
 
@@ -356,7 +360,7 @@ class SceneManager{
                             tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],5,TFT_GREEN);
                         }else{
                             tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],5,TFT_RED);
-                            tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],3,backGroundColor);
+                            tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],2,backGroundColor);
                             
                         }
                     }else{
@@ -364,7 +368,7 @@ class SceneManager{
                             tft.fillCircle(position->vec[0],position->vec[1],5,TFT_GREEN);
                         }else{
                             tft.fillCircle(position->vec[0],position->vec[1],5,TFT_RED);
-                            tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],3,backGroundColor);
+                            tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],2,backGroundColor);
                         }
                     }
                 }
@@ -1090,7 +1094,7 @@ class SceneManager{
                         
                         if(Rotation !=0 ) rotate(Rotation);
                         if(Scale !=1 ) scale(Scale);
-                        rotate(-3.141596/2);
+                        rotate(-1.* LinAlg::pi/2.);
                     }
 
                     ~Pump(){
@@ -1127,6 +1131,172 @@ class SceneManager{
                         tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius, backGroundColor);
                         lineCollection.draw(backGroundColor);
                         indicator.clear();
+                    }
+            };
+            struct VacuumChamber : BaseUI_element{
+                private:
+                    ConstructionPointCollection pointCollection;
+                    ConstructionLineCollection lineCollection;
+                    uint32_t lineColor;
+                    LinAlg::Vector_2D zeroPoint;
+                    double rotation;
+                    double _scale;
+                    LinAlg::Vector_2D LeftUpper;
+                    LinAlg::Vector_2D LeftLower;
+                    LinAlg::Vector_2D RightUpper;
+                    LinAlg::Vector_2D RightLower;
+                    LinAlg::Vector_2D UpperLeft;
+                    LinAlg::Vector_2D UpperRight;
+                    LinAlg::Vector_2D LowerLeft;
+                    LinAlg::Vector_2D LowerRight;
+                    LinAlg::Vector_2D leftMidPoint;
+                    LinAlg::Vector_2D leftConnection;
+                    LinAlg::Vector_2D rightConnection;
+                    LinAlg::Vector_2D rightMidPoint;
+                    LinAlg::Vector_2D UpperLeftCorner;
+                    LinAlg::Vector_2D UpperRightCorner;
+                    LinAlg::Vector_2D LowerLeftCorner;
+                    LinAlg::Vector_2D LowerRightCorner;
+                    static constexpr int cornerR = 10;
+
+                    double normalizeAngle(double Angle) const{
+                        double ret = Angle;
+                        int watchdog = 0;
+                        while(ret >= LinAlg::pi *2.){
+                            ret -= LinAlg::pi*2.;
+                            if(watchdog>=10000) {
+                                ret = 0;
+                                break;
+                            }
+                        }
+                        if(ret<0) ret = 0;
+                        watchdog = 0;
+                        while(ret < 0){
+                            ret += LinAlg::pi*2.;
+                            if(watchdog>=10000) {
+                                ret = 0;
+                                break;
+                            }
+                        }
+                        return ret;
+                    }
+                    void drawCircleSegment(uint16_t x , uint16_t y, uint16_t r, double startAngle, double endAngle, uint32_t color) const {
+                        
+                        startAngle = normalizeAngle(startAngle) ;
+                        endAngle = normalizeAngle (endAngle);
+
+                        if(endAngle > startAngle){
+                            tft.drawArc(x,y,r+1,r, startAngle/LinAlg::pi/2.*360., endAngle/LinAlg::pi/2.*360.,color,backGroundColor,false );
+                        }else{
+                            tft.drawArc(x,y,r+1,r, startAngle/LinAlg::pi/2.*360., 360.,color,backGroundColor,false );
+                            tft.drawArc(x,y,r+1,r, 0., endAngle/LinAlg::pi/2.*360.,color,backGroundColor,false );
+                        }
+                    
+                        
+                        
+                                
+                    }
+                public:
+                    VacuumChamber(uint16_t xPos, uint16_t yPos, uint16_t Width, uint16_t Height ,double Rotation = 0,double Scale = 1, uint32_t LineColor = defaultForeGroundColor) 
+                            :zeroPoint(xPos,yPos),
+                            rotation(0.),
+                            _scale(1),
+                            lineCollection(&zeroPoint),
+                            LeftUpper(-1*Width/2 , Height/2 - cornerR),
+                            LeftLower(-1*Width/2 , -1 * Height/2 + cornerR),
+                            RightUpper(Width/2 , Height/2 - cornerR),
+                            RightLower(Width/2 , -1 * Height/2 + cornerR),
+                            LowerLeft(-1*Width/2 + cornerR,-1*Height/2),
+                            LowerRight(Width/2 - cornerR,-1*Height/2),
+                            UpperLeft(-1 * Width/2 +cornerR,Height/2),
+                            UpperRight(Width/2 - cornerR,Height/2),
+                            leftMidPoint(-1*Width/2,0),
+                            leftConnection(-1 * Width/2 -5,0),
+                            rightConnection(Width/2+5,0),
+                            rightMidPoint(Width/2,0),
+                            UpperLeftCorner(-1*Width/2 +cornerR , Height/2 - cornerR),
+                            UpperRightCorner(Width/2 - cornerR, Height/2 - cornerR),
+                            LowerLeftCorner(-1*Width/2 + cornerR,-1*Height/2 + cornerR),
+                            LowerRightCorner(Width/2 - cornerR,-1*Height/2 + cornerR),
+                            lineColor(LineColor)
+                            {
+
+                        pointCollection.addPoint(&LeftUpper);
+                        pointCollection.addPoint(&LeftLower);
+                        pointCollection.addPoint(&RightUpper);
+                        pointCollection.addPoint(&RightLower);
+                        pointCollection.addPoint(&UpperLeft);
+                        pointCollection.addPoint(&UpperRight);
+                        pointCollection.addPoint(&LowerLeft);
+                        pointCollection.addPoint(&LowerRight);
+                        pointCollection.addPoint(&UpperLeftCorner);
+                        pointCollection.addPoint(&UpperRightCorner);
+                        pointCollection.addPoint(&LowerLeftCorner);
+                        pointCollection.addPoint(&LowerRightCorner);
+
+                        pointCollection.addPoint(&leftConnection);
+                        pointCollection.addPoint(&leftMidPoint);
+                        pointCollection.addPoint(&rightConnection);
+                        pointCollection.addPoint(&rightMidPoint);
+
+
+                        lineCollection.addLine(ConstructionLine(&UpperLeft,&UpperRight));
+                        lineCollection.addLine(ConstructionLine(&LowerLeft,&LowerRight));
+                        lineCollection.addLine(ConstructionLine(&LeftLower,&LeftUpper));
+                        lineCollection.addLine(ConstructionLine(&RightLower,&RightUpper));
+
+                        lineCollection.addLine(ConstructionLine(&UpperLeftCorner,&LowerRightCorner));
+                        lineCollection.addLine(ConstructionLine(&UpperRightCorner,&LowerLeftCorner));
+
+
+                        lineCollection.addLine(ConstructionLine(&leftConnection,&leftMidPoint));
+                        lineCollection.addLine(ConstructionLine(&rightConnection,&rightMidPoint));
+                        if(Rotation !=0 ) rotate(Rotation);
+                        if(Scale !=1 ) scale(Scale);
+                        reDraw();
+                    }
+                    ~VacuumChamber(){
+                        clear();
+                    }
+                    void rotate(double Angle){
+                        clear();
+                        pointCollection.rotate(Angle);
+                        rotation -= Angle;
+                        while(rotation<0){
+                            rotation += LinAlg::pi*2.;
+                        }
+                        while(rotation>=LinAlg::pi*2.){
+                            rotation -= LinAlg::pi*2.;
+                        }
+                        reDraw();
+                    }
+                    void scale(double factor){
+                        clear();
+                        _scale *= factor;
+                        pointCollection.scale(factor);
+                        reDraw();
+                    }
+
+                    LinAlg::Vector_2D* getLeftConnectionPointPtr(){
+                        return &leftConnection;
+                    }
+                    LinAlg::Vector_2D* getRightConnectionPointPtr(){
+                        return &rightConnection;
+                    }
+                    void reDraw() override{
+                        lineCollection.draw(lineColor);
+                        drawCircleSegment(zeroPoint.vec[0] + UpperLeftCorner.vec[0],zeroPoint.vec[1] +UpperLeftCorner.vec[1],cornerR * _scale,rotation,rotation+ LinAlg::pi/2.,lineColor);
+                        drawCircleSegment(zeroPoint.vec[0] + UpperRightCorner.vec[0],zeroPoint.vec[1] +UpperRightCorner.vec[1],cornerR * _scale,rotation + LinAlg::pi*3./2.,rotation,lineColor);
+                        drawCircleSegment(zeroPoint.vec[0] + LowerLeftCorner.vec[0],zeroPoint.vec[1] +LowerLeftCorner.vec[1],cornerR * _scale,rotation + LinAlg::pi/2.,rotation + LinAlg::pi,lineColor);
+                        drawCircleSegment(zeroPoint.vec[0] + LowerRightCorner.vec[0],zeroPoint.vec[1] +LowerRightCorner.vec[1],cornerR * _scale,rotation + LinAlg::pi,rotation+ LinAlg::pi*3./2.,lineColor);
+
+                   }
+                    void clear() const override{
+                        lineCollection.draw(backGroundColor);
+                        drawCircleSegment(zeroPoint.vec[0] + UpperLeftCorner.vec[0],zeroPoint.vec[1] +UpperLeftCorner.vec[1],cornerR * _scale,rotation,rotation+ LinAlg::pi/2.,backGroundColor);
+                        drawCircleSegment(zeroPoint.vec[0] + UpperRightCorner.vec[0],zeroPoint.vec[1] +UpperRightCorner.vec[1],cornerR * _scale,rotation + LinAlg::pi*3./2.,rotation,backGroundColor);
+                        drawCircleSegment(zeroPoint.vec[0] + LowerLeftCorner.vec[0],zeroPoint.vec[1] +LowerLeftCorner.vec[1],cornerR * _scale,rotation + LinAlg::pi/2.,rotation + LinAlg::pi,backGroundColor);
+                        drawCircleSegment(zeroPoint.vec[0] + LowerRightCorner.vec[0],zeroPoint.vec[1] +LowerRightCorner.vec[1],cornerR * _scale,rotation + LinAlg::pi,rotation+ LinAlg::pi*3./2.,backGroundColor);
                     }
             };
 
