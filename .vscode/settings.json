@@ -75,6 +75,8 @@
         "shared_mutex": "cpp",
         "stop_token": "cpp",
         "__nullptr": "cpp",
-        "__config": "cpp"
+        "__config": "cpp",
+        "__node_handle": "cpp",
+        "unordered_set": "cpp"
     }
 }

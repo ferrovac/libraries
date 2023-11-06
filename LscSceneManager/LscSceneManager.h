@@ -21,8 +21,40 @@ RECOURCES:  TODO
 #include "math.h"
 #include <algorithm>
 #include <deque>
+#include <unordered_set>
 
+namespace LinAlg{
+    struct Matrix_2x2{
+        double mat[2][2]; //[row][element in row]
+        Matrix_2x2(double A11,double A12,double A21,double A22){
+            mat[0][0] = A11;
+            mat[0][1] = A12;
+            mat[1][0] = A21;
+            mat[1][1] = A22;
+        }
+        static Matrix_2x2 getRotMat(double Angle){
+            return Matrix_2x2(cos(Angle), -1*sin(Angle), sin(Angle), cos(Angle));
+        }
+    };
 
+    struct Vector_2D{
+        int vec[2];
+        Vector_2D(int X, int Y){
+            vec[0] = X;
+            vec[1] = Y;
+        }
+        Vector_2D operator* (const Matrix_2x2& other) const{
+            return Vector_2D((int) round(((double)vec[0] * other.mat[0][0] + (double)vec[1] * other.mat[1][0])), (int)round((double)vec[0] * other.mat[0][1] + (double)vec[1] * other.mat[1][1]));
+        }
+        Vector_2D operator* (double& other) const{
+            return Vector_2D((int)round((double)vec[0] *other), (int)round((double)vec[1]*other) );
+        }
+        Vector_2D operator+ (Vector_2D& other) const{
+            return Vector_2D(vec[0] + other.vec[0], vec[1] + other.vec[1]);
+        }
+    };
+
+}
 
 
 struct BaseUI_element;
@@ -227,6 +259,49 @@ class SceneManager{
                 return true;
             }   
         }
+        
+        struct ConstructionLine{
+            LinAlg::Vector_2D* start;
+            LinAlg::Vector_2D* end;
+
+            ConstructionLine(LinAlg::Vector_2D* Start, LinAlg::Vector_2D* End) : start(Start), end(End){}
+            void draw(LinAlg::Vector_2D offset, uint32_t Color) const {
+                tft.drawLine(start->vec[0] + offset.vec[0] ,start->vec[1] + offset.vec[1] ,end->vec[0]+ offset.vec[0], end->vec[1]+ offset.vec[1],Color);
+            }
+        };
+        struct ConstructionPointCollection{
+            std::vector<LinAlg::Vector_2D*> collection;
+            void addPoint(LinAlg::Vector_2D* Point){
+                collection.push_back(Point);
+            }
+            void rotate(double Angle){
+                LinAlg::Matrix_2x2 rotMat =  LinAlg::Matrix_2x2::getRotMat(Angle);
+                for(LinAlg::Vector_2D* point : collection){
+                    *point = *point * rotMat;
+                }
+            }
+            void scale(double factor){
+                for(LinAlg::Vector_2D* point : collection){
+                    *point = *point * factor;
+                }
+            }
+        };
+        struct ConstructionLineCollection{
+            std::vector<ConstructionLine> collection;
+            LinAlg::Vector_2D*  offset;
+            ConstructionLineCollection(LinAlg::Vector_2D* Offset): offset(Offset){}
+
+            void addLine(ConstructionLine Line){
+                collection.push_back(Line);
+            }
+            
+            void draw(uint32_t Color) const {
+                for(ConstructionLine line : collection){
+                    line.draw(*offset, Color);
+                }
+            }
+        };
+
 
         struct UI_elements{
             /*
@@ -259,6 +334,43 @@ class SceneManager{
                 
             */
             //A TextBox can be used to display text. 
+            struct StatusIndicator : BaseUI_element{
+                LinAlg::Vector_2D* offset;
+                LinAlg::Vector_2D* position;
+                bool active;
+ 
+                StatusIndicator(LinAlg::Vector_2D* Position, LinAlg::Vector_2D* Offset = nullptr , bool Active = false): position(Position), offset(Offset), active(Active){
+                    reDraw();
+                }
+                ~StatusIndicator(){
+                    clear();
+                }
+                void setStatus(bool Active){
+                    if(Active == active) return;
+                    active = Active;
+                    reDraw();
+                }
+                void reDraw() override{
+                    if(offset != nullptr){
+                        if(active){
+                            tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],5,TFT_GREEN);
+                        }else{
+                            tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],5,TFT_RED);
+                        }
+                    }else{
+                        if(active){
+                            tft.fillCircle(position->vec[0],position->vec[1],5,TFT_GREEN);
+                        }else{
+                            tft.fillCircle(position->vec[0],position->vec[1],5,TFT_RED);
+                        }
+                    }
+                }
+                void clear() const override{
+                    tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],5,backGroundColor);
+                }
+            };
+            
+
             struct TextBox : BaseUI_element{
                 private:
                     uint16_t xPos;  //holds the x position of the element on the tft
@@ -608,6 +720,206 @@ class SceneManager{
                     }
                 private:
 
+            };
+
+
+            struct Valve : BaseUI_element{
+                private:
+                    bool open;
+                    ConstructionPointCollection pointCollection;
+                    ConstructionLineCollection lineCollection;
+                    uint32_t lineColor;
+                    LinAlg::Vector_2D zeroPoint;
+                    LinAlg::Vector_2D upperLeft;
+                    LinAlg::Vector_2D upperRight;
+                    LinAlg::Vector_2D lowerLeft;
+                    LinAlg::Vector_2D lowerRight;
+                    LinAlg::Vector_2D leftConnection;
+                    LinAlg::Vector_2D leftMidPoint;
+                    LinAlg::Vector_2D rightConnection;
+                    LinAlg::Vector_2D rightMidPoint;
+                    LinAlg::Vector_2D valveActuator;
+                    LinAlg::Vector_2D center;
+                    StatusIndicator indicator;
+                public:
+                    Valve(uint16_t xPos, uint16_t yPos, bool Open = false ,double Rotation = 0,double Scale = 1, uint32_t LineColor = defaultForeGroundColor) 
+                            :zeroPoint(xPos,yPos),
+                            open(Open),
+                            lineCollection(&zeroPoint),
+                            upperLeft(-10,10),
+                            upperRight(10,10),
+                            lowerLeft(-10,-10),
+                            lowerRight(10,-10),
+                            leftConnection(-15,0),
+                            leftMidPoint(-10,0),
+                            rightConnection(15,0),
+                            rightMidPoint(10,0),
+                            valveActuator(0,10),
+                            center(0,0),
+                            lineColor(LineColor),
+                            indicator(&valveActuator,&zeroPoint)
+                            {
+
+                        pointCollection.addPoint(&upperLeft);
+                        pointCollection.addPoint(&upperRight);
+                        pointCollection.addPoint(&lowerLeft);
+                        pointCollection.addPoint(&lowerRight);
+                        pointCollection.addPoint(&leftConnection);
+                        pointCollection.addPoint(&leftMidPoint);
+                        pointCollection.addPoint(&rightConnection);
+                        pointCollection.addPoint(&rightMidPoint);
+                        pointCollection.addPoint(&valveActuator);
+                        pointCollection.addPoint(&center);
+
+                        lineCollection.addLine(ConstructionLine(&upperLeft,&lowerRight));
+                        lineCollection.addLine(ConstructionLine(&lowerLeft,&upperRight));
+                        lineCollection.addLine(ConstructionLine(&upperLeft,&lowerLeft));
+                        lineCollection.addLine(ConstructionLine(&upperRight,&lowerRight));
+                        lineCollection.addLine(ConstructionLine(&leftConnection,&leftMidPoint));
+                        lineCollection.addLine(ConstructionLine(&rightConnection,&rightMidPoint));
+                        lineCollection.addLine(ConstructionLine(&center,&valveActuator));
+                        if(Rotation !=0 ) rotate(Rotation);
+                        if(Scale !=1 ) scale(Scale);
+                        reDraw();
+                    }
+                    ~Valve(){
+                        clear();
+                    }
+                    void rotate(double Angle){
+                        clear();
+                        pointCollection.rotate(Angle);
+                        reDraw();
+                    }
+                    void scale(double factor){
+                        clear();
+                        pointCollection.scale(factor);
+                        reDraw();
+                    }
+                    void setState(bool state){
+                        indicator.setStatus(state);
+                        open = state;
+                    }
+                    LinAlg::Vector_2D* getLeftConnectionPointPtr(){
+                        return &leftConnection;
+                    }
+                    LinAlg::Vector_2D* getRightConnectionPointPtr(){
+                        return &rightConnection;
+                    }
+                    void reDraw() override{
+                        lineCollection.draw(lineColor);
+                        indicator.reDraw();
+                    }
+                    void clear() const override{
+                        lineCollection.draw(backGroundColor);
+                        indicator.clear();
+                    }
+            };
+            struct GateValve : BaseUI_element{
+                private:
+                    bool open;
+                    ConstructionPointCollection pointCollection;
+                    ConstructionLineCollection lineCollection;
+                    uint32_t lineColor;
+                    LinAlg::Vector_2D zeroPoint;
+                    LinAlg::Vector_2D upperLeft;
+                    LinAlg::Vector_2D upperRight;
+                    LinAlg::Vector_2D lowerLeft;
+                    LinAlg::Vector_2D lowerRight;
+                    LinAlg::Vector_2D leftConnection;
+                    LinAlg::Vector_2D leftMidPoint;
+                    LinAlg::Vector_2D rightConnection;
+                    LinAlg::Vector_2D rightMidPoint;
+                    LinAlg::Vector_2D valveActuator;
+                    LinAlg::Vector_2D center;
+                    LinAlg::Vector_2D gateUL;
+                    LinAlg::Vector_2D gateUR;
+                    LinAlg::Vector_2D gateLL;
+                    LinAlg::Vector_2D gateLR;
+                    StatusIndicator indicator;
+                public:
+                    GateValve(uint16_t xPos, uint16_t yPos, bool Open = false ,double Rotation = 0,double Scale = 1, uint32_t LineColor = defaultForeGroundColor) 
+                            :zeroPoint(xPos,yPos),
+                            open(Open),
+                            lineCollection(&zeroPoint),
+                            upperLeft(-10,10),
+                            upperRight(10,10),
+                            lowerLeft(-10,-10),
+                            lowerRight(10,-10),
+                            leftConnection(-15,0),
+                            leftMidPoint(-10,0),
+                            rightConnection(15,0),
+                            rightMidPoint(10,0),
+                            valveActuator(0,10),
+                            center(0,0),
+                            lineColor(LineColor),
+                            gateUL(-2,10),
+                            gateUR(2,10),
+                            gateLL(-2,-10),
+                            gateLR(2,-10),
+                            indicator(&valveActuator,&zeroPoint)
+                            {
+
+                        pointCollection.addPoint(&upperLeft);
+                        pointCollection.addPoint(&upperRight);
+                        pointCollection.addPoint(&lowerLeft);
+                        pointCollection.addPoint(&lowerRight);
+                        pointCollection.addPoint(&leftConnection);
+                        pointCollection.addPoint(&leftMidPoint);
+                        pointCollection.addPoint(&rightConnection);
+                        pointCollection.addPoint(&rightMidPoint);
+                        pointCollection.addPoint(&valveActuator);
+                        pointCollection.addPoint(&center);
+                        pointCollection.addPoint(&gateUL);
+                        pointCollection.addPoint(&gateUR);
+                        pointCollection.addPoint(&gateLL);
+                        pointCollection.addPoint(&gateLR);
+
+                        lineCollection.addLine(ConstructionLine(&upperLeft,&lowerRight));
+                        lineCollection.addLine(ConstructionLine(&lowerLeft,&upperRight));
+                        lineCollection.addLine(ConstructionLine(&upperLeft,&lowerLeft));
+                        lineCollection.addLine(ConstructionLine(&upperRight,&lowerRight));
+                        lineCollection.addLine(ConstructionLine(&leftConnection,&leftMidPoint));
+                        lineCollection.addLine(ConstructionLine(&rightConnection,&rightMidPoint));
+                        lineCollection.addLine(ConstructionLine(&center,&valveActuator));
+                        if(Rotation !=0 ) rotate(Rotation);
+                        if(Scale !=1 ) scale(Scale);
+                        reDraw();
+                    }
+                    ~GateValve(){
+                        clear();
+                    }
+                    void rotate(double Angle){
+                        clear();
+                        pointCollection.rotate(Angle);
+                        reDraw();
+                    }
+                    void scale(double factor){
+                        clear();
+                        pointCollection.scale(factor);
+                        reDraw();
+                    }
+                    void setState(bool state){
+                        indicator.setStatus(state);
+                        open = state;
+                    }
+                    LinAlg::Vector_2D* getLeftConnectionPointPtr(){
+                        return &leftConnection;
+                    }
+                    LinAlg::Vector_2D* getRightConnectionPointPtr(){
+                        return &rightConnection;
+                    }
+                    void reDraw() override{
+                        lineCollection.draw(lineColor);
+                        tft.fillTriangle(gateLL.vec[0] + zeroPoint.vec[0],gateLL.vec[1] + zeroPoint.vec[1],gateLR.vec[0] + zeroPoint.vec[0],gateLR.vec[1] + zeroPoint.vec[1],gateUL.vec[0] + zeroPoint.vec[0],gateUL.vec[1] + zeroPoint.vec[1],lineColor);
+                        tft.fillTriangle(gateUL.vec[0] + zeroPoint.vec[0],gateUL.vec[1] + zeroPoint.vec[1],gateUR.vec[0] + zeroPoint.vec[0],gateUR.vec[1] + zeroPoint.vec[1],gateLR.vec[0] + zeroPoint.vec[0],gateLR.vec[1] + zeroPoint.vec[1],lineColor);
+                        indicator.reDraw();
+                    }
+                    void clear() const override{
+                        lineCollection.draw(backGroundColor);
+                        indicator.clear();
+                        tft.fillTriangle(gateLL.vec[0] + zeroPoint.vec[0],gateLL.vec[1] + zeroPoint.vec[1],gateLR.vec[0] + zeroPoint.vec[0],gateLR.vec[1] + zeroPoint.vec[1],gateUL.vec[0] + zeroPoint.vec[0],gateUL.vec[1] + zeroPoint.vec[1],backGroundColor);
+                        tft.fillTriangle(gateUL.vec[0] + zeroPoint.vec[0],gateUL.vec[1] + zeroPoint.vec[1],gateUR.vec[0] + zeroPoint.vec[0],gateUR.vec[1] + zeroPoint.vec[1],gateLR.vec[0] + zeroPoint.vec[0],gateLR.vec[1] + zeroPoint.vec[1],backGroundColor);
+                    }
             };
 
 
