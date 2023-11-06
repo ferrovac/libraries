@@ -356,12 +356,15 @@ class SceneManager{
                             tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],5,TFT_GREEN);
                         }else{
                             tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],5,TFT_RED);
+                            tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],3,backGroundColor);
+                            
                         }
                     }else{
                         if(active){
                             tft.fillCircle(position->vec[0],position->vec[1],5,TFT_GREEN);
                         }else{
                             tft.fillCircle(position->vec[0],position->vec[1],5,TFT_RED);
+                            tft.fillCircle((*offset + *position).vec[0],(*offset + *position).vec[1],3,backGroundColor);
                         }
                     }
                 }
@@ -919,6 +922,211 @@ class SceneManager{
                         indicator.clear();
                         tft.fillTriangle(gateLL.vec[0] + zeroPoint.vec[0],gateLL.vec[1] + zeroPoint.vec[1],gateLR.vec[0] + zeroPoint.vec[0],gateLR.vec[1] + zeroPoint.vec[1],gateUL.vec[0] + zeroPoint.vec[0],gateUL.vec[1] + zeroPoint.vec[1],backGroundColor);
                         tft.fillTriangle(gateUL.vec[0] + zeroPoint.vec[0],gateUL.vec[1] + zeroPoint.vec[1],gateUR.vec[0] + zeroPoint.vec[0],gateUR.vec[1] + zeroPoint.vec[1],gateLR.vec[0] + zeroPoint.vec[0],gateLR.vec[1] + zeroPoint.vec[1],backGroundColor);
+                    }
+            };
+
+            struct TurboMolecularPump : BaseUI_element{
+                private:
+                    bool state;
+                    uint16_t radius;
+                    ConstructionPointCollection pointCollection;
+                    ConstructionLineCollection lineCollection;
+                    uint32_t lineColor;
+                    LinAlg::Vector_2D zeroPoint;
+                    LinAlg::Vector_2D center;
+                    LinAlg::Vector_2D indicatorPos;
+                    LinAlg::Vector_2D funnelUL;
+                    LinAlg::Vector_2D funnelLL;
+                    LinAlg::Vector_2D funnelUR;
+                    LinAlg::Vector_2D funnelLR;
+                    LinAlg::Vector_2D leftConnection;
+                    LinAlg::Vector_2D leftConnectionOnCircle;
+                    LinAlg::Vector_2D rightConnection;
+                    LinAlg::Vector_2D rightConnectionOnCircle;
+                    StatusIndicator indicator;
+                public:
+                    TurboMolecularPump(uint16_t xPos, uint16_t yPos, bool State = false ,double Rotation = 0,double Scale = 1, uint32_t LineColor = defaultForeGroundColor) 
+                            :zeroPoint(xPos,yPos),
+                            state(State),
+                            radius(25),
+                            lineCollection(&zeroPoint),
+                            center(0,0),
+                            indicatorPos(0,-1*radius/3*2),
+                            lineColor(LineColor),
+                            funnelUL(0,radius),
+                            funnelLL(0,radius),
+                            funnelUR(0,radius),
+                            funnelLR(0,radius),
+                            leftConnection(0,-radius -5),
+                            leftConnectionOnCircle(0,-radius),
+                            rightConnection(0,radius + 5),
+                            rightConnectionOnCircle(0,radius),
+                            indicator(&indicatorPos,&zeroPoint)
+                            {
+
+                        pointCollection.addPoint(&funnelUL);
+                        pointCollection.addPoint(&funnelLL);
+                        pointCollection.addPoint(&funnelUR);
+                        pointCollection.addPoint(&funnelLR);
+                        pointCollection.addPoint(&indicatorPos);
+                        pointCollection.addPoint(&leftConnection);
+                        pointCollection.addPoint(&leftConnectionOnCircle);
+                        pointCollection.addPoint(&rightConnection);
+                        pointCollection.addPoint(&rightConnectionOnCircle);
+
+                        funnelLL = funnelLL * LinAlg::Matrix_2x2::getRotMat(3.14159/8);
+                        funnelUL = funnelUL * LinAlg::Matrix_2x2::getRotMat(3.14159/1.5);
+                        funnelLR = funnelLR * LinAlg::Matrix_2x2::getRotMat(-3.14159/8);
+                        funnelUR = funnelUR * LinAlg::Matrix_2x2::getRotMat(-3.14159/1.5);
+
+                       lineCollection.addLine(ConstructionLine(&funnelUL,&funnelLL));
+                       lineCollection.addLine(ConstructionLine(&funnelUR,&funnelLR));
+                       lineCollection.addLine(ConstructionLine(&leftConnection,&leftConnectionOnCircle));
+                       lineCollection.addLine(ConstructionLine(&rightConnection,&rightConnectionOnCircle));
+                        
+                        if(Rotation !=0 ) rotate(Rotation);
+                        if(Scale !=1 ) scale(Scale);
+                        rotate(-3.141596/2);
+                    }
+
+                    ~TurboMolecularPump(){
+                        clear();
+                    }
+                    LinAlg::Vector_2D* getLeftConnectionPointPtr(){
+                        return &leftConnection;
+                    }
+                    LinAlg::Vector_2D* getRightConnectionPointPtr(){
+                        return &rightConnection;
+                    }
+                    void rotate(double Angle){
+                        clear();
+                        pointCollection.rotate(Angle);
+                        reDraw();
+                    }
+                    void scale(double factor){
+                        clear();
+                        pointCollection.scale(factor);
+                        radius = radius * factor;
+                        reDraw();
+                    }
+                    void setState(bool State){
+                        indicator.setStatus(State);
+                        state = State;
+                    }
+
+                    void reDraw() override{
+                        tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius, lineColor);
+                        tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius/3, lineColor);
+                        tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius/3 + 2, lineColor);
+                        lineCollection.draw(lineColor);
+                        indicator.reDraw();
+                    }
+                    void clear() const override{
+                        tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius, backGroundColor);
+                        tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius/3, backGroundColor);
+                        tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius/3 + 2, backGroundColor);
+                        lineCollection.draw(backGroundColor);
+                        indicator.clear();
+                    }
+            };
+            struct Pump : BaseUI_element{
+                private:
+                    bool state;
+                    uint16_t radius;
+                    ConstructionPointCollection pointCollection;
+                    ConstructionLineCollection lineCollection;
+                    uint32_t lineColor;
+                    LinAlg::Vector_2D zeroPoint;
+                    LinAlg::Vector_2D center;
+                    LinAlg::Vector_2D indicatorPos;
+                    LinAlg::Vector_2D funnelUL;
+                    LinAlg::Vector_2D funnelLL;
+                    LinAlg::Vector_2D funnelUR;
+                    LinAlg::Vector_2D funnelLR;
+                    LinAlg::Vector_2D leftConnection;
+                    LinAlg::Vector_2D leftConnectionOnCircle;
+                    LinAlg::Vector_2D rightConnection;
+                    LinAlg::Vector_2D rightConnectionOnCircle;
+                    StatusIndicator indicator;
+                public:
+                    Pump(uint16_t xPos, uint16_t yPos, bool State = false ,double Rotation = 0,double Scale = 1, uint32_t LineColor = defaultForeGroundColor) 
+                            :zeroPoint(xPos,yPos),
+                            state(State),
+                            radius(25),
+                            lineCollection(&zeroPoint),
+                            center(0,0),
+                            indicatorPos(0,-1*radius/3*2),
+                            lineColor(LineColor),
+                            funnelUL(0,radius),
+                            funnelLL(0,radius),
+                            funnelUR(0,radius),
+                            funnelLR(0,radius),
+                            leftConnection(0,-radius -5),
+                            leftConnectionOnCircle(0,-radius),
+                            rightConnection(0,radius + 5),
+                            rightConnectionOnCircle(0,radius),
+                            indicator(&indicatorPos,&zeroPoint)
+                            {
+
+                        pointCollection.addPoint(&funnelUL);
+                        pointCollection.addPoint(&funnelLL);
+                        pointCollection.addPoint(&funnelUR);
+                        pointCollection.addPoint(&funnelLR);
+                        pointCollection.addPoint(&indicatorPos);
+                        pointCollection.addPoint(&leftConnection);
+                        pointCollection.addPoint(&leftConnectionOnCircle);
+                        pointCollection.addPoint(&rightConnection);
+                        pointCollection.addPoint(&rightConnectionOnCircle);
+
+                        funnelLL = funnelLL * LinAlg::Matrix_2x2::getRotMat(3.14159/8);
+                        funnelUL = funnelUL * LinAlg::Matrix_2x2::getRotMat(3.14159/1.5);
+                        funnelLR = funnelLR * LinAlg::Matrix_2x2::getRotMat(-3.14159/8);
+                        funnelUR = funnelUR * LinAlg::Matrix_2x2::getRotMat(-3.14159/1.5);
+
+                       lineCollection.addLine(ConstructionLine(&funnelUL,&funnelLL));
+                       lineCollection.addLine(ConstructionLine(&funnelUR,&funnelLR));
+                       lineCollection.addLine(ConstructionLine(&leftConnection,&leftConnectionOnCircle));
+                       lineCollection.addLine(ConstructionLine(&rightConnection,&rightConnectionOnCircle));
+                        
+                        if(Rotation !=0 ) rotate(Rotation);
+                        if(Scale !=1 ) scale(Scale);
+                        rotate(-3.141596/2);
+                    }
+
+                    ~Pump(){
+                        clear();
+                    }
+                    LinAlg::Vector_2D* getLeftConnectionPointPtr(){
+                        return &leftConnection;
+                    }
+                    LinAlg::Vector_2D* getRightConnectionPointPtr(){
+                        return &rightConnection;
+                    }
+                    void rotate(double Angle){
+                        clear();
+                        pointCollection.rotate(Angle);
+                        reDraw();
+                    }
+                    void scale(double factor){
+                        clear();
+                        pointCollection.scale(factor);
+                        radius = radius * factor;
+                        reDraw();
+                    }
+                    void setState(bool State){
+                        indicator.setStatus(State);
+                        state = State;
+                    }
+
+                    void reDraw() override{
+                        tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius, lineColor);
+                        lineCollection.draw(lineColor);
+                        indicator.reDraw();
+                    }
+                    void clear() const override{
+                        tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius, backGroundColor);
+                        lineCollection.draw(backGroundColor);
+                        indicator.clear();
                     }
             };
 
