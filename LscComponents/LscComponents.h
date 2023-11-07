@@ -48,6 +48,8 @@ struct BaseExposedState;
                 }
         };
 
+        extern void waitForSaveReadWrite();
+
 /*  How to use the tracker =)
               for(std::pair<BaseComponent*,BaseExposedState*> pair : ComponentTracker::getInstance().states){
                 Serial.println("Component: " + String(pair.first->componentName));
@@ -287,13 +289,7 @@ Put selections in theire own class. keep the struct but also provide something l
 with the explanation string -> makes it easy to get index.
 */
 
-template<typename T>
-T getThreadSave(T* variable){
-    while(100-(millis()-ComponentTracker::getInstance().lastOsCall) < 2){
-       // Serial.println("waiting");
-    }
-    return *variable;
-}
+
 
 enum struct ExposedStateType{
     ReadOnly,
@@ -327,7 +323,8 @@ template <typename T>
 struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
     T* state;
     String toString() override{
-        return String(getThreadSave(state));
+        waitForSaveReadWrite();
+        return String(*state);
     }
 
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State) {
@@ -339,6 +336,7 @@ template <typename T>
 struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
     T* state;
     String toString() override{
+        waitForSaveReadWrite();
         return String(*state);
     }
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State){
@@ -353,6 +351,7 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
     T maxState;
     T stepState;
     String toString() override{
+        waitForSaveReadWrite();
         return String(*state);
     }
     ExposedState(String StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
@@ -364,6 +363,7 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
     T* state;
     Selection<T> _selection;
     String toString() override{
+        waitForSaveReadWrite();
         return _selection.getDescriptionByValue(*state);
     }
     ExposedState(String StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection){
@@ -393,7 +393,8 @@ class Components{
                 
                 //Returns the temperature in K
                 double getTemperature(){
-                    return getThreadSave(&temperature);
+                    waitForSaveReadWrite();
+                    return temperature;
                 }
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getTeperatureAsString() {
@@ -452,13 +453,10 @@ class Components{
                 }
                 //Returns the temperature in K
                 double getPressure(){
-                    Serial.println(getThreadSave(&pressure),7);
-                    return getThreadSave(&pressure);
+                    waitForSaveReadWrite();
+                    return pressure;
                 }
-                void setPressure(double P){
-                    getThreadSave(&pressure);
-                    pressure = P;
-                }
+                
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getPressureAsString(bool printUnitSuffix = true) {
                     if(printUnitSuffix){
@@ -469,7 +467,7 @@ class Components{
                     }
                 }
                 String getUnitSuffixAsString() {
-                    getThreadSave(&pressure);
+                    waitForSaveReadWrite();
                     return displayUnit.getSuffix();
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
@@ -491,6 +489,7 @@ class Components{
                     return componentName;
                 }
         };
+        
         
 
         

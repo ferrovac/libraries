@@ -167,8 +167,43 @@ class SceneManager{
         static uint32_t backGroundColor;   //holds the global backgroud color of the tft display. This is set in the init function and should not be changed later
         static uint32_t defaultForeGroundColor; //holds the default fore ground color
         static const GFXfont* defaultFont; //holds the defualt font
+        
+        class UI_Options : BaseComponent {
+            public:
+                uint32_t bColor;
+                uint32_t fColor;
+                Selection<uint32_t> colorSelection;
+                ExposedState<ExposedStateType::ReadWriteSelection, uint32_t> bgc;
+                ExposedState<ExposedStateType::ReadWriteSelection, uint32_t> fgc;
+            
+                UI_Options(uint32_t bcolor, uint32_t fcolor) 
+                    :   BaseComponent("Display"),
+                        bColor(bcolor),
+                        fColor(fcolor),
+                        colorSelection({{TFT_BLACK,"Black"},{TFT_WHITE, "White"},{TFT_BLUE, "Blue"},{TFT_BROWN, "Brown"}}),
+                        bgc("Background Color", &bColor,colorSelection),
+                        fgc("Foreground Color",&fColor, colorSelection)
+                    {
+
+                }
+                void update()  override {
+                    
+                }
+
+                //Retuns the component type
+                String const getComponentType()   {
+                    return "Display";
+                }
+                //Returns the component Name
+                const char* const getComponentName() {
+                    return "Display";
+                }
+        };
+
+        UI_Options options;
+
         //private constructor for singelton pattern
-        SceneManager(){}
+        SceneManager(): options(backGroundColor,defaultForeGroundColor){}
         
         std::vector<String> getComponentListAsString(){
             std::vector<String> retVec;
@@ -227,6 +262,7 @@ class SceneManager{
             tft.setFreeFont(FMB12);     
             currentScene = scene;    
             nextScene = scene;
+            
         }
         //starts the sceneManager. This will enter an endless loop 
         void begin(){
@@ -256,7 +292,28 @@ class SceneManager{
         }
         //will return false for as long as now new scene has to be loaded. Use this in a while loop in the every scene:
         //while(!sceneManager.switchScene()) 
+        bool colorSwitch = false;
         bool switchScene(){
+            if(colorSwitch){
+                tft.fillScreen(backGroundColor);
+                reDrawAllElements();
+                colorSwitch = false;
+            }
+            if(options.bColor != backGroundColor){
+                backGroundColor = options.bColor;
+                tft.fillScreen(backGroundColor);
+                reDrawAllElements();
+                colorSwitch = true;
+                return true;
+            }
+            if(options.fColor != defaultForeGroundColor){
+                clearAllElements();
+                defaultForeGroundColor = options.fColor;
+                reDrawAllElements();
+                colorSwitch = true;
+                return true;
+            }
+
             if (nextScene == currentScene){
                 return false;
             }else{
@@ -1593,6 +1650,7 @@ class SceneManager{
             int selectionOnMenuLevel_2 = 0;
             
             while(true){
+                waitForSaveReadWrite();
                 if(menuLevel == 0){
                     selectionBox->update();
                     if(selectionBox->backHasBeenClicked()) break;
@@ -1608,6 +1666,7 @@ class SceneManager{
                 if(menuLevel == 1){
                     selectionBox->update();
                     if(selectionBox->backHasBeenClicked()){
+                        waitForSaveReadWrite();
                         selectionBox->setTitle("Components");
                         selectionBox->loadList(componentListString);
                         selectionBox->setSelectedIndex(selectionOnMenuLevel_0);
@@ -1615,6 +1674,7 @@ class SceneManager{
                         LSC::getInstance().buttons.bt_5.hasBeenClicked();
                     } 
                     if(selectionBox->selectHasBeenClicked()){
+                        waitForSaveReadWrite();
                         selectionOnMenuLevel_1 = selectionBox->getSelectedIndex();
                         selectionBox->setTitle(componentStateListToString(exposedStateList)[selectionOnMenuLevel_1]);
                         // --- ReadWriteSelection ---
@@ -1631,8 +1691,10 @@ class SceneManager{
                             selectionBox->setColorOfItemByIndex(indexOfCurrentSetting,TFT_GREEN);
                             
                             while(true){
+                                waitForSaveReadWrite();
                                 selectionBox->update();
                                 if(selectionBox->selectHasBeenClicked()){ //One onf the selection options has been chosen
+                                    waitForSaveReadWrite();
                                     *(myPtr->state) = myPtr->_selection.getValueByIndex(selectionBox->getSelectedIndex());
                                     selectionBox->setColorOfAllItems(defaultForeGroundColor);
                                     selectionBox->setColorOfItemByIndex(selectionBox->getSelectedIndex(), TFT_GREEN);
@@ -1650,6 +1712,7 @@ class SceneManager{
                         }
                         if(exposedStateList[selectionOnMenuLevel_1]->stateType  == ExposedStateType::ReadOnly){                            
                             while(true){
+                                waitForSaveReadWrite();
                                 selectionBox->loadList({"ReadOnly State:",exposedStateList[selectionOnMenuLevel_1]->toString()});
                                 selectionBox->setColorOfItemByIndex(1,TFT_GREEN);
                                 selectionBox->update();
@@ -1668,6 +1731,7 @@ class SceneManager{
                     }
                 }
                 if(menuLevel == 2){
+                    waitForSaveReadWrite();
                     selectionBox->update();
                     if(selectionBox->backHasBeenClicked()){
                         selectionBox->setTitle(componentListString[selectionOnMenuLevel_0]);
