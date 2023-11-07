@@ -390,7 +390,7 @@ class Components{
             public:
                 TemperatureSensor(AnalogInPt100 &analogInPt100, const char* componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), BaseComponent(componentName), temperature(0), temeraturePtr("Temperature",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection){
                 }
-
+                
                 //Returns the temperature in K
                 double getTemperature(){
                     return getThreadSave(&temperature);
@@ -428,31 +428,49 @@ class Components{
                 Gauge gauge;
                 ExposedState<ExposedStateType::ReadWriteSelection, GaugeType> gaugePtr;
                 
-                static String doubleToSciString(double value) {
-                    if(value == 0) return "0.000E+00";
-                    int exponent = static_cast<int>(floor(log10(value)));
-                    double mantissa = value / pow(10, exponent);
-                    if(exponent >=11) return String(mantissa,2) + "E+" + String(exponent);
-                    if(exponent >= 0) return String(mantissa,2) + "E+0" + String(exponent);
-                    if(exponent <= -10) return String(mantissa,2) + "E" + String(exponent);
-                    if(exponent <  0) return String(mantissa,2) + "E-0" + String(abs(exponent));
-                    ERROR_HANDLER.throwError(0x0, "Failed to corretly format number in scientific notation. This has to be an error in LscComponents lib. see doubleToSciString()",SeverityLevel::NORMAL);
-                    return String(value,10);
-                }
+                
                 
 
             public:
                 PressureGauge(AnalogInBase &analogIn, const char* componentName = "genericPressureSensor", GaugeType gaugeType = GaugeType::PKR) : analogIn(analogIn), BaseComponent(componentName), pressure(0), pressurePtr("Pressure",&pressure), displayUnit(Units::Pressure::mBar), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),gauge(gaugeType), gaugePtr("Gauge Type",&(gauge.gaugeType),gauge.selection){
                 }
-
+                String doubleToSciString(double value) {
+                    if(value == 0) return "0.00E+00";
+                    int exponent = static_cast<int>(floor(log10(value)));
+                    double mantissa = value / pow(10, exponent);
+                    int correction = 0;
+                    if(String(mantissa,2) == "10"){
+                        mantissa = 1.;
+                        correction = -1;
+                    }
+                    if(exponent >=11) return String(mantissa,2) + "E+" + String(exponent+correction);
+                    if(exponent >= 0) return String(mantissa,2) + "E+0" + String(exponent+correction);
+                    if(exponent <= -10) return String(mantissa,2) + "E" + String(exponent+correction);
+                    if(exponent <  0) return String(mantissa,2) + "E-0" + String(abs(exponent-correction));
+                    ERROR_HANDLER.throwError(0x0, "Failed to corretly format number in scientific notation. This has to be an error in LscComponents lib. see doubleToSciString()",SeverityLevel::NORMAL);
+                    return String(value,10);
+                }
                 //Returns the temperature in K
                 double getPressure(){
                     Serial.println(getThreadSave(&pressure),7);
                     return getThreadSave(&pressure);
                 }
+                void setPressure(double P){
+                    getThreadSave(&pressure);
+                    pressure = P;
+                }
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
-                String getPressureAsString() {
-                    return doubleToSciString(displayUnit.convertFromSI(getPressure())) + displayUnit.getSuffix();
+                String getPressureAsString(bool printUnitSuffix = true) {
+                    if(printUnitSuffix){
+                        return doubleToSciString(displayUnit.convertFromSI(getPressure())) + displayUnit.getSuffix();
+                    }else{
+                        return doubleToSciString(displayUnit.convertFromSI(getPressure()));
+      
+                    }
+                }
+                String getUnitSuffixAsString() {
+                    getThreadSave(&pressure);
+                    return displayUnit.getSuffix();
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
                 void setDisplayUnit(Units::Pressure unit){

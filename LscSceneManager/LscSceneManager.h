@@ -666,6 +666,9 @@ class SceneManager{
                     Line(uint16_t xStart, uint16_t yStart, uint16_t xEnd, uint16_t yEnd, uint32_t ForeColour = defaultForeGroundColor, uint32_t BackColour = backGroundColor ): xPosStart(xStart), yPosStart(yStart), xPosEnd(xEnd), yPosEnd(yEnd), foreColor(ForeColour), backColor(BackColour) {
                         tft.drawLine(xPosStart,yPosStart,xPosEnd,yPosEnd,foreColor);
                     }
+                    Line(LinAlg::Vector_2D Start, LinAlg::Vector_2D End, uint32_t ForeColour = defaultForeGroundColor, uint32_t BackColour = backGroundColor ): xPosStart(Start.vec[0]), yPosStart(Start.vec[1]), xPosEnd(End.vec[0]), yPosEnd(End.vec[1]), foreColor(ForeColour), backColor(BackColour) {
+                        tft.drawLine(xPosStart,yPosStart,xPosEnd,yPosEnd,foreColor);
+                    }
                     ~Line(){
                         clear();
                     }
@@ -749,7 +752,7 @@ class SceneManager{
                     LinAlg::Vector_2D center;
                     StatusIndicator indicator;
                 public:
-                    Valve(uint16_t xPos, uint16_t yPos, bool Open = false ,double Rotation = 0,double Scale = 1, uint32_t LineColor = defaultForeGroundColor) 
+                    Valve(uint16_t xPos, uint16_t yPos, bool Open = false ,double Rotation = 0,double Scale = 1.3, uint32_t LineColor = defaultForeGroundColor) 
                             :zeroPoint(xPos,yPos),
                             open(Open),
                             lineCollection(&zeroPoint),
@@ -806,14 +809,15 @@ class SceneManager{
                         indicator.setStatus(state);
                         open = state;
                     }
-                    LinAlg::Vector_2D* getLeftConnectionPointPtr(){
-                        return &leftConnection;
+                    LinAlg::Vector_2D getLeftConnectionPoint(){
+                        return LinAlg::Vector_2D((leftConnection + zeroPoint).vec[0],(leftConnection + zeroPoint).vec[1]);
                     }
-                    LinAlg::Vector_2D* getRightConnectionPointPtr(){
-                        return &rightConnection;
+                    LinAlg::Vector_2D getRightConnectionPoint(){
+                        return LinAlg::Vector_2D((rightConnection + zeroPoint).vec[0],(rightConnection + zeroPoint).vec[1]);;
                     }
                     void reDraw() override{
                         lineCollection.draw(lineColor);
+                        indicator.setStatus(open);
                         indicator.reDraw();
                     }
                     void clear() const override{
@@ -844,7 +848,7 @@ class SceneManager{
                     LinAlg::Vector_2D gateLR;
                     StatusIndicator indicator;
                 public:
-                    GateValve(uint16_t xPos, uint16_t yPos, bool Open = false ,double Rotation = 0,double Scale = 1, uint32_t LineColor = defaultForeGroundColor) 
+                    GateValve(uint16_t xPos, uint16_t yPos, bool Open = false ,double Rotation = 0,double Scale = 1.3, uint32_t LineColor = defaultForeGroundColor) 
                             :zeroPoint(xPos,yPos),
                             open(Open),
                             lineCollection(&zeroPoint),
@@ -909,16 +913,17 @@ class SceneManager{
                         indicator.setStatus(state);
                         open = state;
                     }
-                    LinAlg::Vector_2D* getLeftConnectionPointPtr(){
-                        return &leftConnection;
+                    LinAlg::Vector_2D getLeftConnectionPoint(){
+                        return LinAlg::Vector_2D((leftConnection + zeroPoint).vec[0],(leftConnection + zeroPoint).vec[1]);
                     }
-                    LinAlg::Vector_2D* getRightConnectionPointPtr(){
-                        return &rightConnection;
+                    LinAlg::Vector_2D getRightConnectionPoint(){
+                        return LinAlg::Vector_2D((rightConnection + zeroPoint).vec[0],(rightConnection + zeroPoint).vec[1]);
                     }
                     void reDraw() override{
                         lineCollection.draw(lineColor);
                         tft.fillTriangle(gateLL.vec[0] + zeroPoint.vec[0],gateLL.vec[1] + zeroPoint.vec[1],gateLR.vec[0] + zeroPoint.vec[0],gateLR.vec[1] + zeroPoint.vec[1],gateUL.vec[0] + zeroPoint.vec[0],gateUL.vec[1] + zeroPoint.vec[1],lineColor);
                         tft.fillTriangle(gateUL.vec[0] + zeroPoint.vec[0],gateUL.vec[1] + zeroPoint.vec[1],gateUR.vec[0] + zeroPoint.vec[0],gateUR.vec[1] + zeroPoint.vec[1],gateLR.vec[0] + zeroPoint.vec[0],gateLR.vec[1] + zeroPoint.vec[1],lineColor);
+                        indicator.setStatus(open);
                         indicator.reDraw();
                     }
                     void clear() const override{
@@ -996,11 +1001,11 @@ class SceneManager{
                     ~TurboMolecularPump(){
                         clear();
                     }
-                    LinAlg::Vector_2D* getLeftConnectionPointPtr(){
-                        return &leftConnection;
+                    LinAlg::Vector_2D getLeftConnectionPoint(){
+                        return LinAlg::Vector_2D((leftConnection + zeroPoint).vec[0],(leftConnection + zeroPoint).vec[1]);
                     }
-                    LinAlg::Vector_2D* getRightConnectionPointPtr(){
-                        return &rightConnection;
+                    LinAlg::Vector_2D getRightConnectionPoint(){
+                        return LinAlg::Vector_2D((rightConnection + zeroPoint).vec[0],(rightConnection + zeroPoint).vec[1]);
                     }
                     void rotate(double Angle){
                         clear();
@@ -1023,6 +1028,7 @@ class SceneManager{
                         tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius/3, lineColor);
                         tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius/3 + 2, lineColor);
                         lineCollection.draw(lineColor);
+                        indicator.setStatus(state);
                         indicator.reDraw();
                     }
                     void clear() const override{
@@ -1100,11 +1106,11 @@ class SceneManager{
                     ~Pump(){
                         clear();
                     }
-                    LinAlg::Vector_2D* getLeftConnectionPointPtr(){
-                        return &leftConnection;
+                    LinAlg::Vector_2D getLeftConnectionPoint(){
+                        return LinAlg::Vector_2D((leftConnection + zeroPoint).vec[0],(leftConnection + zeroPoint).vec[1]);
                     }
-                    LinAlg::Vector_2D* getRightConnectionPointPtr(){
-                        return &rightConnection;
+                    LinAlg::Vector_2D getRightConnectionPoint(){
+                        return LinAlg::Vector_2D((rightConnection + zeroPoint).vec[0],(rightConnection + zeroPoint).vec[1]);
                     }
                     void rotate(double Angle){
                         clear();
@@ -1125,6 +1131,7 @@ class SceneManager{
                     void reDraw() override{
                         tft.drawCircle(center.vec[0] + zeroPoint.vec[0], center.vec[1] + zeroPoint.vec[1], radius, lineColor);
                         lineCollection.draw(lineColor);
+                        indicator.setStatus(state);
                         indicator.reDraw();
                     }
                     void clear() const override{
@@ -1245,8 +1252,8 @@ class SceneManager{
                         lineCollection.addLine(ConstructionLine(&LeftLower,&LeftUpper));
                         lineCollection.addLine(ConstructionLine(&RightLower,&RightUpper));
 
-                        lineCollection.addLine(ConstructionLine(&UpperLeftCorner,&LowerRightCorner));
-                        lineCollection.addLine(ConstructionLine(&UpperRightCorner,&LowerLeftCorner));
+                        //lineCollection.addLine(ConstructionLine(&UpperLeftCorner,&LowerRightCorner));
+                        //lineCollection.addLine(ConstructionLine(&UpperRightCorner,&LowerLeftCorner));
 
 
                         lineCollection.addLine(ConstructionLine(&leftConnection,&leftMidPoint));
@@ -1277,11 +1284,11 @@ class SceneManager{
                         reDraw();
                     }
 
-                    LinAlg::Vector_2D* getLeftConnectionPointPtr(){
-                        return &leftConnection;
+                    LinAlg::Vector_2D getLeftConnectionPoint(){
+                        return LinAlg::Vector_2D((leftConnection + zeroPoint).vec[0],(leftConnection + zeroPoint).vec[1]);
                     }
-                    LinAlg::Vector_2D* getRightConnectionPointPtr(){
-                        return &rightConnection;
+                    LinAlg::Vector_2D getRightConnectionPoint(){
+                        return LinAlg::Vector_2D((rightConnection + zeroPoint).vec[0],(rightConnection + zeroPoint).vec[1]);
                     }
                     void reDraw() override{
                         lineCollection.draw(lineColor);
