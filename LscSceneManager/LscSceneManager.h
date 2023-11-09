@@ -180,16 +180,13 @@ class SceneManager{
                     :   BaseComponent("Display"),
                         bColor(bcolor),
                         fColor(fcolor),
-                        colorSelection({{TFT_BLACK,"Black"},{TFT_WHITE, "White"},{TFT_BLUE, "Blue"},{TFT_BROWN, "Brown"}}),
+                        colorSelection({{TFT_BLACK,"Black"},{TFT_WHITE, "White"},{TFT_BLUE, "Blue"},{TFT_BROWN, "Brown"}, {TFT_CYAN, "Cyan"},{TFT_DARKCYAN, "Dark Cyan"}}),
                         bgc("Background Color", &bColor,colorSelection),
                         fgc("Foreground Color",&fColor, colorSelection)
                     {
-
                 }
                 void update()  override {
-                    
                 }
-
                 //Retuns the component type
                 String const getComponentType()   {
                     return "Display";
@@ -207,6 +204,7 @@ class SceneManager{
         
         std::vector<String> getComponentListAsString(){
             std::vector<String> retVec;
+            waitForSaveReadWrite();
             for(BaseComponent* component : ComponentTracker::getInstance().components){
                 retVec.push_back(String(component->componentName));
             }
@@ -214,6 +212,7 @@ class SceneManager{
         }
         std::vector<BaseExposedState*> getComponentStateListByIndex(uint16_t index){
             std::vector<BaseExposedState*> retVec;
+            waitForSaveReadWrite();
             for(std::pair<BaseComponent*,BaseExposedState*> pair : ComponentTracker::getInstance().states){
                 if(pair.first == ComponentTracker::getInstance().components[index]){
                 retVec.push_back(pair.second);
@@ -224,6 +223,7 @@ class SceneManager{
 
         std::vector<String> componentStateListToString(std::vector<BaseExposedState*> list){
             std::vector<String> retVec;
+            waitForSaveReadWrite();
             for(BaseExposedState* state: list){
                 retVec.push_back(state->stateName);
             }
@@ -248,6 +248,7 @@ class SceneManager{
         }
         //returns the number of all currently defined elements
         static int getNumberOfElements(){
+            waitForSaveReadWrite();
             return ElementTracker::getInstance().elements.size();
         }
         //inizialises the SceneManager setting the first scene and background color

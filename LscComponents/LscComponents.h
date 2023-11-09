@@ -14,10 +14,9 @@ RECOURCES:  TODO
 #include <vector>
 #include "LscHardwareAbstraction.h"
 #include <type_traits>
-#include <atomic>
 
 
-
+extern void waitForSaveReadWrite();
 class BaseComponent;
 struct BaseExposedState;
 
@@ -37,18 +36,21 @@ struct BaseExposedState;
 
                 //Returns a vector with pointers to all registered components. 
                 std::vector<BaseComponent*> getComponets(){
+                    waitForSaveReadWrite();
                     return ComponentTracker::getInstance().components;
                 }
                 //Registers the given component with the ComponentTracker
                 void registerComponent(BaseComponent* component){
+                    waitForSaveReadWrite();
                     ComponentTracker::getInstance().components.push_back(component);
                 }
                 void registerState(BaseExposedState* State){
+                    waitForSaveReadWrite();
                     ComponentTracker::getInstance().states.push_back({ComponentTracker::getInstance().components.back(), State});
                 }
         };
 
-        extern void waitForSaveReadWrite();
+        
 
 /*  How to use the tracker =)
               for(std::pair<BaseComponent*,BaseExposedState*> pair : ComponentTracker::getInstance().states){

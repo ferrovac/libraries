@@ -67,6 +67,15 @@ namespace OS{
 
     
 }
+
+void HardFault_Handler() {
+  digitalWrite(52, true);
+  for(int i = 0; i < 10000000; i++){
+    __asm("NOP");
+  }
+  NVIC_SystemReset(); // Soft reset the system
+}
+
 void TC5_Handler(){
     TC_GetStatus(TC1, 2);
     OS::cycleCount = micros() - OS::timekeeper;
