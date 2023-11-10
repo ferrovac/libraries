@@ -2,10 +2,12 @@
 
 namespace OS{
     bool watchdogRunning = false;
+    bool bootUpFault = false;
     uint32_t watchdogStartTime = 0;
     uint32_t cycleCount=0;
     uint32_t timekeeper = 0;
     uint32_t lastOsCall = 0;
+    File myFile;
 
     void init(){
         Serial.begin(115200);
@@ -20,7 +22,24 @@ namespace OS{
         NVIC_SetPriority(TC5_IRQn, 4);
         TC_Start(TC1, 2);  
         NVIC_SetPriority(SysTick_IRQn, 0);
+
+        if (!SD.begin(13)){
+            Serial.println("No SD Card");
+        } 
+        else{
+            Serial.println("SD Card OK");
+            if (SD.exists("fault.txt")){
+                bootUpFault = true;
+                SD.remove("fault.txt");
+            }
+        }
     }
+
+    bool getBootUpState(){
+        return bootUpFault;
+    }
+    
+
 
     uint32_t getCycleCount(){
         return cycleCount;
@@ -64,12 +83,13 @@ namespace OS{
             return true;
         }
     }
-
     
 }
 
 void HardFault_Handler() {
-  digitalWrite(52, true);
+    digitalWrite(52, true);
+ 
+
   for(int i = 0; i < 10000000; i++){
     __asm("NOP");
   }
@@ -84,7 +104,6 @@ void TC5_Handler(){
     //Serial.println("now");
     ComponentTracker::getInstance().lastOsCall = millis();
     int start = micros();
-    
     for(BaseComponent* comp : ComponentTracker::getInstance().getComponets()){
         comp->update();
     }

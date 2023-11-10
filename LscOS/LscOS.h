@@ -14,9 +14,12 @@ RECOURCES:  TODO
 #include "LscComponents.h"
 #include "LscHardwareAbstraction.h"
 #include "LscError.h"
+#include <SD.h>
+#include <Flash.h>
+
 
 namespace OS{
-
+  bool getBootUpState();
   void init();
   void startWatchdog();
   void stopWatchdog();
