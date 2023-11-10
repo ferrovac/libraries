@@ -23,14 +23,14 @@ namespace OS{
         TC_Start(TC1, 2);  
         NVIC_SetPriority(SysTick_IRQn, 0);
 
-        if (!SD.begin(13)){
+        if (!SD.begin(31)){
             Serial.println("No SD Card");
         } 
         else{
             Serial.println("SD Card OK");
-            if (SD.exists("fault.txt")){
+            if (SD.exists("F")){
                 bootUpFault = true;
-                SD.remove("fault.txt");
+                SD.rmdir("F");
             }
         }
     }
@@ -62,9 +62,6 @@ namespace OS{
         }
     }
 
-    void updateComponents(){
-
-    }
 
     void checkSystemHealth(){
 
@@ -88,9 +85,13 @@ namespace OS{
 
 void HardFault_Handler() {
     digitalWrite(52, true);
- 
+    if (!SD.begin(31)){
+        
+    }else{
+        SD.mkdir("F");
+    }
 
-  for(int i = 0; i < 10000000; i++){
+  for(int i = 0; i < 1000000; i++){
     __asm("NOP");
   }
   NVIC_SystemReset(); // Soft reset the system

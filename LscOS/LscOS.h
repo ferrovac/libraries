@@ -15,7 +15,6 @@ RECOURCES:  TODO
 #include "LscHardwareAbstraction.h"
 #include "LscError.h"
 #include <SD.h>
-#include <Flash.h>
 
 
 namespace OS{
