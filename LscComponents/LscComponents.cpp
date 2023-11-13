@@ -11,6 +11,8 @@ void waitForSaveReadWrite(){
     }
 }
 
+
+
 //std::vector<BaseComponent*> ComponentTracker::components;
 //std::vector<std::pair<BaseComponent*, BaseExposedState*>> ComponentTracker::states;
 namespace std

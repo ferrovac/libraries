@@ -280,14 +280,7 @@ class BaseComponent{
         
 };
 
-struct BaseExposedStateInterface{
-    virtual ~BaseExposedStateInterface() = default;
-};
-template<typename T>
-struct ExposedStateInterface : BaseExposedStateInterface{
-    T* value;
-    ExposedStateState(T* val) : value(val){}
-};
+
 
 enum struct ExposedStateType{
     ReadOnly,
@@ -306,6 +299,7 @@ enum struct TypeMetaInformation{
 template <ExposedStateType StateType, typename T>
 struct ExposedState;
 
+
 struct BaseExposedState{
     private:        
     public:
@@ -313,14 +307,15 @@ struct BaseExposedState{
         TypeMetaInformation typeInfo;
         const String stateName;
         virtual String toString() =  0;
-        virtual BaseExposedStateState getStateInterface() = 0;
-        
+        virtual void writeStateValue(){}        
         BaseExposedState(String StateName) : stateName(StateName), typeInfo(TypeMetaInformation::UNKNOWN) {
             ComponentTracker::getInstance().registerState(this);
         }
-        virtual ~BaseExposedState() = default;
+        virtual ~BaseExposedState() {};
 
 };
+
+
 
 template<typename T>
 TypeMetaInformation getTypeMetaInformation(){
@@ -348,14 +343,8 @@ struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
         typeInfo = getTypeMetaInformation<T>();
         
     }
-    BaseExposedStateState getStateInterface(){
-        waitForSaveReadWrite();
-        return ExposedStateState<T>(state);
-    }
-    void setState(T value){
-        waitForSaveReadWrite();
-        *state = value;
-    }
+    
+    
 };
 
 template <typename T>
@@ -371,14 +360,8 @@ struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
         stateType = ExposedStateType::ReadWrite;
         typeInfo = getTypeMetaInformation<T>();
     }
-    BaseExposedStateState getStateInterface(){
-        waitForSaveReadWrite();
-        return ExposedStateState<T>(state);
-    }
-    void setState(T value){
-        waitForSaveReadWrite();
-        *state = value;
-    }
+    
+    
 };
 
 template <typename T>
@@ -397,36 +380,59 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
         stateType = ExposedStateType::ReadWriteRanged;
         typeInfo = getTypeMetaInformation<T>();
     }
-    BaseExposedStateState getStateInterface(){
-        waitForSaveReadWrite();
-        return ExposedStateState<T>(state);
-    }
-    void setState(T value){
-        waitForSaveReadWrite();
-        *state = value;
-    }
+    
+    
 };
 template <typename T>
 struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState {
     T* state;
+    int index;
+    int* indexPtr;
     Selection<T> _selection;
     String toString() override{
         waitForSaveReadWrite();
-        return _selection.getDescriptionByValue(*state);
+        return _selection.getSelection()[index].second;
     }
     ExposedState(String StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection){
         stateType = ExposedStateType::ReadWriteSelection;
-        typeInfo = getTypeMetaInformation<T>();
+        typeInfo = TypeMetaInformation::INDEX;
+        index = _selection.getIndexByValue(*state);
     }
-    BaseExposedStateState getStateInterface(){
-        waitForSaveReadWrite();
-        return ExposedStateState<T>(state);
+    
+    void writeStateValue() override{
+        *state = _selection.getSelection()[index].first;
     }
-    void setState(T value){
-        waitForSaveReadWrite();
-        *state = value;
-    }
+    
 };
+
+static bool hasOptions(BaseExposedState* exposedState){
+    return (exposedState->stateType == ExposedStateType::ReadWriteSelection);
+}
+
+static std::vector<const char*> getOptions(BaseExposedState* exposedState){
+    if(!hasOptions) return {""};
+    auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
+    return castStatePtr->_selection.getOptions();
+}
+
+template<typename T>
+static void setStateValue(BaseExposedState* exposedState, T Value){
+    if(exposedState->stateType == ExposedStateType::ReadWriteSelection){
+        auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
+        castStatePtr->index = (int)Value;
+        exposedState->writeStateValue();
+    }
+
+}
+
+template<typename T>
+static T getStateValue(BaseExposedState* exposedState){
+    if(exposedState->stateType == ExposedStateType::ReadWriteSelection){
+        auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
+        return castStatePtr->index;
+    }
+
+}
 
 
 
