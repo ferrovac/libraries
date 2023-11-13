@@ -60,6 +60,17 @@ namespace LinAlg{
 
 }
 
+template <ExposedStateType StateType, typename T>
+T* getStateFromDerived(BaseExposedState* basePtr) {
+    // Use dynamic_cast to check the actual type of the object
+    if (auto derivedPtr = dynamic_cast<ExposedState<StateType, T>*>(basePtr)) {
+        // Access the T* state member of the derived class
+        return derivedPtr->state;
+    } else {
+        // Handle the case where the dynamic_cast fails (object is not of the expected type)
+        return nullptr;
+    }
+}
 
 struct BaseUI_element;
 
@@ -1680,14 +1691,31 @@ class SceneManager{
                         selectionBox->setTitle(componentStateListToString(exposedStateList)[selectionOnMenuLevel_1]);
                         // --- ReadWriteSelection ---
                         if(exposedStateList[selectionOnMenuLevel_1]->stateType  == ExposedStateType::ReadWriteSelection){
-                            using T = typename std::remove_reference<decltype(exposedStateList[selectionOnMenuLevel_1])>::type;
-                            auto myPtr = static_cast< ExposedState<ExposedStateType::ReadWriteSelection, T>* >(exposedStateList[selectionOnMenuLevel_1]); 
+                        
+                        //using T = typename std::remove_reference<decltype(exposedStateList[selectionOnMenuLevel_1])>::type;
+                        
+                        auto myGetTypePtr =  dynamic_cast<ExposedState< ExposedStateType::ReadWriteSelection, void*>*>(exposedStateList[selectionOnMenuLevel_1]);
+                           // using T = decltype(myGetTypePtr->_selection.getSelection()[0].first);
+
+                        auto myPtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedStateList[selectionOnMenuLevel_1]);
+                          //auto myPtr = exposedStateList[selectionOnMenuLevel_1];
                             std::vector<String> tempBuf;
                             for(const char* item : myPtr->_selection.getOptions()){
                                 tempBuf.push_back(String(item));
                             }
+                            
                             selectionBox->loadList(tempBuf);
-                            int indexOfCurrentSetting = myPtr->_selection.getIndexByValue(*(myPtr->state));
+                            int indexOfCurrentSetting = myPtr->_selection.getIndexByValue((myPtr->getState()));
+                            Serial.println("state: " + String((int)(myPtr->getState())));
+                            Serial.println("test: " + String((int)exposedStateList[selectionOnMenuLevel_1]->getValue(exposedStateList[selectionOnMenuLevel_1])));
+
+                               // const char* rawPtr = reinterpret_cast<const char*>(myPtr->state);
+                               // for (size_t i = 0; i < sizeof(*(myPtr->state)); ++i) {
+                               //     Serial.println(static_cast<int>(rawPtr[i]));
+                               // }
+                                //Serial.println(reinterpret_cast<uintptr_t>((myPtr->state)), HEX);
+                                Serial.println(sizeof((myPtr->getState()))); //<- Im talking about this line here
+
                             selectionBox->setSelectedIndex(indexOfCurrentSetting);
                             selectionBox->setColorOfItemByIndex(indexOfCurrentSetting,TFT_GREEN);
                             
@@ -1696,7 +1724,7 @@ class SceneManager{
                                 selectionBox->update();
                                 if(selectionBox->selectHasBeenClicked()){ //One onf the selection options has been chosen
                                     waitForSaveReadWrite();
-                                    *(myPtr->state) = myPtr->_selection.getValueByIndex(selectionBox->getSelectedIndex());
+                                    myPtr->setState(myPtr->_selection.getValueByIndex(selectionBox->getSelectedIndex()));
                                     selectionBox->setColorOfAllItems(defaultForeGroundColor);
                                     selectionBox->setColorOfItemByIndex(selectionBox->getSelectedIndex(), TFT_GREEN);
                                 }
@@ -1710,6 +1738,7 @@ class SceneManager{
                                 }
 
                             }
+                            
                         }
                         if(exposedStateList[selectionOnMenuLevel_1]->stateType  == ExposedStateType::ReadOnly){                            
                             while(true){

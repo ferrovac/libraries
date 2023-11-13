@@ -16,6 +16,7 @@ RECOURCES:  TODO
 #include <type_traits>
 
 
+
 extern void waitForSaveReadWrite();
 class BaseComponent;
 struct BaseExposedState;
@@ -72,19 +73,18 @@ struct BaseExposedState;
 template<typename T>
 struct Selection{
     private:
-        std::vector<std::pair<T, const char*>> _selection ;
+        const std::vector<std::pair<T, const char*>> _selection ;
     public:
         Selection(std::vector<std::pair<T, const char*>> selection) : _selection(selection){
         }
         Selection(std::initializer_list<std::pair<T, const char*>> selection): _selection(selection){
-
         }
-        Selection getSelection(){
+        std::vector<std::pair<T, const char*>> getSelection(){
             return _selection;
         }
         int getIndexByValue(T value){
-            uint16_t counter = 0;
-            for(std::pair<T, const char*> pair : _selection){
+            int counter = 0;
+            for(auto& pair : _selection){
                 if(pair.first == value){
                     return counter;
                 }
@@ -242,13 +242,14 @@ class Unit<Units::Pressure> : BaseUnit{
 enum class GaugeType{
     PKR,
     TPR,
+    UPR
 };
 
 class Gauge{
     public:
         GaugeType gaugeType;
         Selection<GaugeType> selection;
-        Gauge(GaugeType gaugeType) : gaugeType(gaugeType), selection({{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"}}){
+        Gauge(GaugeType gaugeType) : gaugeType(gaugeType), selection({{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"},{GaugeType::UPR, "UPR"}}){
         }
         double getPressureFromVoltage(double voltage){
             switch(gaugeType){
@@ -256,6 +257,8 @@ class Gauge{
                     return pow(10., (1.667*voltage-9.33));
                 case GaugeType::TPR:
                     return pow(10., (voltage-3.5));
+                case GaugeType::UPR:
+                    return pow(10., (voltage-4.5));
             }
             return 0;
         }
@@ -274,24 +277,17 @@ class BaseComponent{
         BaseComponent(const char* ComponentName): componentName(ComponentName){
             ComponentTracker::getInstance().registerComponent(this);
         }
+        
 };
 
-/*
-IDEA:
-components are definded by states-> 
-create a state struct like a type exposed state with pointer to state variable
-if you want to change the state change the member variables directly then call update()
-update is responsible to:
-    1. read the external changes and update the object
-    2. if the object has been changed by the user/prog take apropriate acction such that the external 
-        hardware reflects the changed state. 
-Create a state tracker class -> add exposed states to the tracker. -> easy menu creation and external com=)
-
-Put selections in theire own class. keep the struct but also provide something like a dict that contains the enum
-with the explanation string -> makes it easy to get index.
-*/
-
-
+struct BaseExposedStateInterface{
+    virtual ~BaseExposedStateInterface() = default;
+};
+template<typename T>
+struct ExposedStateInterface : BaseExposedStateInterface{
+    T* value;
+    ExposedStateState(T* val) : value(val){}
+};
 
 enum struct ExposedStateType{
     ReadOnly,
@@ -299,31 +295,49 @@ enum struct ExposedStateType{
     ReadWriteRanged,
     ReadWriteSelection
 };
-
-
-struct BaseExposedState{
-    private:
-        
-    public:
-        ExposedStateType stateType;
-        const String stateName;
-        virtual String toString() =  0;
-        BaseExposedState(String StateName) : stateName(StateName) {
-            ComponentTracker::getInstance().registerState(this);
-        }
-        virtual ~BaseExposedState(){
-
-        }
+enum struct TypeMetaInformation{
+    DOUBLE,
+    INT,
+    BOOL,
+    INDEX,
+    UNKNOWN
 };
-
 
 template <ExposedStateType StateType, typename T>
 struct ExposedState;
 
+struct BaseExposedState{
+    private:        
+    public:
+        ExposedStateType stateType;
+        TypeMetaInformation typeInfo;
+        const String stateName;
+        virtual String toString() =  0;
+        virtual BaseExposedStateState getStateInterface() = 0;
+        
+        BaseExposedState(String StateName) : stateName(StateName), typeInfo(TypeMetaInformation::UNKNOWN) {
+            ComponentTracker::getInstance().registerState(this);
+        }
+        virtual ~BaseExposedState() = default;
+
+};
+
+template<typename T>
+TypeMetaInformation getTypeMetaInformation(){
+    if(std::is_same<T, volatile int>::value) return TypeMetaInformation::INT;
+    if(std::is_same<T, volatile double>::value) return TypeMetaInformation::DOUBLE;
+    if(std::is_same<T, volatile bool>::value) return TypeMetaInformation::BOOL;
+    return TypeMetaInformation::UNKNOWN;
+}
+
+
 template <typename T>
 //is the same as ReadWrite will check in menu if setting state is allowed
 struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
+    static_assert(std::is_same<T, volatile int>::value || std::is_same<T,volatile double>::value || std::is_same<T,volatile bool>::value,
+                  "ExposedState<ExposedStateType::ReadOnly, T> only supports volatile: int, double and bool ");
     T* state;
+
     String toString() override{
         waitForSaveReadWrite();
         return String(*state);
@@ -331,11 +345,23 @@ struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
 
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State) {
         stateType = ExposedStateType::ReadOnly;
+        typeInfo = getTypeMetaInformation<T>();
+        
+    }
+    BaseExposedStateState getStateInterface(){
+        waitForSaveReadWrite();
+        return ExposedStateState<T>(state);
+    }
+    void setState(T value){
+        waitForSaveReadWrite();
+        *state = value;
     }
 };
 
 template <typename T>
 struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
+    static_assert(std::is_same<T, volatile int>::value || std::is_same<T,volatile double>::value || std::is_same<T,volatile bool>::value,
+                  "ExposedState<ExposedStateType::ReadWrite, T> only supports volatile: int, double and bool ");
     T* state;
     String toString() override{
         waitForSaveReadWrite();
@@ -343,11 +369,22 @@ struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
     }
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State){
         stateType = ExposedStateType::ReadWrite;
+        typeInfo = getTypeMetaInformation<T>();
+    }
+    BaseExposedStateState getStateInterface(){
+        waitForSaveReadWrite();
+        return ExposedStateState<T>(state);
+    }
+    void setState(T value){
+        waitForSaveReadWrite();
+        *state = value;
     }
 };
 
 template <typename T>
 struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
+    static_assert(std::is_same<T, volatile int>::value || std::is_same<T,volatile double>::value ,
+                  "ExposedState<ExposedStateType::ReadWriteRanged, T> only supports volatile: int and double ");
     T* state;
     T minState;
     T maxState;
@@ -358,6 +395,15 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
     }
     ExposedState(String StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
         stateType = ExposedStateType::ReadWriteRanged;
+        typeInfo = getTypeMetaInformation<T>();
+    }
+    BaseExposedStateState getStateInterface(){
+        waitForSaveReadWrite();
+        return ExposedStateState<T>(state);
+    }
+    void setState(T value){
+        waitForSaveReadWrite();
+        *state = value;
     }
 };
 template <typename T>
@@ -370,6 +416,15 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
     }
     ExposedState(String StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection){
         stateType = ExposedStateType::ReadWriteSelection;
+        typeInfo = getTypeMetaInformation<T>();
+    }
+    BaseExposedStateState getStateInterface(){
+        waitForSaveReadWrite();
+        return ExposedStateState<T>(state);
+    }
+    void setState(T value){
+        waitForSaveReadWrite();
+        *state = value;
     }
 };
 
@@ -404,6 +459,7 @@ class Components{
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
                 void setDisplayUnit(Units::Temperature unit){
+                    waitForSaveReadWrite();
                     displayUnit.unitType = unit;
                 }
 
@@ -431,9 +487,6 @@ class Components{
                 Gauge gauge;
                 ExposedState<ExposedStateType::ReadWriteSelection, GaugeType> gaugePtr;
                 
-                
-                
-
             public:
                 PressureGauge(AnalogInBase &analogIn, const char* componentName = "genericPressureSensor", GaugeType gaugeType = GaugeType::PKR) : analogIn(analogIn), BaseComponent(componentName), pressure(0), pressurePtr("Pressure",&pressure), displayUnit(Units::Pressure::mBar), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),gauge(gaugeType), gaugePtr("Gauge Type",&(gauge.gaugeType),gauge.selection){
                 }
@@ -474,6 +527,7 @@ class Components{
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
                 void setDisplayUnit(Units::Pressure unit){
+                    waitForSaveReadWrite();
                     displayUnit.unitType = unit;
                 }
 
@@ -485,6 +539,61 @@ class Components{
                 //Retuns the component type
                 String const getComponentType()   {
                     return "Pressure Gauge";
+                }
+                //Returns the component Name
+                const char* const getComponentName() {
+                    return componentName;
+                }
+        };
+        
+        class Valve : BaseComponent {
+            private:
+                PowerSwitch &powerSwitch;
+                Selection<bool> setStateSelection;
+                //int test;
+                bool _setState;
+                //int test2;
+                bool _isState;
+                //int test3;
+                ExposedState<ExposedStateType::ReadWriteSelection, bool> setExposedState;
+                
+                
+            public:
+                bool* mystateptr;
+                Valve(PowerSwitch powerSwitch, const char* componentName = "genericValve") 
+                    :   BaseComponent(componentName),   
+                        powerSwitch(powerSwitch),
+                        setStateSelection({{false, "Closed"},{true, "Opened"}}),
+                        _setState(false),
+                        _isState(false),
+                        setExposedState("Open/Close",&_setState, setStateSelection)
+                        {
+                           // test = 0;
+                            //test2 = 0;
+                            //test3 = 0;
+                            mystateptr = &_setState;
+                }
+                String getAddr(){
+                    return String(reinterpret_cast<uintptr_t>(mystateptr), HEX);
+                }
+            
+                void update() override {
+                    if(_isState == _setState) return;
+                    powerSwitch.setState(_setState);
+                    _isState = _setState;
+                }
+                bool getState(){
+                    waitForSaveReadWrite();
+                    return _isState;
+                }
+                void setState(int State){
+                    waitForSaveReadWrite();
+                    _setState = State;
+                }
+
+                //Retuns the component type
+                String const getComponentType()   {
+                    return "Valve";
                 }
                 //Returns the component Name
                 const char* const getComponentName() {
