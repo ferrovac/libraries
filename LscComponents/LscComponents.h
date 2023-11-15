@@ -277,7 +277,6 @@ class BaseComponent{
         BaseComponent(const char* ComponentName): componentName(ComponentName){
             ComponentTracker::getInstance().registerComponent(this);
         }
-        
 };
 
 
@@ -286,7 +285,8 @@ enum struct ExposedStateType{
     ReadOnly,
     ReadWrite,
     ReadWriteRanged,
-    ReadWriteSelection
+    ReadWriteSelection,
+    Action
 };
 enum struct TypeMetaInformation{
     DOUBLE,
@@ -296,9 +296,10 @@ enum struct TypeMetaInformation{
     UNKNOWN
 };
 
+
+
 template <ExposedStateType StateType, typename T>
 struct ExposedState;
-
 
 struct BaseExposedState{
     private:        
@@ -306,13 +307,11 @@ struct BaseExposedState{
         ExposedStateType stateType;
         TypeMetaInformation typeInfo;
         const String stateName;
-        virtual String toString() =  0;
-        virtual void writeStateValue(){}        
+
         BaseExposedState(String StateName) : stateName(StateName), typeInfo(TypeMetaInformation::UNKNOWN) {
             ComponentTracker::getInstance().registerState(this);
         }
         virtual ~BaseExposedState() {};
-
 };
 
 
@@ -333,18 +332,10 @@ struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
                   "ExposedState<ExposedStateType::ReadOnly, T> only supports volatile: int, double and bool ");
     T* state;
 
-    String toString() override{
-        waitForSaveReadWrite();
-        return String(*state);
-    }
-
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State) {
         stateType = ExposedStateType::ReadOnly;
         typeInfo = getTypeMetaInformation<T>();
-        
     }
-    
-    
 };
 
 template <typename T>
@@ -352,16 +343,20 @@ struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
     static_assert(std::is_same<T, volatile int>::value || std::is_same<T,volatile double>::value || std::is_same<T,volatile bool>::value,
                   "ExposedState<ExposedStateType::ReadWrite, T> only supports volatile: int, double and bool ");
     T* state;
-    String toString() override{
-        waitForSaveReadWrite();
-        return String(*state);
-    }
+
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State){
         stateType = ExposedStateType::ReadWrite;
         typeInfo = getTypeMetaInformation<T>();
     }
-    
-    
+};
+
+template <typename T>
+struct ExposedState<ExposedStateType::Action, T> : BaseExposedState {
+    T callback;
+    ExposedState(String StateName, T callback): BaseExposedState(StateName),callback(callback){
+        stateType = ExposedStateType::Action;
+        typeInfo = TypeMetaInformation::UNKNOWN;
+    }
 };
 
 template <typename T>
@@ -372,10 +367,7 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
     T minState;
     T maxState;
     T stepState;
-    String toString() override{
-        waitForSaveReadWrite();
-        return String(*state);
-    }
+   
     ExposedState(String StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
         stateType = ExposedStateType::ReadWriteRanged;
         typeInfo = getTypeMetaInformation<T>();
@@ -389,50 +381,143 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
     int index;
     int* indexPtr;
     Selection<T> _selection;
-    String toString() override{
-        waitForSaveReadWrite();
-        return _selection.getSelection()[index].second;
-    }
+
     ExposedState(String StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection){
         stateType = ExposedStateType::ReadWriteSelection;
         typeInfo = TypeMetaInformation::INDEX;
         index = _selection.getIndexByValue(*state);
     }
     
-    void writeStateValue() override{
+    void writeSelectionItemToState(){
         *state = _selection.getSelection()[index].first;
     }
-    
 };
 
-static bool hasOptions(BaseExposedState* exposedState){
-    return (exposedState->stateType == ExposedStateType::ReadWriteSelection);
-}
+struct ExposedStateInterface {
+    private:
+        BaseExposedState* exposedState;
+        
+    public:
+        ExposedStateInterface(BaseExposedState* exposedState): exposedState(exposedState) {}
+        
+        ExposedStateType getStateType(){
+            return exposedState->stateType;
+        }
+        void executeAction(){
+            if(exposedState->stateType == ExposedStateType::Action){
+                auto castStatePtr = static_cast<ExposedState<ExposedStateType::Action, void (*)()>*>(exposedState);
+                castStatePtr->callback();
+            }
+        }
 
-static std::vector<const char*> getOptions(BaseExposedState* exposedState){
-    if(!hasOptions) return {""};
-    auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
-    return castStatePtr->_selection.getOptions();
-}
+        template<typename T>
+        void setStateValue(T Value){
+            switch(exposedState->stateType){
+                case ExposedStateType::ReadWriteSelection:{
+                    auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
+                    if((int)Value >= 0 && (int)Value < castStatePtr->_selection.getSelection().size()){
+                        castStatePtr->index = (int)Value;
+                        castStatePtr->writeSelectionItemToState();
+                    }
+                    break;
+                }
+                
+                case ExposedStateType::ReadWrite:{
+                    if(getTypeMetaInformation<T>() == exposedState->typeInfo) return; //implement error handling
+                    switch(exposedState->typeInfo){
+                        case TypeMetaInformation::DOUBLE:{
+                            auto castStatDoublePtr = static_cast<ExposedState<ExposedStateType::ReadWrite, volatile double>*>(exposedState);
+                            *(castStatDoublePtr->state) = Value;
+                            break;
+                        }
+                        case TypeMetaInformation::BOOL:{
+                            auto castStatBoolPtr = static_cast<ExposedState<ExposedStateType::ReadWrite, volatile bool>*>(exposedState);
+                            *(castStatBoolPtr->state) = Value;
+                            break;
+                        }
+                        case TypeMetaInformation::INT:{
+                            auto castStatIntPtr = static_cast<ExposedState<ExposedStateType::ReadWrite, volatile int>*>(exposedState);
+                            *(castStatIntPtr->state) = Value;
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case ExposedStateType::ReadWriteRanged:{
+                    if(getTypeMetaInformation<T>() == exposedState->typeInfo) return; //implement error handling
+                    switch(exposedState->typeInfo){
+                        case TypeMetaInformation::DOUBLE:{
+                            auto castStatDoublePtr = static_cast<ExposedState<ExposedStateType::ReadWriteRanged, volatile double>*>(exposedState);
+                            *(castStatDoublePtr->state) = Value;
+                            break;
+                        }
+                        case TypeMetaInformation::INT:{
+                            auto castStatIntPtr = static_cast<ExposedState<ExposedStateType::ReadWriteRanged, volatile int>*>(exposedState);
+                            *(castStatIntPtr->state) = Value;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
 
-template<typename T>
-static void setStateValue(BaseExposedState* exposedState, T Value){
-    if(exposedState->stateType == ExposedStateType::ReadWriteSelection){
-        auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
-        castStatePtr->index = (int)Value;
-        exposedState->writeStateValue();
-    }
+        template<typename T>
+        T getStateValue(){
+            if(exposedState->stateType == ExposedStateType::ReadWriteSelection){
+                auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
+                return static_cast<T>(castStatePtr->index);
+            }
+        }
+        const String getStateValueAsString(){
+            switch(exposedState->typeInfo){
+                case TypeMetaInformation::DOUBLE:
+                    return String(getStateValue<double>(), 10);
+                case TypeMetaInformation::BOOL:
+                    return String(getStateValue<bool>());
+                case TypeMetaInformation::INT:
+                    return String(getStateValue<int>());
+                case TypeMetaInformation::INDEX:
+                    {
+                    int index = getStateValue<int>();
+                    if(exposedState->stateType == ExposedStateType::ReadWriteSelection){
+                        std::vector<String> options;
+                        for(String option : getOptions()){
+                            options.push_back(option);
+                        }
+                        if(index >= 0 && index < options.size()) return options[index];
+                        return String(index);
+                    }
+                    return String(index);
+                    }
+                default:
+                    return "Unknown Type"; 
+            }
+        }
+        const char* getStateTypeAsConstChar(){
+            switch(exposedState->typeInfo){
+                case TypeMetaInformation::DOUBLE:
+                    return "double";
+                case TypeMetaInformation::BOOL:
+                    return "bool";
+                case TypeMetaInformation::INT:
+                    return "int";
+                case TypeMetaInformation::INDEX:
+                    return "index";
+                default:
+                    return "Unknown Type";
+            }
+        }
+        std::vector<const char*> getOptions(){
+            if(exposedState->stateType != ExposedStateType::ReadWriteSelection) return {""};
+            auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
+            return castStatePtr->_selection.getOptions();
+        }
+};
 
-}
 
-template<typename T>
-static T getStateValue(BaseExposedState* exposedState){
-    if(exposedState->stateType == ExposedStateType::ReadWriteSelection){
-        auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
-        return castStatePtr->index;
-    }
 
-}
+
 
 
 
@@ -448,10 +533,22 @@ class Components{
                 ExposedState<ExposedStateType::ReadOnly, volatile double> temeraturePtr;
                 Unit<Units::Temperature> displayUnit;
                 ExposedState<ExposedStateType::ReadWriteSelection, Units::Temperature> displayUnitPtr;
+                ExposedState<ExposedStateType::Action, void (Components::TemperatureSensor::*)()> myAcction;
+                void test(){
+                    Serial.println("callback successfull");
+                }
                 
 
             public:
-                TemperatureSensor(AnalogInPt100 &analogInPt100, const char* componentName = "genericTemperatureSensor") : analogInPt100(analogInPt100), BaseComponent(componentName), temperature(0), temeraturePtr("Temperature",&temperature), displayUnit(Units::Temperature::C), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection){
+                TemperatureSensor(AnalogInPt100 &analogInPt100, const char* componentName = "genericTemperatureSensor") 
+                        :   analogInPt100(analogInPt100), 
+                            BaseComponent(componentName), 
+                            temperature(0), 
+                            temeraturePtr("Temperature",&temperature), 
+                            displayUnit(Units::Temperature::C), 
+                            displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),
+                            myAcction("test",&TemperatureSensor::test)
+                        {
                 }
                 
                 //Returns the temperature in K

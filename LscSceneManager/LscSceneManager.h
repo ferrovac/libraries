@@ -1696,15 +1696,16 @@ class SceneManager{
                         
                            // using T = decltype(myGetTypePtr->_selection.getSelection()[0].first);
                             auto myPtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedStateList[selectionOnMenuLevel_1]);
+                            ExposedStateInterface stateInterface(exposedStateList[selectionOnMenuLevel_1]);
                           //auto myPtr = exposedStateList[selectionOnMenuLevel_1];
                             std::vector<String> tempBuf;
-                            for(const char* item : getOptions(exposedStateList[selectionOnMenuLevel_1])){//myPtr->_selection.getOptions()){
+                            for(const char* item : stateInterface.getOptions()){//myPtr->_selection.getOptions()){
                                 tempBuf.push_back(String(item));
                             }
                             
                             selectionBox->loadList(tempBuf);
                             //auto castInterface = static_cast<ExposedStateInterface<int>>(myPtr->getInterface());
-                            int indexOfCurrentSetting = getStateValue<int>(exposedStateList[selectionOnMenuLevel_1]);
+                            int indexOfCurrentSetting = stateInterface.getStateValue<int>();
                            // Serial.println("state: " + String((int)(myPtr->getState())));
                             //Serial.println("test: " + String((int)exposedStateList[selectionOnMenuLevel_1]->getValue(exposedStateList[selectionOnMenuLevel_1])));
 
@@ -1724,7 +1725,8 @@ class SceneManager{
                                 if(selectionBox->selectHasBeenClicked()){ //One onf the selection options has been chosen
                                     waitForSaveReadWrite();
                                     //myPtr->setState(myPtr->_selection.getValueByIndex(selectionBox->getSelectedIndex()));
-                                    setStateValue(exposedStateList[selectionOnMenuLevel_1],selectionBox->getSelectedIndex());
+                                    //setStateValue(exposedStateList[selectionOnMenuLevel_1],selectionBox->getSelectedIndex());
+                                    stateInterface.setStateValue(selectionBox->getSelectedIndex());
                                     selectionBox->setColorOfAllItems(defaultForeGroundColor);
                                     selectionBox->setColorOfItemByIndex(selectionBox->getSelectedIndex(), TFT_GREEN);
                                 }
@@ -1740,10 +1742,11 @@ class SceneManager{
                             }
                             
                         }
+                        ExposedStateInterface stateInterface(exposedStateList[selectionOnMenuLevel_1]);
                         if(exposedStateList[selectionOnMenuLevel_1]->stateType  == ExposedStateType::ReadOnly){                            
                             while(true){
                                 waitForSaveReadWrite();
-                                selectionBox->loadList({"ReadOnly State:",exposedStateList[selectionOnMenuLevel_1]->toString()});
+                                selectionBox->loadList({"ReadOnly State:",stateInterface.getStateValueAsString()});
                                 selectionBox->setColorOfItemByIndex(1,TFT_GREEN);
                                 selectionBox->update();
                                 if(selectionBox->backHasBeenClicked()){ // Go back to menu level 1
@@ -1756,6 +1759,9 @@ class SceneManager{
                                 }
 
                             }
+                        }
+                        if(stateInterface.getStateType() == ExposedStateType::Action){
+                            stateInterface.executeAction();
                         }
 
                     }
