@@ -14,6 +14,7 @@ RECOURCES:  TODO
 #include <vector>
 #include "LscHardwareAbstraction.h"
 #include <type_traits>
+#include "LscPersistence.h"
 
 
 
@@ -399,11 +400,11 @@ struct ExposedStateInterface {
         
     public:
         ExposedStateInterface(BaseExposedState* exposedState): exposedState(exposedState) {}
-        
         ExposedStateType getStateType(){
             return exposedState->stateType;
         }
         void executeAction(){
+            waitForSaveReadWrite();
             if(exposedState->stateType == ExposedStateType::Action){
                 auto castStatePtr = static_cast<ExposedState<ExposedStateType::Action, void (*)()>*>(exposedState);
                 castStatePtr->callback();
@@ -412,6 +413,7 @@ struct ExposedStateInterface {
 
         template<typename T>
         void setStateValue(T Value){
+            waitForSaveReadWrite();
             switch(exposedState->stateType){
                 case ExposedStateType::ReadWriteSelection:{
                     auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
@@ -464,12 +466,14 @@ struct ExposedStateInterface {
 
         template<typename T>
         T getStateValue(){
+            waitForSaveReadWrite();
             if(exposedState->stateType == ExposedStateType::ReadWriteSelection){
                 auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
                 return static_cast<T>(castStatePtr->index);
             }
         }
         const String getStateValueAsString(){
+            waitForSaveReadWrite();
             switch(exposedState->typeInfo){
                 case TypeMetaInformation::DOUBLE:
                     return String(getStateValue<double>(), 10);
@@ -495,6 +499,7 @@ struct ExposedStateInterface {
             }
         }
         const char* getStateTypeAsConstChar(){
+            waitForSaveReadWrite();
             switch(exposedState->typeInfo){
                 case TypeMetaInformation::DOUBLE:
                     return "double";
@@ -509,15 +514,12 @@ struct ExposedStateInterface {
             }
         }
         std::vector<const char*> getOptions(){
+            waitForSaveReadWrite();
             if(exposedState->stateType != ExposedStateType::ReadWriteSelection) return {""};
             auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
             return castStatePtr->_selection.getOptions();
         }
 };
-
-
-
-
 
 
 
@@ -534,8 +536,10 @@ class Components{
                 Unit<Units::Temperature> displayUnit;
                 ExposedState<ExposedStateType::ReadWriteSelection, Units::Temperature> displayUnitPtr;
                 ExposedState<ExposedStateType::Action, void (Components::TemperatureSensor::*)()> myAcction;
+                Persistent<double> testytest;
                 void test(){
                     Serial.println("callback successfull");
+                    Serial.println(__PRETTY_FUNCTION__);
                 }
                 
 
@@ -547,8 +551,9 @@ class Components{
                             temeraturePtr("Temperature",&temperature), 
                             displayUnit(Units::Temperature::C), 
                             displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),
-                            myAcction("test",&TemperatureSensor::test)
-                        {
+                            myAcction("test",&TemperatureSensor::test),
+                            testytest("mytestitest",0)
+                        {                            
                 }
                 
                 //Returns the temperature in K
