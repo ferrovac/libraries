@@ -123,7 +123,7 @@ class Persistent : BasePersistent {
         size_t getSize(){
             return sizeof(object);
         }
-        void setNumberOfBackLogEntries(uinunsigned longt32_t number){
+        void setNumberOfBackLogEntries(unsigned long number){
             numberOfBackLogEntries = number;
         }
         void setMinIntervall(unsigned long intervall){
