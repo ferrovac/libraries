@@ -1,4 +1,5 @@
 #include "LscOS.h"
+#include "LscPersistence.h"
 
 namespace OS{
     bool watchdogRunning = false;
@@ -33,6 +34,16 @@ namespace OS{
                 SD.rmdir("F");
             }
         }
+        BasePersistent::initComplete = true;
+        
+        for(BasePersistent* basePersistent : *PersistentTracker::getInstance().getInstances()){
+            basePersistent->openFile() ;
+        }
+        
+        for(BasePersistent* basePersistent : *PersistentTracker::getInstance().getInstances()){
+            basePersistent->readObjectFromSD();
+        }
+        
     }
 
     bool getBootUpState(){

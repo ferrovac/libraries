@@ -12,6 +12,7 @@ RECOURCES:  TODO
 
 #include <Arduino.h>
 #include "LscComponents.h"
+#include "LscPersistence.h"
 #include "LscHardwareAbstraction.h"
 #include "LscError.h"
 #include <SD.h>
