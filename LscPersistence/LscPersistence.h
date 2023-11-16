@@ -115,79 +115,40 @@ class Persistent : BasePersistent {
     private:
         T object;
         const char* filename;
-        //SDLib::File file;
+        unsigned long numberOfBackLogEntries;
+        unsigned long minIntervall;
+        unsigned long lastWrite;
 
     public:
         size_t getSize(){
             return sizeof(object);
         }
+        void setNumberOfBackLogEntries(uinunsigned longt32_t number){
+            numberOfBackLogEntries = number;
+        }
+        void setMinIntervall(unsigned long intervall){
+            minIntervall = intervall;
+        }
+
         void writeObjectToSD() override {
             if(!initComplete) return;
-            // Function implementation
-           // if (!SD.begin(31)){
-            //}else{
-                auto file = SD.open(filename,FILE_WRITE);
-                //file.seek(file.size());
-                size_t size = sizeof(object);
-                const char* bytePointer = reinterpret_cast<const char*>(&object);
-                
-                for (size_t i = 0; i < size; ++i) {
-                    // Access each byte using pointer arithmetic
-                    char currentByte = *(bytePointer + i);
-
-                    // Now you can do something with the current byte
-                  //  Serial.print(currentByte, HEX); // Print byte in hexadecimal format
-                   // Serial.print(" ");
-                } 
-                //Serial.println("Begin writte: " + String(file.size()));
-                file.write(reinterpret_cast<const char*>(&object),sizeof(object));
-                //file.flush();
-                //Serial.println("written: " + String(file.size()));
-                
-                file.close();
-            //} 
+            if(millis()-lastWrite < minIntervall) return;
+            auto file = SD.open(filename,FILE_WRITE);
+            if (!file) return;
+            file.write(reinterpret_cast<const char*>(&object),sizeof(object));
+            file.close();
+            lastWrite = millis();
         }
         void readObjectFromSD() override {
             if(!initComplete) return;
-            // Function implementation
-            
-            //if (!SD.begin(31)){
-                //Serial.println("Failed to init sd");
-            //}else{
-                if(SD.exists(filename)){
-                    auto file = SD.open(filename, FILE_READ);
-                    if (file) {
-                     
-                        if (true) {
-                            
-                            char bytes[sizeof(object)];
-                            if(file.size() > sizeof(object)) file.seek(file.size()- sizeof(object));
-                            file.read(reinterpret_cast<uint8_t*>(&object), sizeof(object));
-                            file.close();
-                            size_t size = sizeof(object);
-
-                for (size_t i = 0; i < size; ++i) {
-                    // Access each byte using pointer arithmetic
-                    char currentByte = bytes[i];
-
-                    // Now you can do something with the current byte
-                   // Serial.print(currentByte, HEX); // Print byte in hexadecimal format
-                   // Serial.print(" ");
-                }
-                      //      Serial.println("Read");
-                        } else {
-                        //    Serial.println("File size does not match object size");
-                        }
-                        //file.close();
-                    } else {
-                       // Serial.println("Failed to open file for reading");
-                    }
-                }else{
-                    //Serial.println("Failed to find file for reading");
-                    
-                }
-            //} 
+            if(!SD.exists(filename)) return;
+            auto file = SD.open(filename, FILE_READ);
+            if (!file) return;
+            if(file.size() > sizeof(object)) file.seek(file.size()- sizeof(object));
+            file.read(reinterpret_cast<uint8_t*>(&object), sizeof(object));
+            file.close();
         }
+
         void openFile() override{
             readObjectFromSD();
             Serial.println("initial read: " + String(object,15));
@@ -195,7 +156,12 @@ class Persistent : BasePersistent {
         
         template <typename... Args>
         Persistent(const char* FileName, Args&&... args) 
-            : object(std::forward<Args>(args)...), filename(FileName) {
+            :   object(std::forward<Args>(args)...), 
+                filename(FileName),
+                numberOfBackLogEntries(10000000),
+                minIntervall(1000),
+                lastWrite(millis())
+            {
                 if(initComplete){
                     if(!SD.exists(filename)){
                          writeObjectToSD();
@@ -205,7 +171,6 @@ class Persistent : BasePersistent {
                 }    
         }
         ~Persistent(){
-
         }
 
         operator T() const {
