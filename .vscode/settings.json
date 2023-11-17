@@ -86,6 +86,7 @@
         "any": "cpp",
         "__functional_base": "cpp",
         "__functional_base_03": "cpp",
-        "__tuple": "cpp"
+        "__tuple": "cpp",
+        "__bit_reference": "cpp"
     }
 }

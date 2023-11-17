@@ -144,13 +144,14 @@ class Persistent : public BasePersistent  {
     static_assert(std::is_pod<T>::value, "Only types with no dynamic memory are allowed!");
     private:
         T object;
+        T lastObjectValue;
     public:
         unsigned long getNumbersOfEntries(){
             return numberOfBackLogEntries;
         }
         
         void setMaxNumberOfBackLogEntries(unsigned long number){
-            if(number < 20) number = 21;
+            if(number < 20) number = 20;
             maxNumberOfBackLogEntries = number;
         }
         void setMinIntervall(unsigned long intervall){
@@ -307,14 +308,16 @@ class Persistent : public BasePersistent  {
                 }
                 
             } //we have checked all conditions for the second bank file
+            if(fileSize == 0) writeObjectToSD();
             readObjectFromSD();
-            Serial.println("initial val: " + String(object,15));
         }
         
         template <typename... Args>
         Persistent(const char* FileName, Args&&... args) 
-            :   object(std::forward<Args>(args)...), 
-                BasePersistent(FileName)
+            :   BasePersistent(FileName),   
+                object(std::forward<Args>(args)...),
+                lastObjectValue(object)
+                
                 
             {
                 if(initComplete){

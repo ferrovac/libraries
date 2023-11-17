@@ -9,6 +9,13 @@ namespace OS{
     uint32_t timekeeper = 0;
     uint32_t lastOsCall = 0;
     File myFile;
+    
+    struct versionTracker{
+        static char tracker[21];
+    };
+    char versionTracker::tracker[] = __DATE__ " " __TIME__;
+
+    Persistent<versionTracker> compileTime("xxx");
 
     void init(){
         Serial.begin(115200);
@@ -34,11 +41,25 @@ namespace OS{
                 SD.rmdir("F");
             }
         }
+        
+        compileTime.setMinIntervall(0);
         BasePersistent::initComplete = true;
         
         for(BasePersistent* basePersistent : *PersistentTracker::getInstance().getInstances()){
             basePersistent->init() ;
         }
+
+        Serial.println("Current Compile Time: " + String(__DATE__ " " __TIME__));
+        for(size_t i = 0; i < compileTime.getNumbersOfEntries(); i++){
+            Serial.print("Previsous version: ");
+            for(size_t k = 0; k<21; k++){
+                Serial.print(String(compileTime[i].tracker[k]));
+            }
+            Serial.println();
+            
+        }
+        
+        
     }
 
     bool getBootUpState(){
