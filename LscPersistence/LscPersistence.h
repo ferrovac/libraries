@@ -150,6 +150,7 @@ class Persistent : public BasePersistent  {
         }
         
         void setMaxNumberOfBackLogEntries(unsigned long number){
+            if(number < 20) number = 21;
             maxNumberOfBackLogEntries = number;
         }
         void setMinIntervall(unsigned long intervall){
