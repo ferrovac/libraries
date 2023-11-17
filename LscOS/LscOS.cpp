@@ -37,13 +37,8 @@ namespace OS{
         BasePersistent::initComplete = true;
         
         for(BasePersistent* basePersistent : *PersistentTracker::getInstance().getInstances()){
-            basePersistent->openFile() ;
+            basePersistent->init() ;
         }
-        
-        for(BasePersistent* basePersistent : *PersistentTracker::getInstance().getInstances()){
-            basePersistent->readObjectFromSD();
-        }
-        
     }
 
     bool getBootUpState(){
@@ -127,6 +122,8 @@ void TC5_Handler(){
             NVIC_SystemReset();
         }
     }
+
+    
    // Serial.println(micros()-start);
 
 

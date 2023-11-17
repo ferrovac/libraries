@@ -277,7 +277,7 @@ class SceneManager{
             
         }
         //starts the sceneManager. This will enter an endless loop 
-        void begin(){
+        [[noreturn]] void begin(){
             while(true){
                 currentScene(); //execute the scene function
                 //We want to clear the state of all buttons when switching scenes
