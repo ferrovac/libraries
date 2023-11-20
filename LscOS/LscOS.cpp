@@ -12,10 +12,20 @@ namespace OS{
     
     struct versionTracker{
         static char tracker[21];
+        void operator= (const char* rhs)  {
+            
+            for(size_t i = 0; i< 21; i++){
+                if(*rhs == '\0') return;
+                
+                tracker[i] = *rhs;
+                rhs++;
+            }
+        }
     };
     char versionTracker::tracker[] = __DATE__ " " __TIME__;
 
-    Persistent<versionTracker> compileTime("xxx");
+    Persistent<versionTracker> compileTime("99");
+
 
     void init(){
         Serial.begin(115200);
@@ -31,6 +41,7 @@ namespace OS{
         TC_Start(TC1, 2);  
         NVIC_SetPriority(SysTick_IRQn, 0);
 
+
         if (!SD.begin(31)){
             Serial.println("No SD Card");
         } 
@@ -41,7 +52,7 @@ namespace OS{
                 SD.rmdir("F");
             }
         }
-        
+        compileTime = __DATE__ " " __TIME__;
         compileTime.setMinIntervall(0);
         BasePersistent::initComplete = true;
         
@@ -50,6 +61,7 @@ namespace OS{
         }
 
         Serial.println("Current Compile Time: " + String(__DATE__ " " __TIME__));
+        Serial.println(compileTime.getNumbersOfEntries());
         for(size_t i = 0; i < compileTime.getNumbersOfEntries(); i++){
             Serial.print("Previsous version: ");
             for(size_t k = 0; k<21; k++){

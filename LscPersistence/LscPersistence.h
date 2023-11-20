@@ -143,8 +143,8 @@ template<typename T>
 class Persistent : public BasePersistent  {
     static_assert(std::is_pod<T>::value, "Only types with no dynamic memory are allowed!");
     private:
-        T object;
-        T lastObjectValue;
+        typename std::remove_volatile<T>::type object;
+        typename std::remove_volatile<T>::type lastObjectValue;
     public:
         unsigned long getNumbersOfEntries(){
             return numberOfBackLogEntries;
@@ -178,6 +178,7 @@ class Persistent : public BasePersistent  {
             if(onSecondBank) currentBankName += "_2";
             auto file = SD.open(currentBankName,FILE_WRITE);
             if(!file) return;
+            
             file.write(reinterpret_cast<const char*>(&object),sizeof(object));
             fileSize = file.size();
             numberOfBackLogEntries++;

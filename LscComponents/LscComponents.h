@@ -18,6 +18,7 @@ RECOURCES:  TODO
 
 
 
+
 extern void waitForSaveReadWrite();
 class BaseComponent;
 struct BaseExposedState;
@@ -308,6 +309,8 @@ struct BaseExposedState{
         ExposedStateType stateType;
         TypeMetaInformation typeInfo;
         const String stateName;
+        virtual void writeToSD() = 0;
+        virtual void readFromSD() = 0;
 
         BaseExposedState(String StateName) : stateName(StateName), typeInfo(TypeMetaInformation::UNKNOWN) {
             ComponentTracker::getInstance().registerState(this);
@@ -332,8 +335,16 @@ struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
     static_assert(std::is_same<T, volatile int>::value || std::is_same<T,volatile double>::value || std::is_same<T,volatile bool>::value,
                   "ExposedState<ExposedStateType::ReadOnly, T> only supports volatile: int, double and bool ");
     T* state;
+    Persistent<T> persistenState;        
+    void writeToSD() override{
 
-    ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State) {
+    }
+    void readFromSD() override{
+        
+    }
+    
+
+    ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State), persistenState("asf", *state) {
         stateType = ExposedStateType::ReadOnly;
         typeInfo = getTypeMetaInformation<T>();
     }
@@ -344,6 +355,12 @@ struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
     static_assert(std::is_same<T, volatile int>::value || std::is_same<T,volatile double>::value || std::is_same<T,volatile bool>::value,
                   "ExposedState<ExposedStateType::ReadWrite, T> only supports volatile: int, double and bool ");
     T* state;
+    void writeToSD() override{
+
+    }
+    void readFromSD() override{
+        
+    }
 
     ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State){
         stateType = ExposedStateType::ReadWrite;
@@ -354,6 +371,12 @@ struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
 template <typename T>
 struct ExposedState<ExposedStateType::Action, T> : BaseExposedState {
     T callback;
+    void writeToSD() override{
+
+    }
+    void readFromSD() override{
+        
+    }
     ExposedState(String StateName, T callback): BaseExposedState(StateName),callback(callback){
         stateType = ExposedStateType::Action;
         typeInfo = TypeMetaInformation::UNKNOWN;
@@ -368,6 +391,12 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
     T minState;
     T maxState;
     T stepState;
+    void writeToSD() override{
+
+    }
+    void readFromSD() override{
+        
+    }
    
     ExposedState(String StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
         stateType = ExposedStateType::ReadWriteRanged;
@@ -382,6 +411,12 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
     int index;
     int* indexPtr;
     Selection<T> _selection;
+    void writeToSD() override{
+
+    }
+    void readFromSD() override{
+        
+    }
 
     ExposedState(String StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection){
         stateType = ExposedStateType::ReadWriteSelection;
