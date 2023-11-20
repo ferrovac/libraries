@@ -10,21 +10,6 @@ namespace OS{
     uint32_t lastOsCall = 0;
     File myFile;
     
-    struct versionTracker{
-        static char tracker[21];
-        void operator= (const char* rhs)  {
-            
-            for(size_t i = 0; i< 21; i++){
-                if(*rhs == '\0') return;
-                
-                tracker[i] = *rhs;
-                rhs++;
-            }
-        }
-    };
-    char versionTracker::tracker[] = __DATE__ " " __TIME__;
-
-    Persistent<versionTracker> compileTime("99");
 
 
     void init(){
@@ -52,25 +37,18 @@ namespace OS{
                 SD.rmdir("F");
             }
         }
-        compileTime = __DATE__ " " __TIME__;
-        compileTime.setMinIntervall(0);
+  
+
         BasePersistent::initComplete = true;
         
         for(BasePersistent* basePersistent : *PersistentTracker::getInstance().getInstances()){
             basePersistent->init() ;
         }
 
-        Serial.println("Current Compile Time: " + String(__DATE__ " " __TIME__));
-        Serial.println(compileTime.getNumbersOfEntries());
-        for(size_t i = 0; i < compileTime.getNumbersOfEntries(); i++){
-            Serial.print("Previsous version: ");
-            for(size_t k = 0; k<21; k++){
-                Serial.print(String(compileTime[i].tracker[k]));
-            }
-            Serial.println();
-            
-        }
         
+        for(auto &pair : ComponentTracker::getInstance().states){
+            pair.second->readFromSD();
+        }
         
     }
 

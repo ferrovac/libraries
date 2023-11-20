@@ -308,11 +308,11 @@ struct BaseExposedState{
     public:
         ExposedStateType stateType;
         TypeMetaInformation typeInfo;
-        const String stateName;
+        const char* stateName;
         virtual void writeToSD() = 0;
         virtual void readFromSD() = 0;
 
-        BaseExposedState(String StateName) : stateName(StateName), typeInfo(TypeMetaInformation::UNKNOWN) {
+        BaseExposedState(const char* StateName) : stateName(StateName), typeInfo(TypeMetaInformation::UNKNOWN) {
             ComponentTracker::getInstance().registerState(this);
         }
         virtual ~BaseExposedState() {};
@@ -335,16 +335,18 @@ struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
     static_assert(std::is_same<T, volatile int>::value || std::is_same<T,volatile double>::value || std::is_same<T,volatile bool>::value,
                   "ExposedState<ExposedStateType::ReadOnly, T> only supports volatile: int, double and bool ");
     T* state;
-    Persistent<T> persistenState;        
+    Persistent<T> persistentState;        
     void writeToSD() override{
-
+        waitForSaveReadWrite();
+        persistentState = *state;
     }
     void readFromSD() override{
-        
+        waitForSaveReadWrite();
+        *state = persistentState;
     }
     
 
-    ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State), persistenState("asf", *state) {
+    ExposedState(const char* StateName,T* State): BaseExposedState(StateName), state(State), persistentState(stateName) {
         stateType = ExposedStateType::ReadOnly;
         typeInfo = getTypeMetaInformation<T>();
     }
@@ -362,7 +364,7 @@ struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
         
     }
 
-    ExposedState(String StateName,T* State): BaseExposedState(StateName), state(State){
+    ExposedState(const char* StateName,T* State): BaseExposedState(StateName), state(State){
         stateType = ExposedStateType::ReadWrite;
         typeInfo = getTypeMetaInformation<T>();
     }
@@ -377,7 +379,7 @@ struct ExposedState<ExposedStateType::Action, T> : BaseExposedState {
     void readFromSD() override{
         
     }
-    ExposedState(String StateName, T callback): BaseExposedState(StateName),callback(callback){
+    ExposedState(const char* StateName, T callback): BaseExposedState(StateName),callback(callback){
         stateType = ExposedStateType::Action;
         typeInfo = TypeMetaInformation::UNKNOWN;
     }
@@ -398,7 +400,7 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
         
     }
    
-    ExposedState(String StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
+    ExposedState(const char* StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
         stateType = ExposedStateType::ReadWriteRanged;
         typeInfo = getTypeMetaInformation<T>();
     }
@@ -411,17 +413,26 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
     int index;
     int* indexPtr;
     Selection<T> _selection;
+    Persistent<int> persistentIndex;        
     void writeToSD() override{
-
+        waitForSaveReadWrite();
+        persistentIndex = index;
+        persistentIndex.writeObjectToSD();
+        Serial.println("State: "+ String(stateName) + " wrote index: " + String(index));
     }
     void readFromSD() override{
-        
+        waitForSaveReadWrite();
+        index = persistentIndex;
+        Serial.println("State: "+ String(stateName) + " read index: " + String(index));
+        writeSelectionItemToState();
     }
 
-    ExposedState(String StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection){
+    ExposedState(const char* StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection), persistentIndex(stateName){
+        persistentIndex.setMinIntervall(0);
         stateType = ExposedStateType::ReadWriteSelection;
         typeInfo = TypeMetaInformation::INDEX;
         index = _selection.getIndexByValue(*state);
+        persistentIndex = index;
     }
     
     void writeSelectionItemToState(){
@@ -444,6 +455,12 @@ struct ExposedStateInterface {
                 auto castStatePtr = static_cast<ExposedState<ExposedStateType::Action, void (*)()>*>(exposedState);
                 castStatePtr->callback();
             }
+        }
+        void saveState(){
+            exposedState->writeToSD();
+        }
+        void loadState(){
+            exposedState->readFromSD();
         }
 
         template<typename T>

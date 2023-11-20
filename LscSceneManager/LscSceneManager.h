@@ -1713,6 +1713,7 @@ class SceneManager{
                                     stateInterface.setStateValue(selectionBox->getSelectedIndex());
                                     selectionBox->setColorOfAllItems(defaultForeGroundColor);
                                     selectionBox->setColorOfItemByIndex(selectionBox->getSelectedIndex(), TFT_GREEN);
+                                    stateInterface.saveState();
                                 }
                                 if(selectionBox->backHasBeenClicked()){ // Go back to menu level 1
                                     selectionBox->setTitle(componentListString[selectionOnMenuLevel_0]);

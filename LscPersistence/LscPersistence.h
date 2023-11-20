@@ -94,7 +94,7 @@ class PersistentTracker{
 
 class BasePersistent{
     protected:
-        const char* filename;
+        String filename;
         unsigned long maxNumberOfBackLogEntries;
         unsigned long numberOfBackLogEntries;
         unsigned long minIntervall;
@@ -111,8 +111,8 @@ class BasePersistent{
         virtual void init() = 0;
         static volatile bool initComplete;
     
-        BasePersistent(const char* filename)
-            :   filename(filename),
+        BasePersistent(String Filename)
+            :   filename(String(Filename)),
                 maxNumberOfBackLogEntries(10000000),
                 numberOfBackLogEntries(0),
                 minIntervall(1000),
@@ -123,7 +123,8 @@ class BasePersistent{
                 onlyLogChanges(false)
             {
             PersistentTracker::getInstance().registeInstance(this);
-        }
+            filename.replace(" ","_");
+            }
         unsigned long getSize(){
             return fileSize;
         }
@@ -161,7 +162,10 @@ class Persistent : public BasePersistent  {
         
         void writeObjectToSD() override {
             if(!initComplete) return;
+            
             if(millis()-lastWrite < minIntervall) return;
+            Serial.println("Wrote to: " + String(filename));
+            Serial.flush();
             String currentBankName = String(filename);
             if(numberOfBackLogEntries == maxNumberOfBackLogEntries) onSecondBank = true;
             if(numberOfBackLogEntries >= 2 * maxNumberOfBackLogEntries){
@@ -178,12 +182,12 @@ class Persistent : public BasePersistent  {
             if(onSecondBank) currentBankName += "_2";
             auto file = SD.open(currentBankName,FILE_WRITE);
             if(!file) return;
-            
             file.write(reinterpret_cast<const char*>(&object),sizeof(object));
             fileSize = file.size();
             numberOfBackLogEntries++;
             file.close();
             lastWrite = millis();
+            
         }
         void readObjectFromSD() override {
             String currentBankName = String(filename);
@@ -315,9 +319,9 @@ class Persistent : public BasePersistent  {
         
         template <typename... Args>
         Persistent(const char* FileName, Args&&... args) 
-            :   BasePersistent(FileName),   
-                object(std::forward<Args>(args)...),
-                lastObjectValue(object)
+            :   BasePersistent(String(FileName)),   
+                object(std::forward<Args>(args)...)
+                
                 
                 
             {
