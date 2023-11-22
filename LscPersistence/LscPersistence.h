@@ -92,6 +92,7 @@ class PersistentTracker{
         }
 };
 
+
 class BasePersistent{
     protected:
         String filename;
@@ -101,15 +102,16 @@ class BasePersistent{
         unsigned long lastWrite;
         unsigned long fileSize;
         bool onSecondBank;
-        bool hasError;
         bool onlyLogChanges;
+        bool initialValueLoaded;
     private:
         
     public:
-        virtual void writeObjectToSD() = 0;
-        virtual void readObjectFromSD() = 0;
-        virtual void init() = 0;
+        virtual bool writeObjectToSD() = 0;
+        virtual bool readObjectFromSD() = 0;
+        virtual bool init() = 0;
         static volatile bool initComplete;
+        
     
         BasePersistent(String Filename)
             :   filename(String(Filename)),
@@ -119,8 +121,8 @@ class BasePersistent{
                 lastWrite(millis()),
                 fileSize(0),
                 onSecondBank(false),
-                hasError(false),
-                onlyLogChanges(false)
+                onlyLogChanges(false),
+                initialValueLoaded(false)
             {
             PersistentTracker::getInstance().registeInstance(this);
             filename.replace(" ","_");
@@ -128,17 +130,23 @@ class BasePersistent{
         unsigned long getSize(){
             return fileSize;
         }
-        bool getErrorState(){
-            Serial.println("Bank: " + String(onSecondBank));
-            Serial.println("ERROR: " + String(hasError));
-            Serial.println("size: " + String(fileSize));
-            Serial.println("elements: " + String(numberOfBackLogEntries));
-            Serial.println("init: " + String(initComplete));
-            return hasError;
+        String getStateString(){
+            String stateString = "";
+            stateString += "filename: " + String(filename) + "\n";
+            stateString += "maxNumberOfBackLogEntries: " + String(maxNumberOfBackLogEntries)+ "\n";
+            stateString += "numberOfBackLogEntries: " + String(numberOfBackLogEntries)+ "\n";
+            stateString += "minIntervall: " + String(minIntervall)+ "\n";
+            stateString += "lastWrite: " + String(lastWrite)+ "\n";
+            stateString += "fileSize: " + String(fileSize)+ "\n";
+            stateString += "onSecondBank: " + String(onSecondBank)+ "\n";
+            stateString += "onlyLogChanges: " + String(onlyLogChanges)+ "\n";
+            stateString += "initialValueLoaded: " + String(initialValueLoaded)+ "\n";
+            stateString += "initComplete: " + String(initComplete)+ "\n";
+            return stateString;
         }
-        
-        
 };
+
+
 
 template<typename T>
 class Persistent : public BasePersistent  {
@@ -160,12 +168,10 @@ class Persistent : public BasePersistent  {
         }
 
         
-        void writeObjectToSD() override {
-            if(!initComplete) return;
+        [[nodiscard]] bool writeObjectToSD() override {
+            if(!initComplete) return true;
             
-            if(millis()-lastWrite < minIntervall) return;
-            Serial.println("Wrote to: " + String(filename));
-            Serial.flush();
+            if((millis()-lastWrite < minIntervall) && initialValueLoaded) return true;
             String currentBankName = String(filename);
             if(numberOfBackLogEntries == maxNumberOfBackLogEntries) onSecondBank = true;
             if(numberOfBackLogEntries >= 2 * maxNumberOfBackLogEntries){
@@ -181,31 +187,36 @@ class Persistent : public BasePersistent  {
 
             if(onSecondBank) currentBankName += "_2";
             auto file = SD.open(currentBankName,FILE_WRITE);
-            if(!file) return;
+            if(!file) return true;
             file.write(reinterpret_cast<const char*>(&object),sizeof(object));
             fileSize = file.size();
             numberOfBackLogEntries++;
+            file.flush();
             file.close();
             lastWrite = millis();
-            
+            Serial.println("wrote to: " + filename);
+            return false;
         }
-        void readObjectFromSD() override {
+
+        [[nodiscard]] bool readObjectFromSD() override {
             String currentBankName = String(filename);
             if(onSecondBank) currentBankName += "_2";
 
-            if(!initComplete) return;
+            if(!initComplete) return true;
 
-            if(!SD.exists(currentBankName)) return;
+            if(!SD.exists(currentBankName)) return false;
             auto file = SD.open(currentBankName, FILE_READ);
-            if (!file) return;
+            if (!file) return true;
             if(file.size() >= sizeof(object)){
-                file.seek(file.size()- sizeof(object));
+                file.seek(file.size() - sizeof(object));
             }else{
-                return;
+                return true;
             }
             file.read(reinterpret_cast<uint8_t*>(&object), sizeof(object));
             file.close();
+            return false;
         }
+
         T getElement(size_t index){
             if(!initComplete) return object;
             if(index >= numberOfBackLogEntries) return object;
@@ -268,18 +279,16 @@ class Persistent : public BasePersistent  {
             return getElement(index);
         }
 
-        void init() override{
+        [[nodiscard]] bool init() override{
             bool firstBankFileOk = false;
             if (!SD.begin(31)){
-                hasError = true;
-                return;
+                return true;
             }
 
             if(SD.exists(filename)){ //we start checking the base bank file
                 auto file = SD.open(filename, FILE_READ);
                 if(!file){
-                    hasError = true;
-                    return;
+                    return true;
                 }else{
                     if(file.size() % sizeof(object) != 0){ //the size of the existing first bank file is not correct
                         file.close();
@@ -296,8 +305,7 @@ class Persistent : public BasePersistent  {
             if(SD.exists(String(filename) + "_2")){
                 auto file = SD.open(String(filename) + "_2", FILE_READ);
                 if(!file){
-                    hasError = true;
-                    return;
+                    return true;
                 }else{
                     unsigned long  secondFileSize = file.size();
                     file.close();
@@ -313,16 +321,19 @@ class Persistent : public BasePersistent  {
                 }
                 
             } //we have checked all conditions for the second bank file
-            if(fileSize == 0) writeObjectToSD();
+            if(!SD.exists(filename)){
+                writeObjectToSD();
+                Serial.println("created: " + filename);
+            } 
             readObjectFromSD();
+            initialValueLoaded = true;
+            return false;
         }
         
         template <typename... Args>
-        Persistent(const char* FileName, Args&&... args) 
+        Persistent(String FileName, Args&&... args) 
             :   BasePersistent(String(FileName)),   
                 object(std::forward<Args>(args)...)
-                
-                
                 
             {
                 if(initComplete){

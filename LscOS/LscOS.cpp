@@ -42,7 +42,7 @@ namespace OS{
         BasePersistent::initComplete = true;
         
         for(BasePersistent* basePersistent : *PersistentTracker::getInstance().getInstances()){
-            basePersistent->init() ;
+            basePersistent->init();
         }
 
         

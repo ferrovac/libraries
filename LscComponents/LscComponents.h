@@ -51,6 +51,9 @@ struct BaseExposedState;
                     waitForSaveReadWrite();
                     ComponentTracker::getInstance().states.push_back({ComponentTracker::getInstance().components.back(), State});
                 }
+                String getIDAsString(){
+                    return String(components.size() + String(states.size()));
+                }
         };
 
         
@@ -346,7 +349,7 @@ struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
     }
     
 
-    ExposedState(const char* StateName,T* State): BaseExposedState(StateName), state(State), persistentState(stateName) {
+    ExposedState(const char* StateName,T* State): BaseExposedState(StateName), state(State), persistentState(ComponentTracker::getInstance().getIDAsString()) {
         stateType = ExposedStateType::ReadOnly;
         typeInfo = getTypeMetaInformation<T>();
     }
@@ -419,7 +422,7 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
         persistentIndex = index;
         persistentIndex.writeObjectToSD();
         Serial.println("State: "+ String(stateName) + " wrote index: " + String(index));
-    }
+            }
     void readFromSD() override{
         waitForSaveReadWrite();
         index = persistentIndex;
@@ -427,7 +430,7 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
         writeSelectionItemToState();
     }
 
-    ExposedState(const char* StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection), persistentIndex(stateName){
+    ExposedState(const char* StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection), persistentIndex(ComponentTracker::getInstance().getIDAsString(),index){
         persistentIndex.setMinIntervall(0);
         stateType = ExposedStateType::ReadWriteSelection;
         typeInfo = TypeMetaInformation::INDEX;
@@ -477,7 +480,7 @@ struct ExposedStateInterface {
                 }
                 
                 case ExposedStateType::ReadWrite:{
-                    if(getTypeMetaInformation<T>() == exposedState->typeInfo) return; //implement error handling
+                    if(getTypeMetaInformation<T>() != exposedState->typeInfo) return; //implement error handling
                     switch(exposedState->typeInfo){
                         case TypeMetaInformation::DOUBLE:{
                             auto castStatDoublePtr = static_cast<ExposedState<ExposedStateType::ReadWrite, volatile double>*>(exposedState);
@@ -498,7 +501,7 @@ struct ExposedStateInterface {
                     break;
                 }
                 case ExposedStateType::ReadWriteRanged:{
-                    if(getTypeMetaInformation<T>() == exposedState->typeInfo) return; //implement error handling
+                    if(getTypeMetaInformation<T>() != exposedState->typeInfo) return; //implement error handling
                     switch(exposedState->typeInfo){
                         case TypeMetaInformation::DOUBLE:{
                             auto castStatDoublePtr = static_cast<ExposedState<ExposedStateType::ReadWriteRanged, volatile double>*>(exposedState);
