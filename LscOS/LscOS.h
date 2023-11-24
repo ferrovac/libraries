@@ -26,7 +26,7 @@ namespace OS{
   uint32_t getCycleCount();
   uint32_t getNextOsCall_ms();
   bool saveToRead();
-  
+  static volatile bool powerFailureImminent = false;
 }
 
 

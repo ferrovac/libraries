@@ -84,6 +84,7 @@ struct ElementTracker{
     public:
         //vecor that holds the pointer of all elements
         static std::vector<BaseUI_element*> elements;
+        static std::vector<std::vector<BaseUI_element*>> clearLayers;
         //singelton lazy init
         static ElementTracker& getInstance() {
             static ElementTracker instance;
@@ -250,6 +251,35 @@ class SceneManager{
                 element->clear(); //dereference the pointer and clear the element
             }
         }
+        static void clearAllElementsLayer(){
+            std::vector<BaseUI_element*> newLayer;
+            for(BaseUI_element* element: ElementTracker::getInstance().elements){
+                bool alreadyInLayer = false;
+                for(std::vector<BaseUI_element*> &layers : ElementTracker::getInstance().clearLayers){
+                    for(BaseUI_element* &layerElement : layers){
+                        if(layerElement == element){
+                            alreadyInLayer = true;
+                            break;
+                        }
+                    }
+                    if(alreadyInLayer) break; 
+                }
+                if(!alreadyInLayer){
+                    newLayer.push_back(element);
+                    element->clear();
+                }   
+            }
+            ElementTracker::getInstance().clearLayers.push_back(newLayer);
+        }
+        static void reDrawLastLayer(){
+            if(ElementTracker::getInstance().clearLayers.empty()) return;
+            for(BaseUI_element* element : ElementTracker::getInstance().clearLayers.back()){
+                element->reDraw();
+            }
+            ElementTracker::getInstance().clearLayers.pop_back();
+        }
+
+
         //re draws all the defined elements on the screen
         static void reDrawAllElements(){
             //See clearAllElements() for implentation
@@ -264,16 +294,21 @@ class SceneManager{
         }
         //inizialises the SceneManager setting the first scene and background color
         void init(void (*scene)(), uint32_t BackGroundColor=TFT_BLACK, uint32_t ForeGroundColor=TFT_WHITE, const GFXfont* DefaultFont=FF12){
+            OS::startWatchdog();
             backGroundColor = BackGroundColor;
             defaultForeGroundColor = ForeGroundColor;
             defaultFont = DefaultFont;
+            Serial.println("ok");
             tft.init();
+            Serial.println("ok2");
             tft.setRotation(3);
             tft.fillScreen(backGroundColor);
+            Serial.println("ok3");
             tft.setTextColor(TFT_WHITE, TFT_BLACK);
             tft.setFreeFont(FMB12);     
             currentScene = scene;    
             nextScene = scene;
+            OS::stopWatchdog();
             
         }
         //starts the sceneManager. This will enter an endless loop 
@@ -1538,7 +1573,7 @@ class SceneManager{
                     // reset button 2 and 5 (yes / no button)
                     LSC::getInstance().buttons.bt_2.hasBeenClicked();
                     LSC::getInstance().buttons.bt_5.hasBeenClicked();
-                    clearAllElements(); // clear everything on the screen
+                    //clearAllElements(); // clear everything on the screen
                     menuFramePtr = new StandardMenu(Title, "Back", "Select", TitleColor, OptionFalseColor, OptionTrueColor, LineColor, TitleFont);
                     maxLinesOnScreen = 174 / tft.fontHeight(); //there will be one more line on the screen then this number indecates... because of reasons
                     pages = Options.size()/maxLinesOnScreen;
@@ -1660,6 +1695,7 @@ class SceneManager{
             int selectionOnMenuLevel_0 = 0;
             int selectionOnMenuLevel_1 = 0;
             int selectionOnMenuLevel_2 = 0;
+            clearAllElementsLayer();
             
             while(true){
                 waitForSaveReadWrite();
@@ -1768,7 +1804,7 @@ class SceneManager{
             }
             
             delete(selectionBox);
-            reDrawAllElements();
+            reDrawLastLayer();
         }
 
         

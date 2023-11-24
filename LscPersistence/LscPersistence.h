@@ -8,6 +8,7 @@
 #include <SD.h>
 
 
+
 template <typename T>
 struct has_assignment_operator {
     template <typename U>
@@ -80,6 +81,7 @@ class PersistentTracker{
         std::vector<BasePersistent*> tracker;
         PersistentTracker(){}
     public:
+        static volatile bool powerFailureImminent;
         static PersistentTracker& getInstance(){
             static PersistentTracker instance;
             return instance;
@@ -188,18 +190,19 @@ class Persistent : public BasePersistent  {
             if(onSecondBank) currentBankName += "_2";
             auto file = SD.open(currentBankName,FILE_WRITE);
             if(!file) return true;
+            if(PersistentTracker::getInstance().powerFailureImminent) return false;
             file.write(reinterpret_cast<const char*>(&object),sizeof(object));
             fileSize = file.size();
             numberOfBackLogEntries++;
             file.flush();
             file.close();
             lastWrite = millis();
-            Serial.println("wrote to: " + filename);
             return false;
         }
 
         [[nodiscard]] bool readObjectFromSD() override {
             String currentBankName = String(filename);
+            Serial.println("Start read: " + currentBankName);
             if(onSecondBank) currentBankName += "_2";
 
             if(!initComplete) return true;

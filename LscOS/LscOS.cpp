@@ -7,10 +7,7 @@ namespace OS{
     uint32_t watchdogStartTime = 0;
     uint32_t cycleCount=0;
     uint32_t timekeeper = 0;
-    uint32_t lastOsCall = 0;
-    File myFile;
-    
-
+    uint32_t lastOsCall = 0;    
 
     void init(){
         Serial.begin(115200);
@@ -24,8 +21,13 @@ namespace OS{
         NVIC_EnableIRQ(TC5_IRQn);
         NVIC_SetPriority(TC5_IRQn, 4);
         TC_Start(TC1, 2);  
-        NVIC_SetPriority(SysTick_IRQn, 0);
+        NVIC_SetPriority(SysTick_IRQn, 0); //delay, micros millis isr
 
+        //setup power monitor: see page 273: https://ww1.microchip.com/downloads/en/devicedoc/atmel-11057-32-bit-cortex-m3-microcontroller-sam3x-sam3a_datasheet.pdf#M8.9.22773.h1heading.1.16.Supply.Controller.SUPC
+        SUPC->SUPC_SMMR = (SUPC->SUPC_SMMR & ~SUPC_SMMR_SMTH_Msk) | (0xDu << 0);
+        SUPC->SUPC_SMMR |= SUPC_SMMR_SMIEN;
+        SUPC->SUPC_SMMR |= SUPC_SMMR_SMSMPL_CSM;
+        NVIC_EnableIRQ(SUPC_IRQn);
 
         if (!SD.begin(31)){
             Serial.println("No SD Card");
@@ -35,7 +37,29 @@ namespace OS{
             if (SD.exists("F")){
                 bootUpFault = true;
                 SD.rmdir("F");
+                SD.remove("F");
+            
             }
+            auto file = SD.open("/");
+            if(SD.exists("FFF")){
+                Serial.println("purging SD");
+                while(true){
+                    auto entry = file.openNextFile();
+                    if(!entry) break;
+                    Serial.println("deleted: " + String(entry.name()));
+                    const char* name = entry.name();
+                    if(entry.isDirectory()){
+                        entry.close();
+                        SD.rmdir(name);
+                    }else{
+                        entry.close();
+                        SD.remove(name);
+                    }
+                }
+                SD.rmdir("FF");
+                SD.rmdir("FFF");
+            }
+            
         }
   
 
@@ -43,12 +67,18 @@ namespace OS{
         
         for(BasePersistent* basePersistent : *PersistentTracker::getInstance().getInstances()){
             basePersistent->init();
+            
+            Serial.println(String(reinterpret_cast<const char*>(basePersistent)));
+            
         }
 
         
         for(auto &pair : ComponentTracker::getInstance().states){
             pair.second->readFromSD();
         }
+        if(bootUpFault) Serial.println("Bootup Failure");
+        
+        
         
     }
 
@@ -100,18 +130,31 @@ namespace OS{
     
 }
 
-void HardFault_Handler() {
+[[noreturn]] void HardFault_Handler() {
     digitalWrite(52, true);
     if (!SD.begin(31)){
         
     }else{
-        SD.mkdir("F");
+        if(!SD.exists("F")){
+            SD.mkdir("F");
+            NVIC_SystemReset();
+        } 
+        if(SD.exists("F") && !SD.exists("FF")){
+            SD.mkdir("FF");
+            NVIC_SystemReset();
+        } 
+         
+        if(SD.exists("FF") && !SD.exists("FFF")){
+            SD.mkdir("FFF");
+            NVIC_SystemReset();
+        } 
     }
+ 
+}
 
-  for(int i = 0; i < 1000000; i++){
-    __asm("NOP");
-  }
-  NVIC_SystemReset(); // Soft reset the system
+void SUPC_Handler(void) {
+    OS::powerFailureImminent = true;
+    PersistentTracker::getInstance().powerFailureImminent = true;
 }
 
 void TC5_Handler(){
@@ -127,10 +170,11 @@ void TC5_Handler(){
     }
     
     if (OS::watchdogRunning){
-        if(millis() - OS::watchdogStartTime > 2000){
-            Serial.println("You Fucked up! Which is why we are restarting the whole thing!");
+        if(millis() - OS::watchdogStartTime > 5000){
+            Serial.println("Detected a timeout, restarting the system!");
             for(int i = 0; i< 4200000;i ++){asm("NOP");}
-            NVIC_SystemReset();
+            //NVIC_SystemReset();
+            __asm volatile ("BKPT #0");
         }
     }
 

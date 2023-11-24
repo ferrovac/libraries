@@ -360,11 +360,14 @@ struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
     static_assert(std::is_same<T, volatile int>::value || std::is_same<T,volatile double>::value || std::is_same<T,volatile bool>::value,
                   "ExposedState<ExposedStateType::ReadWrite, T> only supports volatile: int, double and bool ");
     T* state;
+    Persistent<T> persistentState;        
     void writeToSD() override{
-
+        waitForSaveReadWrite();
+        persistentState = *state;
     }
     void readFromSD() override{
-        
+        waitForSaveReadWrite();
+        *state = persistentState;
     }
 
     ExposedState(const char* StateName,T* State): BaseExposedState(StateName), state(State){
@@ -396,11 +399,15 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
     T minState;
     T maxState;
     T stepState;
-    void writeToSD() override{
 
+    Persistent<T> persistentState;        
+    void writeToSD() override{
+        waitForSaveReadWrite();
+        persistentState = *state;
     }
     void readFromSD() override{
-        
+        waitForSaveReadWrite();
+        *state = persistentState;
     }
    
     ExposedState(const char* StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
@@ -713,11 +720,8 @@ class Components{
             private:
                 PowerSwitch &powerSwitch;
                 Selection<bool> setStateSelection;
-                //int test;
                 bool _setState;
-                //int test2;
                 bool _isState;
-                //int test3;
                 ExposedState<ExposedStateType::ReadWriteSelection, bool> setExposedState;
                 
                 
@@ -731,9 +735,6 @@ class Components{
                         _isState(false),
                         setExposedState("Open/Close",&_setState, setStateSelection)
                         {
-                           // test = 0;
-                            //test2 = 0;
-                            //test3 = 0;
                             mystateptr = &_setState;
                 }
                 String getAddr(){
