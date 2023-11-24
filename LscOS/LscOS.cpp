@@ -34,12 +34,6 @@ namespace OS{
         } 
         else{
             Serial.println("SD Card OK");
-            if (SD.exists("F")){
-                bootUpFault = true;
-                SD.rmdir("F");
-                SD.remove("F");
-            
-            }
             auto file = SD.open("/");
             if(SD.exists("FFF")){
                 Serial.println("purging SD");
@@ -78,7 +72,9 @@ namespace OS{
         }
         if(bootUpFault) Serial.println("Bootup Failure");
         
-        
+        if (SD.exists("F")){
+            bootUpFault = true;
+        }
         
     }
 
@@ -156,7 +152,6 @@ void SUPC_Handler(void) {
     OS::powerFailureImminent = true;
     PersistentTracker::getInstance().powerFailureImminent = true;
 }
-
 void TC5_Handler(){
     TC_GetStatus(TC1, 2);
     OS::cycleCount = micros() - OS::timekeeper;

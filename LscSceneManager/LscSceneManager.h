@@ -179,6 +179,7 @@ class SceneManager{
         static uint32_t backGroundColor;   //holds the global backgroud color of the tft display. This is set in the init function and should not be changed later
         static uint32_t defaultForeGroundColor; //holds the default fore ground color
         static const GFXfont* defaultFont; //holds the defualt font
+        static volatile bool systemStableFor20Sec;  
         
         class UI_Options : BaseComponent {
             public:
@@ -298,12 +299,9 @@ class SceneManager{
             backGroundColor = BackGroundColor;
             defaultForeGroundColor = ForeGroundColor;
             defaultFont = DefaultFont;
-            Serial.println("ok");
             tft.init();
-            Serial.println("ok2");
             tft.setRotation(3);
             tft.fillScreen(backGroundColor);
-            Serial.println("ok3");
             tft.setTextColor(TFT_WHITE, TFT_BLACK);
             tft.setFreeFont(FMB12);     
             currentScene = scene;    
@@ -341,6 +339,15 @@ class SceneManager{
         //while(!sceneManager.switchScene()) 
         bool colorSwitch = false;
         bool switchScene(){
+            if(!systemStableFor20Sec && millis() > 20000){
+                if (SD.exists("F")){
+                    SD.rmdir("F");
+                }
+                if (SD.exists("FF")){
+                    SD.rmdir("FF");
+                }
+                systemStableFor20Sec = true;
+            }
             if(colorSwitch){
                 tft.fillScreen(backGroundColor);
                 reDrawAllElements();
@@ -1414,7 +1421,7 @@ class SceneManager{
 
         };
         
-        struct StandardMenu{
+        struct StandardMenu : BaseUI_element{
             public:
                 StandardMenu(String Title, String LeftOption, String RightOption, uint32_t TitleColor = defaultForeGroundColor, uint32_t LeftOptionColor = defaultForeGroundColor, uint32_t RightOptionColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* Font = FMB12): titleColor(TitleColor), leftOptionColor(LeftOptionColor), rightOptionColor(RightOptionColor),lineColor(LineColor),font(Font){
                     rightControllDrawn = false;
@@ -1440,7 +1447,36 @@ class SceneManager{
                     slash = new UI_elements::TextBox(305,tbPageCounterYpos + 15,"/", FM9,lineColor);
                     pages = new UI_elements::TextBox(305,tbPageCounterYpos + 30,"1", FM9,lineColor);
                 }
-                ~StandardMenu(){
+                void reDraw(){
+                    title->reDraw();
+                    leftOption->reDraw();
+                    rightOption->reDraw();
+                    pages->reDraw();
+                    slash->reDraw();
+                    tft.drawRect(0, 0, 320 - 19, 200, lineColor); //Big Box
+                    tft.drawRect(1, 1, 320 - 21, 24, lineColor);  //Title Box
+                    tft.drawLine(1, 25,320 - 20, 25, lineColor);   //Title Box under Line fat
+                    tft.drawLine(160,200,160,240,lineColor);    //yes / no separator
+                    int yDepth = 140;
+                    int xDepth = 19;
+                    tft.drawLine(320 - xDepth, yDepth, 320, yDepth, lineColor);
+                    tft.drawLine(320 - xDepth, 199, 320, 199, lineColor);
+                    tft.drawLine(319 , yDepth, 319, 199, lineColor);
+                    if(rightControllDrawn){
+                        // Lower triabgle
+                        tft.drawLine(320 - xDepth + 1, yDepth - 25, 320 - (xDepth / 2), yDepth, lineColor);
+                        tft.drawLine(320 - 1, yDepth - 25, 320 - (xDepth / 2), yDepth, lineColor);
+                        // upe driangle
+                        tft.drawLine(320 - xDepth + 1, 25, 320 - (xDepth / 2), 0, lineColor);
+                        tft.drawLine(320 - 1, 25, 320 - (xDepth / 2), 0, lineColor);
+                    }
+                }
+                void clear() const {
+                    title->clear();
+                    leftOption->clear();
+                    rightOption->clear();
+                    pages->clear();
+                    slash->clear();
                     tft.drawRect(0, 0, 320 - 19, 200, backGroundColor); //Big Box
                     tft.drawRect(1, 1, 320 - 21, 24, backGroundColor);  //Title Box
                     tft.drawLine(1, 25,320 - 20, 25, backGroundColor);   //Title Box under Line fat
@@ -1458,6 +1494,10 @@ class SceneManager{
                         tft.drawLine(320 - xDepth + 1, 25, 320 - (xDepth / 2), 0, backGroundColor);
                         tft.drawLine(320 - 1, 25, 320 - (xDepth / 2), 0, backGroundColor);
                     }
+                }
+
+                ~StandardMenu(){
+                    clear();
                     delete(title);
                     delete(leftOption);
                     delete(rightOption);
@@ -1688,6 +1728,7 @@ class SceneManager{
 
         
         void showConfigMenu(){
+            clearAllElementsLayer();
             std::vector<String> componentListString = getComponentListAsString();
             std::vector<BaseExposedState*> exposedStateList;
             SelectionBox* selectionBox = new SelectionBox("Components",componentListString);
@@ -1695,7 +1736,7 @@ class SceneManager{
             int selectionOnMenuLevel_0 = 0;
             int selectionOnMenuLevel_1 = 0;
             int selectionOnMenuLevel_2 = 0;
-            clearAllElementsLayer();
+            
             
             while(true){
                 waitForSaveReadWrite();
@@ -1744,6 +1785,7 @@ class SceneManager{
                                 waitForSaveReadWrite();
                                 selectionBox->update();
                                 if(selectionBox->selectHasBeenClicked()){ //One onf the selection options has been chosen
+                                showMessageBox("test","ölajdföalksjflkasj");
                                     waitForSaveReadWrite();
         
                                     stateInterface.setStateValue(selectionBox->getSelectedIndex());
@@ -1823,7 +1865,7 @@ class SceneManager{
                 LSC::getInstance().buttons.bt_2.hasBeenClicked();
                 LSC::getInstance().buttons.bt_5.hasBeenClicked();
 
-                clearAllElements(); //clear everything on the screen
+                clearAllElementsLayer(); //clear everything on the screen
                 StandardMenu* menuFramePtr = new StandardMenu(Title,OptionFalse,OptionTrue,TitleColor,OptionFalseColor,OptionTrueColor,LineColor,TitleFont);
                 
                 std::deque<String> linesUnderScreen;
@@ -1932,7 +1974,7 @@ class SceneManager{
                     delete(tbs);
                 }
                 
-                reDrawAllElements();
+                reDrawLastLayer();
                 LSC::getInstance().buttons.bt_0.active = true;
                 LSC::getInstance().buttons.bt_1.active = true;
                 LSC::getInstance().buttons.bt_2.active = true;
