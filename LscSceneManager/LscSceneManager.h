@@ -1828,8 +1828,6 @@ class SceneManager{
                                 showMessageBox("Not In Debug Mode", "Switch to debug mode to change the state of the system!","","ok");
                             }else{
                                 stateInterface.executeAction();
-                                Serial.println("executed");
-                                Serial.flush();
                             }
                             
                         }

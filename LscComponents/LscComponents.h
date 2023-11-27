@@ -738,37 +738,50 @@ class Components{
         class Valve : BaseComponent {
             private:
                 PowerSwitch &powerSwitch;
-                Selection<bool> setStateSelection;
-                bool _setState;
-                bool _isState;
-                ExposedState<ExposedStateType::ReadWriteSelection, bool> setExposedState;
-                
-                
+                volatile bool _isState;
+                ExposedState<ExposedStateType::ReadOnly, volatile bool> state;
+                ExposedState<ExposedStateType::Action, Components::Valve>  actionOpen;
+                ExposedState<ExposedStateType::Action, Components::Valve>  actionClose;
             public:
                 bool* mystateptr;
                 Valve(PowerSwitch &powerSwitch, const char* componentName = "genericValve") 
                     :   BaseComponent(componentName),   
                         powerSwitch(powerSwitch),
-                        setStateSelection({{false, "Closed"},{true, "Opened"}}),
-                        _setState(false),
                         _isState(false),
-                        setExposedState("Open/Close",&_setState, setStateSelection)
-                        {
-                            mystateptr = &_setState;
+                        state("State",&_isState),
+                        actionOpen("Open", this, &Valve::open),
+                        actionClose("Close", this, &Valve::close)
+                    {
+                    
                 }
             
                 void update() override {
-                    if(_isState == _setState) return;
-                    powerSwitch.setState(_setState);
-                    _isState = _setState;
+                    
                 }
+
                 bool getState(){
                     waitForSaveReadWrite();
                     return _isState;
                 }
-                void setState(int State){
+                void setState(bool State){
                     waitForSaveReadWrite();
-                    _setState = State;
+                    if(State){
+                        open();
+                    }else{
+                        close();
+                    }
+                }
+                void open(){
+                    waitForSaveReadWrite();
+                    if(_isState) return;
+                    powerSwitch.setState(true);
+                    _isState = true;
+                }
+                void close(){
+                    waitForSaveReadWrite();
+                    if(!_isState) return;
+                    powerSwitch.setState(false);
+                    _isState = false;
                 }
 
                 //Retuns the component type
@@ -783,16 +796,16 @@ class Components{
 
         class RoughingPump : BaseComponent {
             private:
-                MOSContact &a;
+                MOSContact &mosContact;
                 bool _isState;
                 ExposedState<ExposedStateType::Action, Components::RoughingPump> actionTurnOn;
                 ExposedState<ExposedStateType::Action, Components::RoughingPump> actionTurnOff;
                 
                 
             public:
-                RoughingPump(MOSContact &a, const char* componentName = "RoughingPump") 
+                RoughingPump(MOSContact &mosContact, const char* componentName = "RoughingPump") 
                     :   BaseComponent(componentName),   
-                        a(a),
+                        mosContact(mosContact),
                         _isState(false),
                         actionTurnOn("Turn On", this,&RoughingPump::turnOn),
                         actionTurnOff("Turn Off", this, &RoughingPump::turnOff)
@@ -813,19 +826,14 @@ class Components{
                     _isState = State;
                 }
                 void turnOn(){
-                    Serial.println("Turn On callback");
-                    Serial.flush();
                     waitForSaveReadWrite();
-                    //mosContact.setState(true);
-                    LSC::getInstance().mosContact_0.setState(true);
-                    waitForSaveReadWrite();
-                    //_isState = true;
+                    mosContact.setState(true);
+                    _isState = true;
                 }
                 void turnOff(){
                     waitForSaveReadWrite();
-                    a.setState(false);
-                    waitForSaveReadWrite();
-                    //_isState = false;
+                    mosContact.setState(false);
+                    _isState = false;
                 }
 
                 //Retuns the component type
@@ -876,13 +884,13 @@ class Components{
                 }
                 void open(){
                     waitForSaveReadWrite();
-                   // powerSwitchClose.setState(false);
-                    //powerSwitchOpen.setState(true);
+                    powerSwitchClose.setState(false);
+                    powerSwitchOpen.setState(true);
                 }
                 void close(){
                     waitForSaveReadWrite();
-                    //powerSwitchOpen.setState(false);
-                    //powerSwitchClose.setState(true);
+                    powerSwitchOpen.setState(false);
+                    powerSwitchClose.setState(true);
                 }
 
                 //Retuns the component type
