@@ -15,6 +15,7 @@ RECOURCES:  TODO
 #include "LscHardwareAbstraction.h"
 #include <type_traits>
 #include "LscPersistence.h"
+#include <functional>
 
 
 extern void waitForSaveReadWrite();
@@ -312,6 +313,7 @@ struct BaseExposedState{
         const char* stateName;
         virtual void writeToSD() = 0;
         virtual void readFromSD() = 0;
+        virtual void executeAction() = 0;
 
         BaseExposedState(const char* StateName) : stateName(StateName), typeInfo(TypeMetaInformation::UNKNOWN) {
             ComponentTracker::getInstance().registerState(this);
@@ -345,6 +347,9 @@ struct ExposedState<ExposedStateType::ReadOnly, T> : BaseExposedState {
         waitForSaveReadWrite();
         *state = persistentState;
     }
+    void executeAction() override{
+
+    }
     
 
     ExposedState(const char* StateName,T* State): BaseExposedState(StateName), state(State), persistentState(ComponentTracker::getInstance().getIDAsString()) {
@@ -367,6 +372,9 @@ struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
         waitForSaveReadWrite();
         *state = persistentState;
     }
+    void executeAction() override{
+
+    }
 
     ExposedState(const char* StateName,T* State): BaseExposedState(StateName), state(State){
         stateType = ExposedStateType::ReadWrite;
@@ -376,16 +384,24 @@ struct ExposedState<ExposedStateType::ReadWrite, T> : BaseExposedState {
 
 template <typename T>
 struct ExposedState<ExposedStateType::Action, T> : BaseExposedState {
-    T callback;
+    T* object;
+    using CallbackType = void (T::*)();
+    CallbackType callback;
     void writeToSD() override{
 
     }
     void readFromSD() override{
         
     }
-    ExposedState(const char* StateName, T callback): BaseExposedState(StateName),callback(callback){
+    ExposedState(const char* StateName, T* object, CallbackType callback): BaseExposedState(StateName),object(object),callback(callback){
         stateType = ExposedStateType::Action;
         typeInfo = TypeMetaInformation::UNKNOWN;
+    }
+    void executeAction() override{
+        if(object && callback){
+            (object->*callback)();
+        }
+        
     }
 };
 
@@ -406,6 +422,9 @@ struct ExposedState<ExposedStateType::ReadWriteRanged, T> : BaseExposedState {
     void readFromSD() override{
         waitForSaveReadWrite();
         *state = persistentState;
+    }
+    void executeAction() override{
+
     }
    
     ExposedState(const char* StateName,T* State, T MinState, T MaxState, T stepState): BaseExposedState(StateName), state(State), minState(MinState), maxState(MaxState), stepState(stepState){
@@ -434,6 +453,9 @@ struct ExposedState<ExposedStateType::ReadWriteSelection, T> : BaseExposedState 
         Serial.println("State: "+ String(stateName) + " read index: " + String(index));
         writeSelectionItemToState();
     }
+    void executeAction() override{
+
+    }
 
     ExposedState(const char* StateName,T* State, Selection<T> selection): BaseExposedState(StateName), state(State), _selection(selection), persistentIndex(ComponentTracker::getInstance().getIDAsString(),index){
         persistentIndex.setMinIntervall(0);
@@ -460,8 +482,7 @@ struct ExposedStateInterface {
         void executeAction(){
             waitForSaveReadWrite();
             if(exposedState->stateType == ExposedStateType::Action){
-                auto castStatePtr = static_cast<ExposedState<ExposedStateType::Action, void (*)()>*>(exposedState);
-                castStatePtr->callback();
+                exposedState->executeAction();
             }
         }
         void saveState(){
@@ -595,8 +616,7 @@ class Components{
                 ExposedState<ExposedStateType::ReadOnly, volatile double> temeraturePtr;
                 Unit<Units::Temperature> displayUnit;
                 ExposedState<ExposedStateType::ReadWriteSelection, Units::Temperature> displayUnitPtr;
-                ExposedState<ExposedStateType::Action, void (Components::TemperatureSensor::*)()> myAcction;
-                Persistent<double> testytest;
+                ExposedState<ExposedStateType::Action, Components::TemperatureSensor> myAcction;
                 void test(){
                     Serial.println("callback successfull");
                     Serial.println(__PRETTY_FUNCTION__);
@@ -611,8 +631,7 @@ class Components{
                             temeraturePtr("Temperature",&temperature), 
                             displayUnit(Units::Temperature::C), 
                             displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),
-                            myAcction("test",&TemperatureSensor::test),
-                            testytest("mytestitest",0)
+                            myAcction("test",this , &TemperatureSensor::test)
                         {                            
                 }
                 
@@ -727,7 +746,7 @@ class Components{
                 
             public:
                 bool* mystateptr;
-                Valve(PowerSwitch powerSwitch, const char* componentName = "genericValve") 
+                Valve(PowerSwitch &powerSwitch, const char* componentName = "genericValve") 
                     :   BaseComponent(componentName),   
                         powerSwitch(powerSwitch),
                         setStateSelection({{false, "Closed"},{true, "Opened"}}),
@@ -761,21 +780,22 @@ class Components{
                     return componentName;
                 }
         };
+
         class RoughingPump : BaseComponent {
             private:
-                MOSContact &mosContact;
+                MOSContact &a;
                 bool _isState;
-                ExposedState<ExposedStateType::Action, void (Components::RoughingPump::*)()> actionTurnOn;
-                ExposedState<ExposedStateType::Action, void (Components::RoughingPump::*)()> actionTurnOff;
+                ExposedState<ExposedStateType::Action, Components::RoughingPump> actionTurnOn;
+                ExposedState<ExposedStateType::Action, Components::RoughingPump> actionTurnOff;
                 
                 
             public:
-                RoughingPump(MOSContact mosContact, const char* componentName = "RoughingPump") 
+                RoughingPump(MOSContact &a, const char* componentName = "RoughingPump") 
                     :   BaseComponent(componentName),   
-                        mosContact(mosContact),
+                        a(a),
                         _isState(false),
-                        actionTurnOn("Turn On", &RoughingPump::turnOn),
-                        actionTurnOff("Turn Off", &RoughingPump::turnOff)
+                        actionTurnOn("Turn On", this,&RoughingPump::turnOn),
+                        actionTurnOff("Turn Off", this, &RoughingPump::turnOff)
                         {
                 }
             
@@ -786,21 +806,26 @@ class Components{
                     waitForSaveReadWrite();
                     return _isState;
                 }
-                void setState(int State){
+                void setState(bool State){
                     waitForSaveReadWrite();
                     if(State == _isState) return;
                     State ? turnOn() : turnOff();
                     _isState = State;
                 }
                 void turnOn(){
+                    Serial.println("Turn On callback");
+                    Serial.flush();
                     waitForSaveReadWrite();
-                    mosContact.setState(true);
-                    _isState = true;
+                    //mosContact.setState(true);
+                    LSC::getInstance().mosContact_0.setState(true);
+                    waitForSaveReadWrite();
+                    //_isState = true;
                 }
                 void turnOff(){
                     waitForSaveReadWrite();
-                    mosContact.setState(false);
-                    _isState = false;
+                    a.setState(false);
+                    waitForSaveReadWrite();
+                    //_isState = false;
                 }
 
                 //Retuns the component type
@@ -818,8 +843,8 @@ class Components{
                 PowerSwitch &powerSwitchOpen;
                 PowerSwitch &powerSwitchClose;
                 DigitalInIsolated &digitalInIsolatedGateValveState;
-                ExposedState<ExposedStateType::Action, void (Components::GateValve::*)()> actionOpen;
-                ExposedState<ExposedStateType::Action, void (Components::GateValve::*)()> actionClose;
+                ExposedState<ExposedStateType::Action, Components::GateValve> actionOpen;
+                ExposedState<ExposedStateType::Action, Components::GateValve> actionClose;
                 volatile bool state;
                 ExposedState<ExposedStateType::ReadOnly, volatile bool> statePtr;
                 
@@ -830,16 +855,15 @@ class Components{
                         powerSwitchOpen(powerSwitchOpen),
                         powerSwitchClose(powerSwitchClose),
                         digitalInIsolatedGateValveState(digitalInIsolatedGateValveState),
-                        actionOpen("Open", &GateValve::open),
-                        actionClose("Close", &GateValve::close),
+                        actionOpen("Open", this, &GateValve::open),
+                        actionClose("Close", this, &GateValve::close),
                         state(digitalInIsolatedGateValveState.getState()),
-                        statePtr("Open/Close",&state)
+                        statePtr("State",&state)
                         {
                 }
             
                 void update() override {
                     state = digitalInIsolatedGateValveState.getState();
-                    
                 }
                 bool getState(){
                     waitForSaveReadWrite();
@@ -852,13 +876,13 @@ class Components{
                 }
                 void open(){
                     waitForSaveReadWrite();
-                    powerSwitchClose.setState(false);
-                    powerSwitchOpen.setState(true);
+                   // powerSwitchClose.setState(false);
+                    //powerSwitchOpen.setState(true);
                 }
                 void close(){
                     waitForSaveReadWrite();
-                    powerSwitchOpen.setState(false);
-                    powerSwitchClose.setState(true);
+                    //powerSwitchOpen.setState(false);
+                    //powerSwitchClose.setState(true);
                 }
 
                 //Retuns the component type

@@ -8,7 +8,7 @@
 
 
 void waitForSaveReadWrite(){
-    while(100-(millis()-ComponentTracker::getInstance().lastOsCall) < 3){
+    while(100-(millis()-ComponentTracker::getInstance().lastOsCall) < 10){
     }
 }
 
