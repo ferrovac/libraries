@@ -1,6 +1,7 @@
 #include "LscOS.h"
 #include "LscPersistence.h"
 
+
 namespace OS{
     bool watchdogRunning = false;
     bool bootUpFault = false;
@@ -28,6 +29,7 @@ namespace OS{
         SUPC->SUPC_SMMR |= SUPC_SMMR_SMIEN;
         SUPC->SUPC_SMMR |= SUPC_SMMR_SMSMPL_CSM;
         NVIC_EnableIRQ(SUPC_IRQn);
+        NVIC_SetPriority(SUPC_IRQn, 0);
 
         if (!SD.begin(31)){
             Serial.println("No SD Card");
@@ -150,7 +152,7 @@ namespace OS{
 
 void SUPC_Handler(void) {
     OS::powerFailureImminent = true;
-    PersistentTracker::getInstance().powerFailureImminent = true;
+    PersistentTracker::getInstance().powerFailureImminent = true;        
 }
 void TC5_Handler(){
     TC_GetStatus(TC1, 2);

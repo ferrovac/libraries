@@ -17,8 +17,6 @@ RECOURCES:  TODO
 #include "LscPersistence.h"
 
 
-
-
 extern void waitForSaveReadWrite();
 class BaseComponent;
 struct BaseExposedState;

@@ -88,7 +88,7 @@ struct ElementTracker{
         //singelton lazy init
         static ElementTracker& getInstance() {
             static ElementTracker instance;
-        return instance;
+            return instance;
         }
         //Adds a UI_element to the tracker
         static void registerElement(BaseUI_element* element){
@@ -295,7 +295,6 @@ class SceneManager{
         }
         //inizialises the SceneManager setting the first scene and background color
         void init(void (*scene)(), uint32_t BackGroundColor=TFT_BLACK, uint32_t ForeGroundColor=TFT_WHITE, const GFXfont* DefaultFont=FF12){
-            OS::startWatchdog();
             backGroundColor = BackGroundColor;
             defaultForeGroundColor = ForeGroundColor;
             defaultFont = DefaultFont;
@@ -305,9 +304,7 @@ class SceneManager{
             tft.setTextColor(TFT_WHITE, TFT_BLACK);
             tft.setFreeFont(FMB12);     
             currentScene = scene;    
-            nextScene = scene;
-            OS::stopWatchdog();
-            
+            nextScene = scene;            
         }
         //starts the sceneManager. This will enter an endless loop 
         [[noreturn]] void begin(){
@@ -1308,12 +1305,9 @@ class SceneManager{
                         }else{
                             tft.drawArc(x,y,r+1,r, startAngle/LinAlg::pi/2.*360., 360.,color,backGroundColor,false );
                             tft.drawArc(x,y,r+1,r, 0., endAngle/LinAlg::pi/2.*360.,color,backGroundColor,false );
-                        }
-                    
-                        
-                        
-                                
+                        }           
                     }
+
                 public:
                     VacuumChamber(uint16_t xPos, uint16_t yPos, uint16_t Width, uint16_t Height ,double Rotation = 0,double Scale = 1, uint32_t LineColor = defaultForeGroundColor) 
                             :zeroPoint(xPos,yPos),
@@ -1850,7 +1844,7 @@ class SceneManager{
         }
 
         
-        bool showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES", uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9){
+        static bool showMessageBox(String Title, String Message, String OptionFalse="NO", String OptionTrue="YES", uint32_t TitleColor = defaultForeGroundColor, uint32_t TextColor = defaultForeGroundColor, uint32_t OptionFalseColor = defaultForeGroundColor, uint32_t OptionTrueColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* TitleFont = FMB12, const GFXfont* TextFont = FM9){
                //first we disable all butttons we dont want buttion handlers to be executed while the textbox is shown
                 LSC::getInstance().buttons.bt_0.active = false;
                 LSC::getInstance().buttons.bt_1.active = false;
@@ -1993,5 +1987,37 @@ class SceneManager{
 
 };
 
+
+enum struct RulePolicy{
+  Deny,
+  DenyInform,
+  Ask,
+  AllowInform
+};
+
+
+extern void ruleList();
+
+class Rules{
+    private:
+        static volatile bool allowed;    
+
+    public:
+        Rules(){}
+        static void check(bool eval, RulePolicy policy){
+            switch(policy){
+                case RulePolicy::Deny:
+                    allowed = false;
+                    break;
+                case RulePolicy::DenyInform:
+                    SceneManager::showMessageBox("asdf","asf");
+
+            }
+        }
+        static void checkRuleList(){
+
+        }
+
+};
 
 #endif

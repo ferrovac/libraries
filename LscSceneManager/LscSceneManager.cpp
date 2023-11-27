@@ -3,6 +3,9 @@
 std::vector<BaseUI_element*> ElementTracker::elements;
 std::vector<std::vector<BaseUI_element*>> ElementTracker::clearLayers;
 
+volatile bool Rules::allowed = true;
+
+
 uint32_t SceneManager::backGroundColor = TFT_BLACK;
 uint32_t SceneManager::defaultForeGroundColor = TFT_WHITE;
 volatile bool SceneManager::systemStableFor20Sec = false;
