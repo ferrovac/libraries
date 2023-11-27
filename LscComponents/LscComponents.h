@@ -623,6 +623,7 @@ class Components{
                 }
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getTeperatureAsString() {
+                    waitForSaveReadWrite();
                     return String(displayUnit.convertFromSI(getTemperature())) + displayUnit.getSuffix();
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
@@ -682,6 +683,7 @@ class Components{
                 
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getPressureAsString(bool printUnitSuffix = true) {
+                    waitForSaveReadWrite();
                     if(printUnitSuffix){
                         return doubleToSciString(displayUnit.convertFromSI(getPressure())) + displayUnit.getSuffix();
                     }else{
@@ -735,9 +737,6 @@ class Components{
                         {
                             mystateptr = &_setState;
                 }
-                String getAddr(){
-                    return String(reinterpret_cast<uintptr_t>(mystateptr), HEX);
-                }
             
                 void update() override {
                     if(_isState == _setState) return;
@@ -756,6 +755,115 @@ class Components{
                 //Retuns the component type
                 String const getComponentType()   {
                     return "Valve";
+                }
+                //Returns the component Name
+                const char* const getComponentName() {
+                    return componentName;
+                }
+        };
+        class RoughingPump : BaseComponent {
+            private:
+                MOSContact &mosContact;
+                bool _isState;
+                ExposedState<ExposedStateType::Action, void (Components::RoughingPump::*)()> actionTurnOn;
+                ExposedState<ExposedStateType::Action, void (Components::RoughingPump::*)()> actionTurnOff;
+                
+                
+            public:
+                RoughingPump(MOSContact mosContact, const char* componentName = "RoughingPump") 
+                    :   BaseComponent(componentName),   
+                        mosContact(mosContact),
+                        _isState(false),
+                        actionTurnOn("Turn On", &RoughingPump::turnOn),
+                        actionTurnOff("Turn Off", &RoughingPump::turnOff)
+                        {
+                }
+            
+                void update() override {
+                    
+                }
+                bool getState(){
+                    waitForSaveReadWrite();
+                    return _isState;
+                }
+                void setState(int State){
+                    waitForSaveReadWrite();
+                    if(State == _isState) return;
+                    State ? turnOn() : turnOff();
+                    _isState = State;
+                }
+                void turnOn(){
+                    waitForSaveReadWrite();
+                    mosContact.setState(true);
+                    _isState = true;
+                }
+                void turnOff(){
+                    waitForSaveReadWrite();
+                    mosContact.setState(false);
+                    _isState = false;
+                }
+
+                //Retuns the component type
+                String const getComponentType()   {
+                    return "Roughing Pump";
+                }
+                //Returns the component Name
+                const char* const getComponentName() {
+                    return componentName;
+                }
+        };
+
+        class GateValve : BaseComponent {
+            private:
+                PowerSwitch &powerSwitchOpen;
+                PowerSwitch &powerSwitchClose;
+                DigitalInIsolated &digitalInIsolatedGateValveState;
+                ExposedState<ExposedStateType::Action, void (Components::GateValve::*)()> actionOpen;
+                ExposedState<ExposedStateType::Action, void (Components::GateValve::*)()> actionClose;
+                volatile bool state;
+                ExposedState<ExposedStateType::ReadOnly, volatile bool> statePtr;
+                
+                
+            public:
+                GateValve(PowerSwitch &powerSwitchOpen, PowerSwitch &powerSwitchClose, DigitalInIsolated &digitalInIsolatedGateValveState,  const char* componentName = "GateValve") 
+                    :   BaseComponent(componentName),   
+                        powerSwitchOpen(powerSwitchOpen),
+                        powerSwitchClose(powerSwitchClose),
+                        digitalInIsolatedGateValveState(digitalInIsolatedGateValveState),
+                        actionOpen("Open", &GateValve::open),
+                        actionClose("Close", &GateValve::close),
+                        state(digitalInIsolatedGateValveState.getState()),
+                        statePtr("Open/Close",&state)
+                        {
+                }
+            
+                void update() override {
+                    state = digitalInIsolatedGateValveState.getState();
+                    
+                }
+                bool getState(){
+                    waitForSaveReadWrite();
+                    state = digitalInIsolatedGateValveState.getState();
+                    return state;
+                }
+                void setState(int State){
+                    waitForSaveReadWrite();
+                    State ? open() : close();
+                }
+                void open(){
+                    waitForSaveReadWrite();
+                    powerSwitchClose.setState(false);
+                    powerSwitchOpen.setState(true);
+                }
+                void close(){
+                    waitForSaveReadWrite();
+                    powerSwitchOpen.setState(false);
+                    powerSwitchClose.setState(true);
+                }
+
+                //Retuns the component type
+                String const getComponentType()   {
+                    return "Gate Valve";
                 }
                 //Returns the component Name
                 const char* const getComponentName() {

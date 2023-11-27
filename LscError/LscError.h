@@ -55,9 +55,6 @@ class ErrorHandler {
     // severityLevel: SeverityLevel::NORMAL, SeverityLevel::CRITICAL, SeverityLevel::FATAL
     static void throwError(int errorCode, const String& errorMessage, const SeverityLevel serverityLevel) {
         errors.push_back(Error(errorCode, errorMessage, serverityLevel));
-        if(serverityLevel == SeverityLevel::CRITICAL || serverityLevel == SeverityLevel::FATAL){ // Stop program execution if the error is CRITICSL or FATAL
-          while(true){} // Endless Loop to halt programm execution.
-        }
     }
 
     // Returns the vector containing the list of errors
@@ -109,7 +106,7 @@ struct Assert{
 //criticalVoltageThreshold: The max allowed voltage for the input
   static void overVoltageCondition(String& description, double voltage, double criticalVoltageThreshold){
     if( voltage >= criticalVoltageThreshold){
-      ErrorHandler::throwError(0, "The voltage on\n" + description + " \nis to high. To prevent damage to the device disconnect it immediately!", SeverityLevel::FATAL );
+      ErrorHandler::throwError(0, "The voltage on\n" + description + " \nis to high. To prevent damage to the device disconnect it immediately!", SeverityLevel::CRITICAL );
     }
   }
 

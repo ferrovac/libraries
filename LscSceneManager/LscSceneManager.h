@@ -188,14 +188,20 @@ class SceneManager{
                 Selection<uint32_t> colorSelection;
                 ExposedState<ExposedStateType::ReadWriteSelection, uint32_t> bgc;
                 ExposedState<ExposedStateType::ReadWriteSelection, uint32_t> fgc;
+                bool debugMode;
+                Selection<bool> debugModeSelection;
+                ExposedState<ExposedStateType::ReadWriteSelection, bool> debugModePtr; 
             
                 UI_Options(uint32_t bcolor, uint32_t fcolor) 
-                    :   BaseComponent("Display"),
+                    :   BaseComponent("System"),
                         bColor(bcolor),
                         fColor(fcolor),
                         colorSelection({{TFT_BLACK,"Black"},{TFT_WHITE, "White"},{TFT_BLUE, "Blue"},{TFT_BROWN, "Brown"}, {TFT_CYAN, "Cyan"},{TFT_DARKCYAN, "Dark Cyan"}}),
                         bgc("Background Color", &bColor,colorSelection),
-                        fgc("Foreground Color",&fColor, colorSelection)
+                        fgc("Foreground Color",&fColor, colorSelection),
+                        debugMode(false),
+                        debugModeSelection({{false, "User Mode"}, {true, "Debug Mode"}}),
+                        debugModePtr("Access Mode", &debugMode, debugModeSelection)
                     {
                 }
                 void update()  override {
@@ -1779,7 +1785,6 @@ class SceneManager{
                                 waitForSaveReadWrite();
                                 selectionBox->update();
                                 if(selectionBox->selectHasBeenClicked()){ //One onf the selection options has been chosen
-                                showMessageBox("test","ölajdföalksjflkasj");
                                     waitForSaveReadWrite();
         
                                     stateInterface.setStateValue(selectionBox->getSelectedIndex());
@@ -1818,7 +1823,13 @@ class SceneManager{
                             }
                         }
                         if(stateInterface.getStateType() == ExposedStateType::Action){
-                            stateInterface.executeAction();
+                            waitForSaveReadWrite();
+                            if(!options.debugMode){
+                                showMessageBox("Not In Debug Mode", "Switch to debug mode to change the state of the system!","","ok");
+                            }else{
+                                stateInterface.executeAction();
+                            }
+                            
                         }
 
                     }
