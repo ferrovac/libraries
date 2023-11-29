@@ -551,6 +551,8 @@ struct ExposedStateInterface {
             if(exposedState->stateType == ExposedStateType::ReadWriteSelection){
                 auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
                 return static_cast<T>(castStatePtr->index);
+            }else{
+                //TODO
             }
         }
         const String getStateValueAsString(){
@@ -683,7 +685,7 @@ class Components{
                     int exponent = static_cast<int>(floor(log10(value)));
                     double mantissa = value / pow(10, exponent);
                     int correction = 0;
-                    if(String(mantissa,2) == "10"){
+                    if(String(mantissa,2) == "10.00"){
                         mantissa = 1.;
                         correction = -1;
                     }
