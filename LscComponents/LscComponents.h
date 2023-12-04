@@ -904,6 +904,60 @@ class Components{
                     return componentName;
                 }
         };
+
+        class FIB : BaseComponent {
+            private:
+                volatile bool transferRequestSent;
+                volatile unsigned long transferRequestSentTime;
+                MOSContact &transferRequest;
+                AnalogOutIsolated &pressureFibSim;
+                DigitalInIsolated &transferRequestResponse;
+                ExposedState<ExposedStateType::Action, Components::FIB> sendTransferRequestAction;
+                volatile bool requestGranted;
+                ExposedState<ExposedStateType::ReadOnly, volatile bool> requestGrantedPtr;
+                
+                
+            public:
+                FIB(MOSContact &TransferRequest, AnalogOutIsolated &PressureFibSim, DigitalInIsolated &TransferRequestResponse,  const char* componentName = "FIB") 
+                    :   BaseComponent(componentName),
+                        transferRequestSent(false),
+                        transferRequestSentTime(0),   
+                        transferRequest(TransferRequest),
+                        pressureFibSim(PressureFibSim),
+                        transferRequestResponse(TransferRequestResponse),
+                        sendTransferRequestAction("Send Transfer Request", this, &FIB::sendTransferRequest),
+                        requestGranted(transferRequestResponse.getState()),
+                        requestGrantedPtr("Request Granted",&requestGranted)
+                        {
+                            
+                }
+            
+                void update() override {
+                    requestGranted = transferRequestResponse.getState();
+                    if(transferRequestSent){
+                        if(millis() - transferRequestSentTime > 1000){
+                            transferRequest.setState(false);
+                            transferRequestSent = false;
+                        }
+                    }
+                }
+                
+                void sendTransferRequest(){
+                    waitForSaveReadWrite();   
+                    transferRequest.setState(true);
+                    transferRequestSent = true;
+                    transferRequestSentTime = millis();
+                }
+
+                //Retuns the component type
+                String const getComponentType()   {
+                    return "FIB";
+                }
+                //Returns the component Name
+                const char* const getComponentName() {
+                    return componentName;
+                }
+        };
         
         
 

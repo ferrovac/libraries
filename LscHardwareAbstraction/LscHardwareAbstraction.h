@@ -727,7 +727,7 @@ class LSC{
     PowerSwitch powerSwitch_0;
     //Connector: D-SUB 37 | Connector Pins: 6,25 | Arduino Pin: 38| Ratings: 24V,0.25A | Comment: set(true)-> Outputs High | GND Pins: D-SUB-37-Pins:1,16,20
     PowerSwitch powerSwitch_1;
-    //Connector: D-SUB 37 | Connector Pins: 7,26 | Arduino Pin: 29| Ratings: 24V,0.25A | Comment: set(true)-> Outputs High | GND Pins: D-SUB-37-Pins:1,16,20
+    //Connector: D-SUB 37 | Connector Pins: 7,26 | Arduino Pin: 39| Ratings: 24V,0.25A | Comment: set(true)-> Outputs High | GND Pins: D-SUB-37-Pins:1,16,20
     PowerSwitch powerSwitch_2;
     //Connector: D-SUB 37 | Connector Pins: 8,27 | Arduino Pin: 40| Ratings: 24V,0.25A | Comment: set(true)-> Outputs High | GND Pins: D-SUB-37-Pins:1,16,20
     PowerSwitch powerSwitch_3;
@@ -751,9 +751,9 @@ class LSC{
     DigitalInIsolated digitalInIsolated_2;
     //Connector: D-SUB 37 | Connector Pins: 33 | Arduino Pin: 49| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:12
     DigitalInIsolated digitalInIsolated_3;
-    //Connector: D-SUB 37 | Connector Pins: 15 | Arduino Pin: 53| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:12
+    //Connector: D-SUB 37 | Connector Pins: 15 | Arduino Pin: 48| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:12
     DigitalInIsolated digitalInIsolated_4;
-    //Connector: D-SUB 37 | Connector Pins: 34 | Arduino Pin: 53| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:12
+    //Connector: D-SUB 37 | Connector Pins: 34 | Arduino Pin: 47| Ratings: 3V-24V | The input is isolated with GND@D-SUB-37-Pin:12
     DigitalInIsolated digitalInIsolated_5;
     //Connector: D-SUB 37 | Connector Pins: from: 17 to: 35 | Arduino Pin: 34| Ratings: 60V,0.3A
     MOSContact mosContact_0;
