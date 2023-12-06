@@ -415,7 +415,7 @@ struct DigitalInIsolated : DigitalInBase{
     bool getState() override{
         pinMode(arduinoPin, INPUT); //I have no idea why but this hase to be here exactly as is i can not move it to the constructor or even the constructor of the base, it wont work... 
         pinMode(arduinoPin, INPUT_PULLUP);
-        return digitalRead(!arduinoPin);
+        return !digitalRead(arduinoPin);
     }
     String getDescription(){
         return description;
@@ -554,6 +554,7 @@ class Buttons{
       if(Buttons::getInstance().bt_0.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_0.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
+        Buttons::getInstance().bt_1.clicked = Buttons::getInstance().bt_2.clicked = Buttons::getInstance().bt_3.clicked = Buttons::getInstance().bt_4.clicked = Buttons::getInstance().bt_5.clicked = false;
         if(bt_0_external_callback != nullptr && Buttons::getInstance().bt_0.active){ //make sure the external function is set propperly
           bt_0_external_callback();
         } 
@@ -565,6 +566,7 @@ class Buttons{
       if(Buttons::getInstance().bt_1.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_1.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
+        Buttons::getInstance().bt_0.clicked = Buttons::getInstance().bt_2.clicked = Buttons::getInstance().bt_3.clicked = Buttons::getInstance().bt_4.clicked = Buttons::getInstance().bt_5.clicked = false;
         if(bt_1_external_callback != nullptr && Buttons::getInstance().bt_1.active){ //make sure the external function is set propperly
            bt_1_external_callback();
         }
@@ -576,6 +578,7 @@ class Buttons{
       if(Buttons::getInstance().bt_2.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_2.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
+        Buttons::getInstance().bt_0.clicked = Buttons::getInstance().bt_1.clicked = Buttons::getInstance().bt_3.clicked = Buttons::getInstance().bt_4.clicked = Buttons::getInstance().bt_5.clicked = false;
         if(bt_2_external_callback != nullptr && Buttons::getInstance().bt_2.active){ //make sure the external function is set propperly
           bt_2_external_callback();
         } 
@@ -587,6 +590,7 @@ class Buttons{
       if(Buttons::getInstance().bt_3.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_3.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
+        Buttons::getInstance().bt_0.clicked = Buttons::getInstance().bt_1.clicked = Buttons::getInstance().bt_2.clicked = Buttons::getInstance().bt_4.clicked = Buttons::getInstance().bt_5.clicked = false;
         if(bt_3_external_callback != nullptr && Buttons::getInstance().bt_3.active){ //make sure the external function is set propperly
           bt_3_external_callback();
         } 
@@ -598,6 +602,7 @@ class Buttons{
       if(Buttons::getInstance().bt_4.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_4.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
+        Buttons::getInstance().bt_0.clicked = Buttons::getInstance().bt_1.clicked = Buttons::getInstance().bt_2.clicked = Buttons::getInstance().bt_3.clicked = Buttons::getInstance().bt_5.clicked = false;
         if(bt_4_external_callback != nullptr && Buttons::getInstance().bt_4.active){ //make sure the external function is set propperly
           bt_4_external_callback();
         } 
@@ -609,6 +614,7 @@ class Buttons{
       if(Buttons::getInstance().bt_5.isPressed() == true){ //we only want to execute if the button is pressed, not if it is realeaded
         BEEPER.beep(1);
         Buttons::getInstance().bt_5.clicked = true; //indicate that the button has been pressed for the bt.hasBeenClicked function
+        Buttons::getInstance().bt_0.clicked = Buttons::getInstance().bt_1.clicked = Buttons::getInstance().bt_2.clicked = Buttons::getInstance().bt_3.clicked = Buttons::getInstance().bt_4.clicked = false;
         if(bt_5_external_callback != nullptr && Buttons::getInstance().bt_5.active){ //make sure the external function is set propperly
           bt_5_external_callback();
         } 

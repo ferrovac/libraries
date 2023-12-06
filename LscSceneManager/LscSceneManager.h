@@ -285,7 +285,10 @@ class SceneManager{
             }
             ElementTracker::getInstance().clearLayers.pop_back();
         }
-
+        uint32_t getBackGroundColor(){
+            waitForSaveReadWrite();
+            return options.bColor;
+        }
 
         //re draws all the defined elements on the screen
         static void reDrawAllElements(){
@@ -791,6 +794,11 @@ class SceneManager{
                     }
                     void reDraw(){
                         tft.drawLine(xPosStart,yPosStart,xPosEnd,yPosEnd,foreColor);
+                    }
+                    void setColor(uint32_t color){
+                        if(color == foreColor) return;
+                        foreColor = color;
+                        reDraw();
                     }
 
                 private:
