@@ -754,7 +754,6 @@ class Components{
                 }
                 bool error(){
                     waitForSaveReadWrite();
-                    if(ignoreErrorState) return false;
                     return errorState;
                 }
                 bool ignoreError(){
