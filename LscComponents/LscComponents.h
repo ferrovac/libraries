@@ -676,9 +676,26 @@ class Components{
                 ExposedState<ExposedStateType::ReadWriteSelection, Units::Pressure> displayUnitPtr;
                 Gauge gauge;
                 ExposedState<ExposedStateType::ReadWriteSelection, GaugeType> gaugePtr;
+                volatile bool errorState;
+                volatile bool ignoreErrorState;
+                Selection<volatile bool> ignoreErrorStateSelection;
+                ExposedState<ExposedStateType::ReadWriteSelection, volatile bool> ignoreErrorStatePtr;
                 
             public:
-                PressureGauge(AnalogInBase &analogIn, const char* componentName = "genericPressureSensor", GaugeType gaugeType = GaugeType::PKR) : analogIn(analogIn), BaseComponent(componentName), pressure(0), pressurePtr("Pressure",&pressure), displayUnit(Units::Pressure::mBar), displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),gauge(gaugeType), gaugePtr("Gauge Type",&(gauge.gaugeType),gauge.selection){
+                PressureGauge(AnalogInBase &analogIn, const char* componentName = "genericPressureSensor", GaugeType gaugeType = GaugeType::PKR) 
+                        :   analogIn(analogIn), 
+                            BaseComponent(componentName), 
+                            pressure(0), 
+                            pressurePtr("Pressure",&pressure), 
+                            displayUnit(Units::Pressure::mBar), 
+                            displayUnitPtr("Display Unit", &(displayUnit.unitType), displayUnit.selection),
+                            gauge(gaugeType), 
+                            gaugePtr("Gauge Type",&(gauge.gaugeType),gauge.selection),
+                            errorState(false),
+                            ignoreErrorState(false),
+                            ignoreErrorStateSelection({{true,"True"},{false,"False"}}),
+                            ignoreErrorStatePtr("Ignore Error State", &ignoreErrorState, ignoreErrorStateSelection)
+                        {
                 }
                 String doubleToSciString(double value) {
                     if(value == 0) return "0.00E+00";
@@ -705,6 +722,7 @@ class Components{
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getPressureAsString(bool printUnitSuffix = true) {
                     waitForSaveReadWrite();
+                    if(errorState && !ignoreErrorState) return "ERROR";
                     if(printUnitSuffix){
                         return doubleToSciString(displayUnit.convertFromSI(getPressure())) + displayUnit.getSuffix();
                     }else{
@@ -724,7 +742,24 @@ class Components{
 
                 //Reads the current temperature and updates the internal state
                 void update() override {
-                    pressure = gauge.getPressureFromVoltage(analogIn.getVoltage());
+                    double voltage = analogIn.getVoltage();
+                    //Serial.println(voltage);
+                    if(voltage < 0.5){
+                        errorState = true;
+                    } else{
+                        errorState = false;
+                    }
+                    pressure = gauge.getPressureFromVoltage(voltage);
+                    
+                }
+                bool error(){
+                    waitForSaveReadWrite();
+                    if(ignoreErrorState) return false;
+                    return errorState;
+                }
+                bool ignoreError(){
+                    waitForSaveReadWrite();
+                    return ignoreErrorState;
                 }
 
                 //Retuns the component type
@@ -860,7 +895,7 @@ class Components{
                 
                 
             public:
-                GateValve(PowerSwitch &powerSwitchOpen, PowerSwitch &powerSwitchClose, DigitalInIsolated &digitalInIsolatedGateValveState,  const char* componentName = "GateValve") 
+                GateValve(PowerSwitch &powerSwitchOpen, PowerSwitch &powerSwitchClose, DigitalInIsolated& digitalInIsolatedGateValveState,  const char* componentName = "GateValve") 
                     :   BaseComponent(componentName),   
                         powerSwitchOpen(powerSwitchOpen),
                         powerSwitchClose(powerSwitchClose),
@@ -874,6 +909,7 @@ class Components{
             
                 void update() override {
                     state = digitalInIsolatedGateValveState.getState();
+                    //Serial.println(digitalInIsolatedGateValveState.getDescription());
                 }
                 bool getState(){
                     waitForSaveReadWrite();
@@ -912,19 +948,21 @@ class Components{
                 MOSContact &transferRequest;
                 AnalogOutIsolated &pressureFibSim;
                 DigitalInIsolated &transferRequestResponse;
+                PressureGauge &pressureGauge;
                 ExposedState<ExposedStateType::Action, Components::FIB> sendTransferRequestAction;
                 volatile bool requestGranted;
                 ExposedState<ExposedStateType::ReadOnly, volatile bool> requestGrantedPtr;
                 
                 
             public:
-                FIB(MOSContact &TransferRequest, AnalogOutIsolated &PressureFibSim, DigitalInIsolated &TransferRequestResponse,  const char* componentName = "FIB") 
+                FIB(MOSContact &TransferRequest, AnalogOutIsolated &PressureFibSim, DigitalInIsolated &TransferRequestResponse, PressureGauge &pressureGauge,  const char* componentName = "FIB") 
                     :   BaseComponent(componentName),
                         transferRequestSent(false),
                         transferRequestSentTime(0),   
                         transferRequest(TransferRequest),
                         pressureFibSim(PressureFibSim),
                         transferRequestResponse(TransferRequestResponse),
+                        pressureGauge(pressureGauge),
                         sendTransferRequestAction("Send Transfer Request", this, &FIB::sendTransferRequest),
                         requestGranted(transferRequestResponse.getState()),
                         requestGrantedPtr("Request Granted",&requestGranted)
@@ -940,6 +978,10 @@ class Components{
                             transferRequestSent = false;
                         }
                     }
+                    //Simulate the signal for the FIB pressure gauge.
+                    //double pressure = pressureGauge.getPressure();
+                    //if(pressure < 3) pressure = 3; //The fib fill show a gauge error if the pressure is too low we cap it at 3Pa
+                    //pressureFibSim.setVoltage(pressure); 
                 }
                 
                 void sendTransferRequest(){

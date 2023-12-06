@@ -85,8 +85,8 @@ struct DigitalOutBase {
 // Structure representing a physical arduino pin configured as digital input
 struct DigitalInBase {
   private:
-    uint8_t arduinoPin;
   protected:
+    uint8_t arduinoPin;
     String description;
   public:
     //--- CONSTRUCTOR ---
@@ -94,26 +94,9 @@ struct DigitalInBase {
     //Arduino PIN 
     DigitalInBase(uint8_t arduinoPin) : arduinoPin(arduinoPin), description("Digital In ArduinoPin: " + String(arduinoPin)) {
       pinMode(arduinoPin, INPUT);
+      pinMode(arduinoPin, INPUT_PULLUP);
     }
-    //--- PUBLIC VARS ---
-    bool state;
-    //--- PUBLIC FUNCTIONS ---
-
-    //Returns the state of the input
-    bool getState() {
-      state = digitalRead(arduinoPin);
-      return state;
-    }
-    void update() {
-      state = digitalRead(arduinoPin);
-    }
-    //--- OVERLOADS ---
-
-    // implicit bool conversion
-    operator bool() {
-      getState();
-      return state;
-    }
+    virtual bool getState() = 0;
 };
 
 //===== ANALOG OUT =====
@@ -186,17 +169,9 @@ struct AnalogInBase {
     
     //--- PUBLIC FUNCTIONS ---
 
-    virtual void update(){
-      Assert::adcResolutionIs12bit();
-      int analogReadDAC = 0;
-      analogReadDAC = analogRead(arduinoPin);
-      state = (double)analogReadDAC / 4096.0 * 3.3;
-    }
+    virtual void update() = 0;
     //Returns the voltage of the input
-    virtual double getVoltage() {
-      update();
-      return state;  
-    }
+    virtual double getVoltage() = 0;
     //--- OVERLOADS ---
     // =
     // implicit double conversion
@@ -301,6 +276,7 @@ struct AnalogIn : AnalogInBase{
       }
       analogReadADC = analogReadADC / 1000.;
       state = analogReadADC;
+      state = adcToVoltage(analogReadADC);
       /*
       //analogReadADC = analogRead(arduinoPin);
       state = adcToVoltage(analogReadADC);
@@ -324,6 +300,7 @@ struct AnalogIn : AnalogInBase{
       return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
     }
     double adcToVoltage(int adcValue) {
+      return (double)(adcValue/4096.*10.);
       // Find the two nearest data points
       CalibrationPairs *lower = nullptr;
       CalibrationPairs *upper = nullptr;
@@ -394,6 +371,9 @@ struct AnalogInPt100 : AnalogInBase{
       update();
       return state;
     }
+    double getVoltage() override{
+      return -100000;
+    }
 };
 
 /* 
@@ -413,7 +393,7 @@ struct AnalogInGauge : AnalogInBase{
       Assert::dacResolutionIs12bit();
       int analogReadADC = 0;
       analogReadADC = analogRead(arduinoPin);
-      state = (double)analogReadADC / 4096.0 * 6.3 + 2.2;
+      state = (double)analogReadADC / 4096*8.5;
     }
     //Returns the voltage of the input
     double getVoltage() override {
@@ -428,11 +408,19 @@ DigitalInIsolated (Dig. IN isoliert)
 */
 struct DigitalInIsolated : DigitalInBase{
   public:
-    using DigitalInBase::operator bool;
-    //--- CONSTRUCTOR ---
     DigitalInIsolated(uint8_t arduinoPin) : DigitalInBase(arduinoPin) {
-      description = "DigitalInIsolated (Dig. IN isoliert)\n3V to 24V, Rin=, Inverted with PullUp\nArduino PIN: " + String(arduinoPin);
+        description = "DigitalInIsolated (Dig. IN isoliert)\n3V to 24V, Rin=, Inverted with PullUp\nArduino PIN: " + String(arduinoPin);
+        
     }
+    bool getState() override{
+        pinMode(arduinoPin, INPUT); //I have no idea why but this hase to be here exactly as is i can not move it to the constructor or even the constructor of the base, it wont work... 
+        pinMode(arduinoPin, INPUT_PULLUP);
+        return digitalRead(!arduinoPin);
+    }
+    String getDescription(){
+        return description;
+    }
+    
 };
 
 /* 
@@ -789,6 +777,16 @@ class LSC{
       static LSC instance;
       return instance;
     }
+
+    void clearAllButtonClicks(){
+        LSC::getInstance().buttons.bt_0.hasBeenClicked();
+        LSC::getInstance().buttons.bt_1.hasBeenClicked();
+        LSC::getInstance().buttons.bt_2.hasBeenClicked();
+        LSC::getInstance().buttons.bt_3.hasBeenClicked();
+        LSC::getInstance().buttons.bt_4.hasBeenClicked();
+        LSC::getInstance().buttons.bt_5.hasBeenClicked();
+    }
+
     //##################################################
     //############## SERIAL COMUNICATION ###############
     //##################################################
