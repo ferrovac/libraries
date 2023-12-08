@@ -667,6 +667,7 @@ class Components{
                     return componentName;
                 }
         };
+        class FIB;
         class PressureGauge : BaseComponent {
             private:
                 AnalogInBase &analogIn;
@@ -682,6 +683,7 @@ class Components{
                 ExposedState<ExposedStateType::ReadWriteSelection, volatile bool> ignoreErrorStatePtr;
                 
             public:
+                friend class FIB;
                 PressureGauge(AnalogInBase &analogIn, const char* componentName = "genericPressureSensor", GaugeType gaugeType = GaugeType::PKR) 
                         :   analogIn(analogIn), 
                             BaseComponent(componentName), 
@@ -929,6 +931,7 @@ class Components{
                     powerSwitchOpen.setState(false);
                     powerSwitchClose.setState(true);
                 }
+                
 
                 //Retuns the component type
                 String const getComponentType()   {
@@ -978,9 +981,10 @@ class Components{
                         }
                     }
                     //Simulate the signal for the FIB pressure gauge.
-                    //double pressure = pressureGauge.getPressure();
-                    //if(pressure < 3) pressure = 3; //The fib fill show a gauge error if the pressure is too low we cap it at 3Pa
-                    //pressureFibSim.setVoltage(pressure); 
+                    double pressure = pressureGauge.pressure;
+                    if(pressure < 3) pressure = 3; //The fib fill show a gauge error if the pressure is too low we cap it at 3Pa
+                    if(pressure > 9.99) pressure = 9.99;
+                    pressureFibSim.setVoltage(pressure); 
                 }
                 
                 void sendTransferRequest(){
@@ -988,6 +992,10 @@ class Components{
                     transferRequest.setState(true);
                     transferRequestSent = true;
                     transferRequestSentTime = millis();
+                }
+                bool getRequestState(){
+                    waitForSaveReadWrite();
+                    return transferRequestResponse.getState();
                 }
 
                 //Retuns the component type

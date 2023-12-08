@@ -43,6 +43,17 @@ struct has_multiplication_operator {
 };
 
 template <typename T>
+struct is_convertable_to_String {
+    template <typename U>
+    static auto test(U* p) -> decltype(String(std::declval<U>()), std::true_type());
+
+    template <typename U>
+    static std::false_type test(...);
+
+    static constexpr bool value = decltype(test<T>(nullptr))::value;
+};
+
+template <typename T>
 struct has_subtraction_operator {
     template <typename U>
     static auto test(U* p) -> decltype(std::declval<U>() - std::declval<U>(), std::true_type());
@@ -351,6 +362,10 @@ class Persistent : public BasePersistent  {
         }
 
         operator T() const {
+            return object;
+        }
+
+        T getType(){
             return object;
         }
 

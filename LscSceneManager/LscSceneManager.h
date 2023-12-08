@@ -290,6 +290,11 @@ class SceneManager{
             return options.bColor;
         }
 
+        uint32_t getForeGroundColor(){
+            waitForSaveReadWrite();
+            return options.fColor;
+        }
+
         //re draws all the defined elements on the screen
         static void reDrawAllElements(){
             //See clearAllElements() for implentation
@@ -1034,6 +1039,9 @@ class SceneManager{
                     void setState(bool state){
                         indicator.setStatus(state);
                         open = state;
+                    }
+                    bool getState(){
+                        return open;
                     }
                     LinAlg::Vector_2D getLeftConnectionPoint(){
                         return LinAlg::Vector_2D((leftConnection + zeroPoint).vec[0],(leftConnection + zeroPoint).vec[1]);
@@ -1812,26 +1820,7 @@ class SceneManager{
                             }
                             
                         }
-                        ExposedStateInterface stateInterface(exposedStateList[selectionOnMenuLevel_1]);
-                        if(exposedStateList[selectionOnMenuLevel_1]->stateType  == ExposedStateType::ReadOnly){                            
-                            while(true){
-                                waitForSaveReadWrite();
-                                selectionBox->loadList({"ReadOnly State:",stateInterface.getStateValueAsString()});
-                                selectionBox->setColorOfItemByIndex(1,TFT_GREEN);
-                                selectionBox->update();
-                                if(selectionBox->backHasBeenClicked()){ // Go back to menu level 1
-                                    selectionBox->setTitle(componentListString[selectionOnMenuLevel_0]);
-                                    selectionBox->loadList(componentStateListToString(exposedStateList));
-                                    selectionBox->setSelectedIndex(selectionOnMenuLevel_1);
-                                    selectionBox->setColorOfAllItems(defaultForeGroundColor);
-                                    LSC::getInstance().buttons.bt_5.hasBeenClicked();
-                                    break;
-                                }
-
-                            }
-                        }
-                        if(stateInterface.getStateType() == ExposedStateType::Action){
-                            waitForSaveReadWrite();
+                        ExposedStateInterface stateInterface(exposedStateList[selectionOnMenuLevel_1]
                             if(!options.debugMode){
                                 showMessageBox("Not In Debug Mode", "Switch to debug mode to change the state of the system!","","ok");
                             }else{
