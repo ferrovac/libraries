@@ -1821,6 +1821,25 @@ class SceneManager{
                             
                         }
                         ExposedStateInterface stateInterface(exposedStateList[selectionOnMenuLevel_1]);
+                        if(exposedStateList[selectionOnMenuLevel_1]->stateType  == ExposedStateType::ReadOnly){                            
+                            while(true){
+                                waitForSaveReadWrite();
+                                selectionBox->loadList({"ReadOnly State:",stateInterface.getStateValueAsString()});
+                                selectionBox->setColorOfItemByIndex(1,TFT_GREEN);
+                                selectionBox->update();
+                                if(selectionBox->backHasBeenClicked()){ // Go back to menu level 1
+                                    selectionBox->setTitle(componentListString[selectionOnMenuLevel_0]);
+                                    selectionBox->loadList(componentStateListToString(exposedStateList));
+                                    selectionBox->setSelectedIndex(selectionOnMenuLevel_1);
+                                    selectionBox->setColorOfAllItems(defaultForeGroundColor);
+                                    LSC::getInstance().buttons.bt_5.hasBeenClicked();
+                                    break;
+                                }
+
+                            }
+                        }
+                        if(stateInterface.getStateType() == ExposedStateType::Action){
+                            waitForSaveReadWrite();
                             if(!options.debugMode){
                                 showMessageBox("Not In Debug Mode", "Switch to debug mode to change the state of the system!","","ok");
                             }else{
