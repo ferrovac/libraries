@@ -1820,7 +1820,7 @@ class SceneManager{
                             }
                             
                         }
-                        ExposedStateInterface stateInterface(exposedStateList[selectionOnMenuLevel_1]
+                        ExposedStateInterface stateInterface(exposedStateList[selectionOnMenuLevel_1]);
                             if(!options.debugMode){
                                 showMessageBox("Not In Debug Mode", "Switch to debug mode to change the state of the system!","","ok");
                             }else{
