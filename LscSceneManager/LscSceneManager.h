@@ -805,6 +805,16 @@ class SceneManager{
                         foreColor = color;
                         reDraw();
                     }
+                    void setPos(uint16_t XPosStart, uint16_t XPosEnd, uint16_t YPosStart, uint16_t YPosEnd){
+                        if( XPosStart != xPosStart || XPosEnd != xPosEnd || YPosStart != yPosStart || YPosEnd != yPosEnd){
+                            clear();
+                            xPosStart = XPosStart;
+                            xPosEnd = YPosEnd;
+                            yPosStart = YPosStart;
+                            yPosEnd = YPosEnd;
+                            reDraw();
+                        }
+                    }
 
                 private:
                     uint16_t xPosStart;
