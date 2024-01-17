@@ -1434,7 +1434,41 @@ class SceneManager{
                     }
             };
 
+            struct ScrollBar : BaseUI_element{
 
+                private:
+                    uint32_t lineColor;
+
+                public:
+
+                    void clear() const{
+                        int yDepth = 140;
+                        int xDepth = 19;
+                        // Lower triabgle
+                        tft.drawLine(320 - xDepth + 1, yDepth - 25, 320 - (xDepth / 2), yDepth, backGroundColor);
+                        tft.drawLine(320 - 1, yDepth - 25, 320 - (xDepth / 2), yDepth, backGroundColor);
+                        // upe driangle
+                        tft.drawLine(320 - xDepth + 1, 25, 320 - (xDepth / 2), 0, backGroundColor);
+                        tft.drawLine(320 - 1, 25, 320 - (xDepth / 2), 0, backGroundColor);
+                    }
+
+                    void reDraw(){
+                        int yDepth = 140;
+                        int xDepth = 19;
+                        // Lower triabgle
+                        tft.drawLine(320 - xDepth + 1, yDepth - 25, 320 - (xDepth / 2), yDepth, lineColor);
+                        tft.drawLine(320 - 1, yDepth - 25, 320 - (xDepth / 2), yDepth, lineColor);
+                        // upe driangle
+                        tft.drawLine(320 - xDepth + 1, 25, 320 - (xDepth / 2), 0, lineColor);
+                        tft.drawLine(320 - 1, 25, 320 - (xDepth / 2), 0, lineColor);
+                    }
+                    ScrollBar(uint32_t LineColor = defaultForeGroundColor): lineColor(LineColor){
+                        reDraw();
+                    }
+                    ~ScrollBar(){
+                        clear();
+                    }
+            };
 
         };
         struct Plot : BaseUI_element{
@@ -1452,6 +1486,8 @@ class SceneManager{
             }
         };
         
+        
+
         struct StandardMenu : BaseUI_element{
             public:
                 StandardMenu(String Title, String LeftOption, String RightOption, uint32_t TitleColor = defaultForeGroundColor, uint32_t LeftOptionColor = defaultForeGroundColor, uint32_t RightOptionColor = defaultForeGroundColor, uint32_t LineColor = defaultForeGroundColor, const GFXfont* Font = FMB12): titleColor(TitleColor), leftOptionColor(LeftOptionColor), rightOptionColor(RightOptionColor),lineColor(LineColor),font(Font){
