@@ -1435,6 +1435,21 @@ class SceneManager{
             };
 
 
+
+        };
+        struct Plot : BaseUI_element{
+            Plot(){
+
+            }
+            ~Plot(){
+
+            }
+            void clear() const override{
+
+            }
+            void reDraw() override{
+
+            }
         };
         
         struct StandardMenu : BaseUI_element{

@@ -193,11 +193,11 @@ class Unit<Units::Temperature> : BaseUnit{
         String getSuffix() override{
             switch (unitType) {
                 case Units::Temperature::K :
-                    return " K"; 
+                    return "K"; 
                 case Units::Temperature::C:
-                    return " °C"; 
+                    return "C"; 
                 case Units::Temperature::F:
-                    return " °F"; 
+                    return "F"; 
             }
         }
 };
@@ -645,7 +645,7 @@ class Components{
                 //Returns the temperature as string including the unit suffix. The unit can be set with setDisplayUnit
                 String getTeperatureAsString() {
                     waitForSaveReadWrite();
-                    return String(displayUnit.convertFromSI(getTemperature())) + displayUnit.getSuffix();
+                    return String(displayUnit.convertFromSI(getTemperature()),0) + displayUnit.getSuffix();
                 }
                 //All calculations are done in SI units. In the case of temperature in Kelvin. But when the teperature is requested as string, it will be converted to the unit set here
                 void setDisplayUnit(Units::Temperature unit){
