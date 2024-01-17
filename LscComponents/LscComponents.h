@@ -832,6 +832,41 @@ class Components{
                 }
         };
 
+        class LN2LevelMeter : BaseComponent {
+            private:
+                AnalogInBase &analogIn;
+                volatile int _state;
+                ExposedState<ExposedStateType::ReadOnly, volatile int> state;
+            public:
+                LN2LevelMeter(AnalogInBase &analogIn, const char* componentName = "genericLN2Meter") 
+                    :   BaseComponent(componentName),   
+                        analogIn(analogIn),
+                        _state(0),
+                        state("State",&_state)
+                    {
+                    
+                }
+            
+                void update() override {
+                    double result = (0.0307 * analogIn.getVoltage() - 24.61);
+                    _state = (int)result;
+                }
+
+                int getState(){
+                    waitForSaveReadWrite();
+                    return _state;
+                }
+
+                //Retuns the component type
+                String const getComponentType()   {
+                    return "LN2 Level Meter";
+                }
+                //Returns the component Name
+                const char* const getComponentName() {
+                    return componentName;
+                }
+        };
+
         class RoughingPump : BaseComponent {
             private:
                 MOSContact &mosContact;
