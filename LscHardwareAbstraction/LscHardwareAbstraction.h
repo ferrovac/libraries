@@ -274,9 +274,8 @@ struct AnalogIn : AnalogInBase{
       for(int i = 0; i< 1000;i++){
         analogReadADC += analogRead(arduinoPin);  
       }
-      analogReadADC = analogReadADC / 1000.;
-      state = analogReadADC;
-      state = adcToVoltage(analogReadADC);
+      state = adcToVoltage((double)analogReadADC / 1000.);
+      analogReadADC = (int)((double)analogReadADC / 1000.); 
       /*
       //analogReadADC = analogRead(arduinoPin);
       state = adcToVoltage(analogReadADC);
@@ -299,7 +298,7 @@ struct AnalogIn : AnalogInBase{
     double interpolate(double x, double x0, double x1, double y0, double y1) {
       return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
     }
-    double adcToVoltage(int adcValue) {
+    double adcToVoltage(double adcValue) {
       return (double)(adcValue/4096.*10.);
       // Find the two nearest data points
       CalibrationPairs *lower = nullptr;

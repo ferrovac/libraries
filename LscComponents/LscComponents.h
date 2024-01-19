@@ -775,25 +775,43 @@ class Components{
         
         class Valve : BaseComponent {
             private:
-                PowerSwitch &powerSwitch;
+                DigitalOutBase &powerSwitch;
                 volatile bool _isState;
                 ExposedState<ExposedStateType::ReadOnly, volatile bool> state;
                 ExposedState<ExposedStateType::Action, Components::Valve>  actionOpen;
                 ExposedState<ExposedStateType::Action, Components::Valve>  actionClose;
+                volatile long openTimer;
+                volatile long closeTimer;
             public:
                 bool* mystateptr;
-                Valve(PowerSwitch &powerSwitch, const char* componentName = "genericValve") 
+                Valve(DigitalOutBase &powerSwitch, const char* componentName = "genericValve") 
                     :   BaseComponent(componentName),   
                         powerSwitch(powerSwitch),
                         _isState(false),
                         state("State",&_isState),
                         actionOpen("Open", this, &Valve::open),
-                        actionClose("Close", this, &Valve::close)
+                        actionClose("Close", this, &Valve::close),
+                        openTimer(0),
+                        closeTimer(0)
                     {
                     
                 }
             
                 void update() override {
+                    if(openTimer > (long)0){
+                        openTimer -= 100;
+                        if(openTimer < (long)0 ){
+                            powerSwitch.setState(true);
+                            _isState = true;
+                        }
+                    }
+                    if(closeTimer > (long)0){
+                        closeTimer -= 100;
+                        if(closeTimer < (long)0 ){
+                            powerSwitch.setState(true);
+                        _isState = false;
+                        }
+                    }
                     
                 }
 
@@ -810,16 +828,26 @@ class Components{
                     }
                 }
                 void open(){
+                    if(openTimer > 0) return;
                     waitForSaveReadWrite();
                     if(_isState) return;
                     powerSwitch.setState(true);
                     _isState = true;
                 }
                 void close(){
+                    if(closeTimer > 0) return;
                     waitForSaveReadWrite();
                     if(!_isState) return;
                     powerSwitch.setState(false);
                     _isState = false;
+                }
+                //open with a delay in 100ms increments
+                void open(long delay_ms){
+                    openTimer = delay_ms;
+                }
+                //close with a delay in 100ms increments
+                void close(long delay_ms){ 
+                    closeTimer = delay_ms;
                 }
 
                 //Retuns the component type
@@ -836,20 +864,25 @@ class Components{
             private:
                 AnalogInBase &analogIn;
                 volatile int _state;
+                long lastMesurementTime;
                 ExposedState<ExposedStateType::ReadOnly, volatile int> state;
             public:
                 LN2LevelMeter(AnalogInBase &analogIn, const char* componentName = "genericLN2Meter") 
                     :   BaseComponent(componentName),   
                         analogIn(analogIn),
                         _state(0),
+                        lastMesurementTime(millis()),
                         state("State",&_state)
                     {
                     
                 }
             
                 void update() override {
-                    double result = (0.0307 * analogIn.getVoltage() - 24.61);
-                    _state = (int)result;
+                    if(millis() - lastMesurementTime > 100){
+                        _state = ((double)_state +  (0.0307*(analogIn.getVoltage()/10.*4096.)) -24.61) / 2.;
+                        if(_state < 0 ) _state = 0;
+                    }
+                    
                 }
 
                 int getState(){
@@ -928,7 +961,8 @@ class Components{
                 ExposedState<ExposedStateType::Action, Components::GateValve> actionClose;
                 volatile bool state;
                 ExposedState<ExposedStateType::ReadOnly, volatile bool> statePtr;
-                
+                volatile long openTimer;
+                volatile long closeTimer;
                 
             public:
                 GateValve(PowerSwitch &powerSwitchOpen, PowerSwitch &powerSwitchClose, DigitalInIsolated& digitalInIsolatedGateValveState,  const char* componentName = "GateValve") 
@@ -939,13 +973,27 @@ class Components{
                         actionOpen("Open", this, &GateValve::open),
                         actionClose("Close", this, &GateValve::close),
                         state(digitalInIsolatedGateValveState.getState()),
-                        statePtr("State",&state)
+                        statePtr("State",&state),
+                        openTimer(0),
+                        closeTimer(0)
                         {
                 }
             
                 void update() override {
                     state = digitalInIsolatedGateValveState.getState();
                     //Serial.println(digitalInIsolatedGateValveState.getDescription());
+                    if(openTimer > (long)0){
+                        openTimer -= 100;
+                        if(openTimer < (long)0 ){
+                            open();
+                        }
+                    }
+                    if(closeTimer > (long)0){
+                        closeTimer -= 100;
+                        if(closeTimer < (long)0 ){
+                            close();
+                        }
+                    }
                 }
                 bool getState(){
                     waitForSaveReadWrite();
@@ -953,20 +1001,26 @@ class Components{
                     return state;
                 }
                 void setState(int State){
-                    waitForSaveReadWrite();
                     State ? open() : close();
                 }
                 void open(){
-                    waitForSaveReadWrite();
+                    if(openTimer > 0) return;
                     powerSwitchClose.setState(false);
                     powerSwitchOpen.setState(true);
                 }
                 void close(){
-                    waitForSaveReadWrite();
+                    if(closeTimer > 0) return;
                     powerSwitchOpen.setState(false);
                     powerSwitchClose.setState(true);
                 }
-                
+                //open with a delay in 100ms increments
+                void open(long delay_ms){
+                    openTimer = delay_ms;
+                }
+                //close with a delay in 100ms increments
+                void close(long delay_ms){ 
+                    closeTimer = delay_ms;
+                }
 
                 //Retuns the component type
                 String const getComponentType()   {
