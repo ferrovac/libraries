@@ -1814,11 +1814,11 @@ class SceneManager{
         };
 
         
-        void showConfigMenu(){
+        void showConfigMenu(String version = "Components"){
             clearAllElementsLayer();
             std::vector<String> componentListString = getComponentListAsString();
             std::vector<BaseExposedState*> exposedStateList;
-            SelectionBox* selectionBox = new SelectionBox("Components",componentListString);
+            SelectionBox* selectionBox = new SelectionBox(version,componentListString);
             int menuLevel = 0;
             int selectionOnMenuLevel_0 = 0;
             int selectionOnMenuLevel_1 = 0;
