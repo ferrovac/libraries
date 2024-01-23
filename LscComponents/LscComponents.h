@@ -551,8 +551,21 @@ struct ExposedStateInterface {
             if(exposedState->stateType == ExposedStateType::ReadWriteSelection){
                 auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteSelection, void*>*>(exposedState);
                 return static_cast<T>(castStatePtr->index);
-            }else{
-                //TODO
+            }else if(exposedState->stateType == ExposedStateType::ReadOnly){
+                auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadOnly,volatile T>*>(exposedState);
+                return static_cast<T>(*(castStatePtr->state));
+            }else if(exposedState->stateType == ExposedStateType::ReadWrite){
+                auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWrite,volatile T>*>(exposedState);
+                return static_cast<T>(*(castStatePtr->state));
+            }else if(exposedState->stateType == ExposedStateType::ReadWriteRanged){
+                if(exposedState->typeInfo == TypeMetaInformation::DOUBLE){
+                    auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteRanged,volatile double>*>(exposedState);
+                    return static_cast<double>(*(castStatePtr->state));
+                }else if(exposedState->typeInfo == TypeMetaInformation::INT){
+                    auto castStatePtr = static_cast<ExposedState<ExposedStateType::ReadWriteRanged,volatile int>*>(exposedState);
+                    return static_cast<int>(*(castStatePtr->state));
+                }
+                
             }
         }
         const String getStateValueAsString(){

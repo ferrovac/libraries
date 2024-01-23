@@ -1714,7 +1714,7 @@ class SceneManager{
                     menuFramePtr->setTitle(Title);
                 }
                 void setSelectedIndex(int index){
-                    if(index < options.size() -1 && index >= 0){
+                    if(index < options.size() && index >= 0){
                         selectedItem = index;
                         update();
                     }
@@ -1740,8 +1740,6 @@ class SceneManager{
                 void update(){
                     if(LSC::getInstance().buttons.bt_3.hasBeenClicked() && selectedItem > 0){
                         selectedItem--;
-                             
-
                     }
                     if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && selectedItem < options.size() -1){
                         selectedItem++;
