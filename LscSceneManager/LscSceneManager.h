@@ -191,7 +191,25 @@ class SceneManager{
                 bool debugMode;
                 Selection<bool> debugModeSelection;
                 ExposedState<ExposedStateType::ReadWriteSelection, bool> debugModePtr; 
-            
+                ExposedState<ExposedStateType::Action,UI_Options> purgeSDptr;
+                void purgeSD(){
+                    auto file = SD.open("/");
+                        while(true){
+                            auto entry = file.openNextFile();
+                            if(!entry) break;
+                            const char* name = entry.name();
+                            if(entry.isDirectory()){
+                                entry.close();
+                                SD.rmdir(name);
+                            }else{
+                                entry.close();
+                                SD.remove(name);
+                            }
+                        }
+                        NVIC_SystemReset();
+
+                }
+
                 UI_Options(uint32_t bcolor, uint32_t fcolor) 
                     :   BaseComponent("System"),
                         bColor(bcolor),
@@ -201,7 +219,8 @@ class SceneManager{
                         fgc("Foreground Color",&fColor, colorSelection),
                         debugMode(false),
                         debugModeSelection({{false, "User Mode"}, {true, "Debug Mode"}}),
-                        debugModePtr("Access Mode", &debugMode, debugModeSelection)
+                        debugModePtr("Access Mode", &debugMode, debugModeSelection),
+                        purgeSDptr("Purge SD Card",this, &UI_Options::purgeSD)
                     {
                 }
                 void update()  override {
