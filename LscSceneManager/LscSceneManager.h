@@ -1630,14 +1630,13 @@ class SceneManager{
         struct SelectionBox{
             private:
                 StandardMenu *menuFramePtr;
-                std::deque<String> linesUnderScreen;
-                std::deque<String> linesOverScreen;
                 std::vector<UI_elements::TextBox *> messageTextBoxCollection;
                 std::vector<UI_elements::TextBox *> arrowCollection;
                 int maxLinesOnScreen;
                 int pages;
                 bool tooManyLinesForScreen;
                 int numberOfLines;
+                int numberOfLinesWithoutPadding;
                 String title;
                 std::vector<String> options;
                 uint32_t titleColor;
@@ -1677,7 +1676,10 @@ class SceneManager{
                     optionTrueColor(OptionTrueColor), 
                     lineColor(LineColor),
                     titleFont(TitleFont),
-                    textFont(TextFont)
+                    textFont(TextFont),
+                    page(0),
+                    options(Options),
+                    numberOfLinesWithoutPadding(0)
                 {
                     // first we disable all butttons we dont want buttion handlers to be executed while the textbox is shown
                     LSC::getInstance().buttons.bt_0.active = false;
@@ -1699,35 +1701,20 @@ class SceneManager{
                     menuFramePtr->drawRightControll();
                     createTextBoxList();
                     loadList(Options);
-                    arrowCollection[selectedItem]->setText(">");
+                    arrowCollection[selectedItem % maxLinesOnScreen]->setText(">");
                     menuFramePtr->setOfPagesNumber(pages);
                 }
-                void loadList(std::vector<String> list){
+                void loadList(std::vector<String> list, int SelectedItem = 0){
                     if(options != list){
-                        linesUnderScreen.clear();
-                        linesOverScreen.clear();
-
-                        tooManyLinesForScreen = false;
-                        numberOfLines = 0;
-                        for(String selectionLine : list){
-                            if(!tooManyLinesForScreen) messageTextBoxCollection[numberOfLines]->setText(selectionLine);// .push_back(new UI_elements::TextBox(5+tft.fontHeight(),45+numberOfLines*tft.fontHeight(), selectionLine,textFont,textColor));    
-                            if( tooManyLinesForScreen) linesUnderScreen.push_back(selectionLine);
-                            numberOfLines++;
-                            if(numberOfLines >= maxLinesOnScreen) tooManyLinesForScreen = true;   
-                        }
-                        for(int i = list.size(); i < maxLinesOnScreen; i++){
-                            messageTextBoxCollection[i]->setText("");
-                        }
-                        tft.setFreeFont(textFont);
-                        int selectedItem = 0;
-                        
+                        selectedItem = SelectedItem;
+                        options = list;
                     }
                 }
                 void setTitle(String Title){
                     menuFramePtr->setTitle(Title);
                 }
                 void setSelectedIndex(int index){
-                    if(index < maxLinesOnScreen && index >= 0){
+                    if(index < options.size() -1 && index >= 0){
                         selectedItem = index;
                         update();
                     }
@@ -1753,33 +1740,37 @@ class SceneManager{
                 void update(){
                     if(LSC::getInstance().buttons.bt_3.hasBeenClicked() && selectedItem > 0){
                         selectedItem--;
+                             
 
                     }
-                    if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && selectedItem < numberOfLines -1){
+                    if(LSC::getInstance().buttons.bt_4.hasBeenClicked() && selectedItem < options.size() -1){
                         selectedItem++;
-                        /*
-                        if(selectedItem > (page+1) * maxLinesOnScreen){
-                        int linesToPrint = linesUnderScreen.size();
-                        menuFramePtr->setCurrentPageNumber(page+1);
-                        for(int32_t i = 0; i < messageTextBoxCollection.size(); i++){
-                            linesOverScreen.push_back(messageTextBoxCollection[i]->getText());
-                            if(i > linesToPrint) continue;
-                            messageTextBoxCollection[i]->setText(linesUnderScreen.front());
-                            linesUnderScreen.pop_front();
-                        }
-                        page++;
-                        }
-                        */
                     }
+
+                    int renderIndexFrom = selectedItem / maxLinesOnScreen;
+                    renderIndexFrom *= maxLinesOnScreen;
+                    
+                    int k = 0;
+                    for(int i = renderIndexFrom; i < renderIndexFrom + maxLinesOnScreen; i++){
+                        if(i < options.size()){
+                            messageTextBoxCollection[k]->setText(options[i]);
+                        }else{
+                            messageTextBoxCollection[k]->setText("");
+                        }
+                        
+                        k++;
+                    }
+                        
                     int counter = 0;
                         for(UI_elements::TextBox* tb : arrowCollection){
-                            if(counter == selectedItem){
+                            if(counter == (selectedItem % maxLinesOnScreen)){
                                 tb->setText(">");
                             }else{
                                 tb->setText("");
                             }
                             counter++;
                         }
+                       
                 }
     
 
