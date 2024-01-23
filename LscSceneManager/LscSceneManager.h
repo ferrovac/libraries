@@ -1843,7 +1843,7 @@ class SceneManager{
                     selectionBox->update();
                     if(selectionBox->backHasBeenClicked()){
                         waitForSaveReadWrite();
-                        selectionBox->setTitle("Components");
+                        selectionBox->setTitle(version);
                         selectionBox->loadList(componentListString);
                         selectionBox->setSelectedIndex(selectionOnMenuLevel_0);
                         menuLevel--;
