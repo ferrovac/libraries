@@ -1746,6 +1746,8 @@ class SceneManager{
                     }
 
                     int renderIndexFrom = selectedItem / maxLinesOnScreen;
+                    menuFramePtr->setCurrentPageNumber(renderIndexFrom + 1);
+                    menuFramePtr->setOfPagesNumber(pages+1);
                     renderIndexFrom *= maxLinesOnScreen;
                     
                     int k = 0;
