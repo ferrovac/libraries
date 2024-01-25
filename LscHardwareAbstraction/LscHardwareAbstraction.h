@@ -843,7 +843,7 @@ class LSC{
 
     //Sends a Sting using the uart. This function is asynchronous and non blocking. Data is being sent in the background
     void println(String data){ 
-        print(data + '\n' + '\r');
+        print(data + '\n');
     }
 
 };
