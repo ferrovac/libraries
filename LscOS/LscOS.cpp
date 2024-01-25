@@ -9,8 +9,10 @@ namespace OS{
     uint32_t cycleCount=0;
     uint32_t timekeeper = 0;
     uint32_t lastOsCall = 0;    
+    String version = "vX.X.X";
 
-    void init(){
+    void init(String Version = "vX.X.X"){
+        version = Version;
         Serial.begin(115200);
         pmc_set_writeprotect(false);
         pmc_enable_periph_clk(TC5_IRQn); 
@@ -177,7 +179,27 @@ void TC5_Handler(){
 
     
    // Serial.println(micros()-start);
-
+   /*
+    if(Serial.find('@')){
+        Serial.println(OS::version);
+        auto file = SD.open("/");
+                        while(true){
+                            auto entry = file.openNextFile();
+                            if(!entry) break;
+                            const char* name = entry.name();
+                            if(entry.isDirectory()){
+                                entry.close();
+                                SD.rmdir(name);
+                            }else{
+                                entry.close();
+                                SD.remove(name);
+                            }
+                        }
+                        Serial.println("purged");
+                        Serial.flush();
+                        NVIC_SystemReset();
+    }
+   */
 
     
 }

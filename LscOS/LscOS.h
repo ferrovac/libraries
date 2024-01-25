@@ -20,13 +20,14 @@ RECOURCES:  TODO
 
 namespace OS{
   bool getBootUpState();
-  void init();
+  void init(String Version);
   void startWatchdog();
   void stopWatchdog();
   uint32_t getCycleCount();
   uint32_t getNextOsCall_ms();
   bool saveToRead();
   static volatile bool powerFailureImminent = false;
+
 }
 
 
