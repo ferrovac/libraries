@@ -51,13 +51,13 @@ struct BaseExposedState;
                     ComponentTracker::getInstance().states.push_back({ComponentTracker::getInstance().components.back(), State});
                 }
                 String getIDAsString(){
-                    return String(components.size() + String(states.size()));
+                  return String(components.size() + String(states.size()));
                 }
         };
-
+          
         
 
-/*  How to use the tracker =)
+/*  How to use the tracker 
               for(std::pair<BaseComponent*,BaseExposedState*> pair : ComponentTracker::getInstance().states){
                 Serial.println("Component: " + String(pair.first->componentName));
                 Serial.println("-> State: " + pair.second->stateName);
@@ -247,6 +247,14 @@ enum class GaugeType{
     PKR,
     TPR,
     UPR
+};
+enum class GassType{
+    N2,
+    He,
+    Ne,
+    Ar,
+    Kr,
+    Xe
 };
 
 class Gauge{
@@ -694,10 +702,14 @@ class Components{
                 volatile bool ignoreErrorState;
                 Selection<volatile bool> ignoreErrorStateSelection;
                 ExposedState<ExposedStateType::ReadWriteSelection, volatile bool> ignoreErrorStatePtr;
+                GassType gassType;
+                Selection<GassType> gasTypeSelection;
+                ExposedState<ExposedStateType::ReadWriteSelection, GassType> gassTypePtr;
+                
                 
             public:
                 friend class FIB;
-                PressureGauge(AnalogInBase &analogIn, const char* componentName = "genericPressureSensor", GaugeType gaugeType = GaugeType::PKR) 
+                PressureGauge(AnalogInBase &analogIn, const char* componentName = "genericPressureSensor", GaugeType gaugeType = GaugeType::PKR, GassType gassType = GassType::N2) 
                         :   analogIn(analogIn), 
                             BaseComponent(componentName), 
                             pressure(0), 
@@ -709,7 +721,10 @@ class Components{
                             errorState(false),
                             ignoreErrorState(false),
                             ignoreErrorStateSelection({{true,"True"},{false,"False"}}),
-                            ignoreErrorStatePtr("Ignore Error State", &ignoreErrorState, ignoreErrorStateSelection)
+                            ignoreErrorStatePtr("Ignore Error State", &ignoreErrorState, ignoreErrorStateSelection),
+                            gassType(gassType),
+                            gasTypeSelection({{GassType::N2, "N2"}, {GassType::He, "He"}, {GassType::Ne, "Ne"}, {GassType::Ar, "Ar"}, {GassType::Kr, "Kr"}, {GassType::Xe, "Xe"}}),
+                            gassTypePtr("Gas Type", &gassType, gasTypeSelection)
                         {
                 }
                 String doubleToSciString(double value) {
@@ -731,6 +746,64 @@ class Components{
                 //Returns the temperature in K
                 double getPressure(){
                     waitForSaveReadWrite();
+                    switch (gauge.gaugeType){
+                        case GaugeType::PKR :
+                            switch (gassType){
+                                case GassType::N2 :
+                                    return pressure * 1.0;
+                                    break;
+                                case GassType::He :
+                                    return pressure * 5.9;
+                                    break;
+                                case GassType::Ne :
+                                    return pressure * 4.1;
+                                    break;
+                                case GassType::Ar :
+                                    return pressure * 0.8;
+                                    break;
+                                case GassType::Kr :
+                                    return pressure * 0.5;
+                                    break;
+                                case GassType::Xe :
+                                    return pressure * 0.4;
+                                    break;
+                                default:
+                                    return pressure * 1.0;
+                                    break;
+                            }
+
+                        break;
+                        case GaugeType::TPR :
+                            switch (gassType){
+                                case GassType::N2 :
+                                    return pressure * 1.0;
+                                    break;
+                                case GassType::He :
+                                    return pressure * 0.8;
+                                    break;
+                                case GassType::Ne :
+                                    return pressure * 1.4;
+                                    break;
+                                case GassType::Ar :
+                                    return pressure * 1.7;
+                                    break;
+                                case GassType::Kr :
+                                    return pressure * 2.4;
+                                    break;
+                                case GassType::Xe :
+                                    return pressure * 3.0;
+                                    break;
+                                default:
+                                    return pressure * 1.0;
+                                    break;
+                            }
+
+                        break;
+                    
+                    default:
+                        return pressure;
+                        break;
+                    }  
                     return pressure;
                 }
                 
