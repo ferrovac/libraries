@@ -10,7 +10,7 @@ The majority of this project is covered under the GNU GENERAL PUBLIC LICENSE, Ve
 This project uses work from the following projects, either in modified form or as originally provided:
 
 - **TFT_eSPI**: [Licensed under the FreeBSD License](./TFT_eSPI/license.txt). Copyright (c) 2023 Bodmer. [GitHub Repository](https://github.com/Bodmer/TFT_eSPI)
-- **MathHelpers**: Licensed under the MIT License. [GitHub Repository](https://github.com/RobTillaart/Arduino)
+- **MathHelpers**: [Licensed under the MIT License](./MathHelpers/license.txt). Copyright (c) 2010-2024 Rob Tillaart. [GitHub Repository](https://github.com/RobTillaart/Arduino)
 - **RingBuf**: Licensed under the GNU General Public License v2 (GPLv2).
 - **TimerThree**: Licensed under Creative Commons Attribution 3.0. Credit to Paul Stoffregen. [GitHub Repository](https://github.com/PaulStoffregen/TimerThree)
 - **DueFlashStorage**: Licensed under a Custom License. Copyright (c) 2015 Sebastian Nilsson. [GitHub Repository](https://github.com/sebnil/DueFlashStorage)
