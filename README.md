@@ -1,5 +1,5 @@
 # LSC-Libraries
-Repository of all Arduino libraries needed to write firmware
+Repository of all Arduino libraries used to write firmware for the LSC controller.
 
 # Project Licensing
 
