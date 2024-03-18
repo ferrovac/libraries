@@ -3,7 +3,7 @@ Repository of all Arduino libraries used to write firmware for the LSC controlle
 
 # Project Licensing
 
-The majority of this project is covered under the GNU GENERAL PUBLIC LICENSE, Version 3. However, we strive to maintain the original open-source licenses of library files that do not directly fall under GPLv2. For more detail, see the [LICENSE](./LICENSE) file in this repository.
+The majority of this project is covered under the GNU GENERAL PUBLIC LICENSE, Version 3. However, we strive to maintain the original open-source licenses of library files that do not directly fall under GPLv3. For more detail, see the [LICENSE](./LICENSE) file in this repository.
 
 ## Third-Party Libraries
 
