@@ -34,8 +34,9 @@ RECOURCES:  TODO
 #include <Arduino.h>
 #include <SPI.h>
 #include <TFT_eSPI.h> 
-#include "../Fonts/Free_Fonts.h"
-#include "../Fonts/Final_Frontier_28.h"
+//#include "../Fonts/Free_Fonts.h"
+#include "../TFT_eSPI/Fonts/Free_Fonts.h"
+//#include "../Fonts/Final_Frontier_28.h"
 #include "LscOS.h"
 #include "vector"
 #include "math.h"
