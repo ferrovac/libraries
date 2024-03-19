@@ -1,4 +1,4 @@
-/*  Main arduino programm that controlls the Ferrovac GloveBox 
+/*  
     Copyright (C) 2024 Ferrovac AG
 
     This program is free software: you can redistribute it and/or modify
