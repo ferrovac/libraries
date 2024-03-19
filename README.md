@@ -1,5 +1,5 @@
 # LSC-Libraries
-Repository of all Arduino libraries used to write firmware for the LSC controller.
+Repository of all Arduino libraries used to write firmware for the LSC controller. This is very much a work in progress. Most of the libraries are not completed and we are currently working on proper documentation.
 
 # Project Licensing
 
