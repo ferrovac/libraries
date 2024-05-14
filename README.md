@@ -25,4 +25,9 @@ This project uses work from the following projects, either in modified form or a
 - **RingBuf**: [Licensed under the GNU General Public License v3 (GPLv3)](./RingBuf/LICENSE-GPLv3) Copyright (c) Jean-Luc Béchennec 2018 . [GitHub Repository](https://github.com/Locoduino/RingBuffer/tree/master)
 - **SD**: [Licensed under the GNU General Public License (GPLv3)](./SD/README.adoc). Copyright (C) 2009 by William Greiman, Copyright (C) 2010 by SparkFun Electronics.
 - **TJpg_Decoder**: [Licensed under the FreeBSD License](./TJpg_Decoder/license.txt). Copyright (c) 2019 Bodmer, Copyright (C) 2019 ChaN. [GitHub Repository](https://github.com/Bodmer/TJpg_Decoder)
-- **Adafruit_BusIO**: [Licensed under the MIT License](./Adafruit_BusIO/LICENSE). Copyright (c) 2017 Adafruit Industries. [GitHub Repository](https://github.com/adafruit/Adafruit_BusIO)
+- **Adafruit_BusIO**: [Licensed under the MIT License](./Adafruit_BusIO/LICENSE). Copyright (c) 2017 Adafruit Industries. [GitHub Repository](https://github.com/adafruit/Adafruit_BusIO
+
+# Library Documentation
+## LscScene Manager
+## LscOS
+## LscComponent
