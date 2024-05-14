@@ -27,6 +27,8 @@ This project uses work from the following projects, either in modified form or a
 - **TJpg_Decoder**: [Licensed under the FreeBSD License](./TJpg_Decoder/license.txt). Copyright (c) 2019 Bodmer, Copyright (C) 2019 ChaN. [GitHub Repository](https://github.com/Bodmer/TJpg_Decoder)
 - **Adafruit_BusIO**: [Licensed under the MIT License](./Adafruit_BusIO/LICENSE). Copyright (c) 2017 Adafruit Industries. [GitHub Repository](https://github.com/adafruit/Adafruit_BusIO
 
+# Gettign Started
+
 # Library Documentation
 ## LscSceneManager
 ## LscOS
