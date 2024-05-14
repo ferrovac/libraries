@@ -28,6 +28,9 @@ This project uses work from the following projects, either in modified form or a
 - **Adafruit_BusIO**: [Licensed under the MIT License](./Adafruit_BusIO/LICENSE). Copyright (c) 2017 Adafruit Industries. [GitHub Repository](https://github.com/adafruit/Adafruit_BusIO
 
 # Library Documentation
-## LscScene Manager
+## LscSceneManager
 ## LscOS
-## LscComponent
+## LscComponents
+## LscPersistence
+## LscHardwareAbstraction
+## LscError
