@@ -294,6 +294,17 @@ class Gauge{
             }
             return 0;
         }
+        double getLowerCutOff(){
+            switch(gaugeType){
+                case GaugeType::PKR:
+                    return 0.00000015;
+                case GaugeType::TPR:
+                    return 0.015;
+                case GaugeType::UPR:
+                    return 0.00000015;
+            }
+            return 0;
+        }
 };
 
 
@@ -749,6 +760,7 @@ class Components{
                 }
                 String doubleToSciString(double value) {
                     if(value == 0) return "0.00E+00";
+                    
                     int exponent = static_cast<int>(floor(log10(value)));
                     double mantissa = value / pow(10, exponent);
                     int correction = 0;
@@ -761,6 +773,7 @@ class Components{
                     if(exponent <= -10) return String(mantissa,2) + "E" + String(exponent+correction);
                     if(exponent <  0) return String(mantissa,2) + "E-0" + String(abs(exponent-correction));
                     ERROR_HANDLER.throwError(0x0, "Failed to corretly format number in scientific notation. This has to be an error in LscComponents lib. see doubleToSciString()",SeverityLevel::NORMAL);
+                    
                     return String(value,10);
                 }
                 //Returns the temperature in K
@@ -823,7 +836,7 @@ class Components{
                     default:
                         return pressure;
                         break;
-                    }  
+                    }   
                     return pressure;
                 }
                 
@@ -831,6 +844,7 @@ class Components{
                 String getPressureAsString(bool printUnitSuffix = true) {
                     waitForSaveReadWrite();
                     if(errorState && !ignoreErrorState) return "ERROR";
+                    if(pressure <= gauge.getLowerCutOff()) return "---UR---" ;
                     if(printUnitSuffix){
                         return doubleToSciString(displayUnit.convertFromSI(getPressure())) + displayUnit.getSuffix();
                     }else{
