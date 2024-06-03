@@ -26,6 +26,16 @@ This project uses work from the following projects, either in modified form or a
 - **SD**: [Licensed under the GNU General Public License (GPLv3)](./SD/README.adoc). Copyright (C) 2009 by William Greiman, Copyright (C) 2010 by SparkFun Electronics.
 - **TJpg_Decoder**: [Licensed under the FreeBSD License](./TJpg_Decoder/license.txt). Copyright (c) 2019 Bodmer, Copyright (C) 2019 ChaN. [GitHub Repository](https://github.com/Bodmer/TJpg_Decoder)
 - **Adafruit_BusIO**: [Licensed under the MIT License](./Adafruit_BusIO/LICENSE). Copyright (c) 2017 Adafruit Industries. [GitHub Repository](https://github.com/adafruit/Adafruit_BusIO)
+# Changelog
+
+All notable changes to this project will be documented here.
+
+## [Unreleased]
+## [1.1.0]
+### Improvement
+- Pressure gauges now display `---UR---` when the pressure is below the measurable range
+## [1.0.0] 
+First stable release
 
 # Gettign Started
 
