@@ -31,6 +31,9 @@ This project uses work from the following projects, either in modified form or a
 All notable changes to this project will be documented here.
 
 ## [Unreleased]
+## [1.2.0]
+### Improvement
+- Added SENS4 gauge as option
 ## [1.1.0]
 ### Improvement
 - Pressure gauges now display `---UR---` when the pressure is below the measurable range
