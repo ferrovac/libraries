@@ -266,7 +266,8 @@ class Unit<Units::Pressure> : BaseUnit{
 enum class GaugeType{
     PKR,
     TPR,
-    VPM5
+    VPM5,
+    BGP400
 };
 enum class GassType{
     N2,
@@ -281,7 +282,7 @@ class Gauge{
     public:
         GaugeType gaugeType;
         Selection<GaugeType> selection;
-        Gauge(GaugeType gaugeType) : gaugeType(gaugeType), selection({{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"},{GaugeType::VPM5, "VPM5"}}){
+        Gauge(GaugeType gaugeType) : gaugeType(gaugeType), selection({{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"},{GaugeType::VPM5, "VPM5"},{GaugeType::BGP400, "BGP400"}}){
         }
         double getPressureFromVoltage(double voltage){
             switch(gaugeType){
@@ -291,6 +292,8 @@ class Gauge{
                     return pow(10., (voltage-3.5));
                 case GaugeType::VPM5:
                     return pow(10., (voltage-4.5));
+                case GaugeType::BGP400:
+                    return pow(10., (voltage-7.75)/0.75+2);
             }
             return 0;
         }
@@ -302,6 +305,8 @@ class Gauge{
                     return 0.015;
                 case GaugeType::VPM5:
                     return 0.00000015;
+                case GaugeType::BGP400:
+                    return 1e-9;
             }
             return 0;
         }
