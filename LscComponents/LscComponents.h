@@ -292,7 +292,7 @@ class Gauge{
                 case GaugeType::TPR:
                     return pow(10., (voltage-3.5));
                 case GaugeType::VPM5:
-                    return pow(10., (voltage-4.5));
+                    return pow(10., (voltage-6.5));  //still not sure this is correct....
                 case GaugeType::BGP400:
                     return pow(10., (voltage-7.75)/0.75+2);
                 case GaugeType::IKR270:
