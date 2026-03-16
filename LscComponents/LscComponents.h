@@ -268,7 +268,8 @@ enum class GaugeType{
     TPR,
     VPM5,
     BGP400,
-    IKR270
+    IKR270,
+    VPMF //This is not an official gauge type, we use a VPM5 to emulate a PKR
 };
 enum class GassType{
     N2,
@@ -283,7 +284,7 @@ class Gauge{
     public:
         GaugeType gaugeType;
         Selection<GaugeType> selection;
-        Gauge(GaugeType gaugeType) : gaugeType(gaugeType), selection({{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"}, {GaugeType::VPM5, "VPM5"}, {GaugeType::BGP400, "BGP400"}, {GaugeType::IKR270, "IKR270"}}){
+        Gauge(GaugeType gaugeType) : gaugeType(gaugeType), selection({{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"}, {GaugeType::VPM5, "VPM5"}, {GaugeType::BGP400, "BGP400"}, {GaugeType::IKR270, "IKR270"}, {GaugeType::VPMF, "VPMF"}}){
         }
         double getPressureFromVoltage(double voltage){
             switch(gaugeType){
@@ -297,6 +298,8 @@ class Gauge{
                     return pow(10., (voltage-7.75)/0.75+2);
                 case GaugeType::IKR270:
                     return pow(10., (1.25*voltage)-10.75);
+                case GaugeType::VPMF:
+                    return pow(10., (1.667*voltage)-9.333);
             }
             return 0;
         }
@@ -312,6 +315,8 @@ class Gauge{
                     return 1e-9;
                 case GaugeType::IKR270:
                     return 1e-9;
+                case GaugeType::VPMF:
+                    return 1e-6;
             }
             return 0;
         }
