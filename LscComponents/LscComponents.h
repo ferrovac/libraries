@@ -284,7 +284,7 @@ class Gauge{
     public:
         GaugeType gaugeType;
         Selection<GaugeType> selection;
-        Gauge(GaugeType gaugeType) : gaugeType(gaugeType), selection({{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"}, {GaugeType::VPM5, "VPM5"}, {GaugeType::BGP400, "BGP400"}, {GaugeType::IKR270, "IKR270"}, {GaugeType::VPMF, "VPMF"}}){
+        Gauge(GaugeType gaugeType) : gaugeType(gaugeType), selection({{GaugeType::PKR, "PKR"} ,{GaugeType::TPR, "TPR"}, {GaugeType::VPM5, "VPM5"}, {GaugeType::BGP400, "BGP400"}, {GaugeType::IKR270, "IKR270"}, {GaugeType::VPMF, "VPM5 as PKR"}}){
         }
         double getPressureFromVoltage(double voltage){
             switch(gaugeType){
